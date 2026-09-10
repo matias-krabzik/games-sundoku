@@ -31,19 +31,22 @@ The selected available node has a shimmering gold halo and lens-like glints. Whe
 changes, a light trail travels to the new node while the old glow fades out.
 `lib/widgets/map_selection_light.dart` paints this in a viewport-sized isolated
 layer, follows scrolling, retargets rapid selections, and respects reduced motion.
-`LevelProgress` is owned by the app and shared by home and map for the current
-session. Level 1 starts available with no score. Three performance points in
+`GameRepository` persists the local profile, settings and progress in SQLite.
+`LevelProgress` adapts its records for home and map. See `docs/guardado-local.md`
+for model diagrams, the save format and integration APIs.
+Level 1 starts available with no score. Three completion lights in
 level N unlock N+1; points belong to the played level and are never a currency
 paid into a locked level. Locked nodes have a dormant appearance and a padlock;
 available nodes display their own three score sockets. `recordResult` preserves
-the best score. Scoring criteria await the Sudoku screen; no disk persistence yet.
+the best score. Each level has three fixed sudokus; completing one grants one light.
+The Sudoku screen and any additional scoring formula are still pending.
 
 Debug-only DEV controls simulate one point, simulate a full three-point result,
 or clear the selected level and later progress for replay. Each simulated point
 flies into a socket before its score is recorded. On the third arrival the next
 node warms up, loses its padlock, and receives the selection light as the camera
 centers it. Reduced motion skips the travel. Leaving the map cancels an in-flight
-point; already delivered points survive route changes. The home shows the same
+point; already delivered points survive app restarts. The home shows the same
 unlocked count and latest available level.
 
 Next: build a very simple Sudoku game screen, without the illustrated world theme,
@@ -64,22 +67,24 @@ images in `LaunchImage.imageset`, and the illustrated background in
 grows it gently so the native-to-Flutter handoff does not flash.
 
 Layout:
-- `lib/main.dart` — entry point, runs `SunDokuApp`.
+- `lib/main.dart` — entry point, opens persistent state via `BootstrapApp`.
 - `lib/app.dart` — `MaterialApp`, theme, named-route table.
 - `lib/routes.dart` — route name constants (`AppRoutes`).
 - `lib/theme.dart` — "Sol" palette, `sunSkyGradient`, `buildSunDokuTheme()`.
-- `lib/data/` — static game data (level node positions).
+- `lib/data/` — catalog, save repositories and storage services.
+- `lib/domain/models/` — immutable game state and JSON models, without Flutter imports.
+- `lib/controllers/` — gameplay commands, active time and lifecycle checkpoints.
 - `lib/widgets/` — reusable widgets (`SunMark`/`SunLogo`, toast).
 - `lib/screens/` — one file per screen.
 
 Navigation is plain `Navigator` + named routes; revisit `go_router` when the story
-flow (chapters gating on puzzle completion) takes shape. Settings values are
-in-memory — add a persisted settings service before relying on them.
+flow (chapters gating on puzzle completion) takes shape. Settings are persisted
+through `GameRepository`; the default player name remains `Jugador`.
 
 ## Architecture direction
 
-There is no code architecture to preserve yet. When building it out, keep two
-concerns cleanly separated:
+Preserve the immutable domain models, repository and storage boundary documented
+in `docs/guardado-local.md`. Keep two concerns cleanly separated:
 
 1. **Sudoku engine** — puzzle generation, board model, validation, solver, hint
    logic, difficulty tuning. Pure Dart, no Flutter imports, independently unit

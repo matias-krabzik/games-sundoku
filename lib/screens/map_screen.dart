@@ -66,13 +66,18 @@ class _MapScreenState extends State<MapScreen>
           await _award.forward(from: 0).orCancel;
         }
         if (!mounted) return;
-        _progress.awardLight(level);
+        await _progress.awardLight(level);
+        if (!mounted) return;
         if (_progress.lightsFor(level) == 3 && level < kMap1Nodes.length) {
           nextLevel = level + 1;
         }
       }
     } on TickerCanceled {
       // Leaving the map cancels the pending light without awarding it.
+    } catch (_) {
+      if (mounted) {
+        showToast(context, 'No se pudo guardar el progreso. Intentá de nuevo.');
+      }
     } finally {
       if (mounted) {
         setState(() => _awardingLevel = null);
@@ -82,6 +87,17 @@ class _MapScreenState extends State<MapScreen>
   }
 
   final ScrollController _scroll = ScrollController();
+
+  Future<void> _resetLevel() async {
+    try {
+      await _progress.resetLevel(_activeLevel);
+    } catch (_) {
+      if (mounted) {
+        showToast(context, 'No se pudo guardar el progreso. Intentá de nuevo.');
+      }
+    }
+  }
+
   int _activeLevel = 1;
   Size _viewport = Size.zero;
   double _worldWidth = 0;
@@ -334,8 +350,7 @@ class _MapScreenState extends State<MapScreen>
                                         _awardingLevel == null &&
                                             _progress.lightsFor(_activeLevel) >
                                                 0
-                                        ? () =>
-                                              _progress.resetLevel(_activeLevel)
+                                        ? _resetLevel
                                         : null,
                                   ),
                                 ],

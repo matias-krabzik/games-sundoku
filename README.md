@@ -3,6 +3,13 @@
 Novela visual de Sudoku para niños, con Sol como mascota. La historia se cuenta
 entre y a través de partidas de Sudoku.
 
+## Datos y progreso
+
+El progreso y los ajustes se guardan localmente, sin login. Cada nivel contiene
+tres sudokus fijos y conserva los mejores resultados al repetirlo.
+
+Ver [estructura de datos, diagramas y guía de integración](docs/guardado-local.md).
+
 ## Requisitos
 
 - Flutter SDK (canal `stable`, 3.47.x o superior) — incluye Dart.

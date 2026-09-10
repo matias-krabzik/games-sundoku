@@ -1,38 +1,55 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import 'level_catalog.dart';
 import 'level_node.dart';
+import 'repositories/game_repository.dart';
 
-/// Best performance per level, kept for the current application session.
-/// Three points in a playable level unlock the following level.
+/// Presents the current map's saved records; challenge rules live in the catalog.
 class LevelProgress extends ChangeNotifier {
-  static const int requiredLights = 3;
-  final List<int> _lights = List.filled(kMap1Nodes.length, 0);
+  LevelProgress({GameRepository? repository})
+    : _repository = repository ?? GameRepository.memory(),
+      _ownsRepository = repository == null {
+    _repository.addListener(notifyListeners);
+  }
 
-  int lightsFor(int level) => _lights[level - 1];
-  bool isUnlocked(int level) =>
-      level == 1 ||
-      _lights.take(level - 1).every((points) => points == requiredLights);
+  static const int requiredLights = 3;
+  final GameRepository _repository;
+  final bool _ownsRepository;
+
+  String _id(int level) {
+    RangeError.checkValueInInterval(level, 1, kMap1Nodes.length, 'level');
+    return mapLevelId(level);
+  }
+
+  int lightsFor(int level) =>
+      _repository.state.progress[_id(level)]?.bestLights ?? 0;
+  bool isUnlocked(int level) => _repository.state.isUnlocked(_id(level));
   int get unlockedCount =>
       kMap1Nodes.where((node) => isUnlocked(node.level)).length;
-  int get latestUnlocked => unlockedCount;
+  int get latestUnlocked =>
+      kMap1Nodes.lastWhere((node) => isUnlocked(node.level)).level;
 
-  void awardLight(int level) {
-    if (!isUnlocked(level) || lightsFor(level) >= requiredLights) return;
-    recordResult(level, lightsFor(level) + 1);
+  Future<void> awardLight(int level) =>
+      recordResult(level, (lightsFor(level) + 1).clamp(0, requiredLights));
+
+  /// Development simulation only. Real lights come from completed sudokus.
+  Future<void> recordResult(int level, int score) =>
+      _repository.recordDebugLights(_id(level), score);
+
+  Future<void> resetLevel(int level) {
+    _id(level);
+    return _repository.resetDebugLevels({
+      for (final node in kMap1Nodes.where((node) => node.level >= level))
+        _id(node.level),
+    });
   }
 
-  /// Preserve the best result: replaying with a lower score never removes it.
-  void recordResult(int level, int score) {
-    RangeError.checkValueInInterval(score, 0, requiredLights, 'score');
-    if (!isUnlocked(level) || score <= lightsFor(level)) return;
-    _lights[level - 1] = score;
-    notifyListeners();
-  }
-
-  /// Clear this result and subsequent progress so development can replay it.
-  void resetLevel(int level) {
-    if (lightsFor(level) == 0) return;
-    _lights.fillRange(level - 1, _lights.length, 0);
-    notifyListeners();
+  @override
+  void dispose() {
+    _repository.removeListener(notifyListeners);
+    if (_ownsRepository) unawaited(_repository.close());
+    super.dispose();
   }
 }

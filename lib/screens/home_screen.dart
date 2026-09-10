@@ -7,6 +7,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 import '../routes.dart';
 import '../data/level_node.dart';
+import '../widgets/game_feedback_scope.dart';
 
 const Color _navy = Color(0xFF082A62);
 const Color _gold = Color(0xFFFFC928);
@@ -25,106 +26,115 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const _ParallaxBackground(),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final bool wideShort =
-                    constraints.maxWidth >= 700 && constraints.maxHeight < 520;
-                if (wideShort) {
-                  return _WideHomeLayout(
-                    constraints: constraints,
-                    availableLevel: availableLevel,
-                    unlockedLevels: unlockedLevels,
+    return TickerMode(
+      enabled: ModalRoute.of(context)?.isCurrent ?? true,
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const _ParallaxBackground(),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool wideShort =
+                      constraints.maxWidth >= 700 &&
+                      constraints.maxHeight < 520;
+                  if (wideShort) {
+                    return _WideHomeLayout(
+                      constraints: constraints,
+                      availableLevel: availableLevel,
+                      unlockedLevels: unlockedLevels,
+                    );
+                  }
+
+                  final bool veryShort = constraints.maxHeight < 620;
+                  final bool compact = constraints.maxHeight < 720;
+                  final double horizontalPadding = compact ? 16 : 20;
+                  final double contentWidth = constraints.maxWidth.clamp(
+                    0,
+                    560,
                   );
-                }
+                  final double innerWidth =
+                      contentWidth - horizontalPadding * 2;
+                  final double logoWidth =
+                      (innerWidth * (veryShort ? 0.72 : 0.82))
+                          .clamp(190, 330)
+                          .toDouble();
+                  final double headerHeight = veryShort
+                      ? 96
+                      : compact
+                      ? 118
+                      : 168;
 
-                final bool veryShort = constraints.maxHeight < 620;
-                final bool compact = constraints.maxHeight < 720;
-                final double horizontalPadding = compact ? 16 : 20;
-                final double contentWidth = constraints.maxWidth.clamp(0, 560);
-                final double innerWidth = contentWidth - horizontalPadding * 2;
-                final double logoWidth =
-                    (innerWidth * (veryShort ? 0.72 : 0.82))
-                        .clamp(190, 330)
-                        .toDouble();
-                final double headerHeight = veryShort
-                    ? 96
-                    : compact
-                    ? 118
-                    : 168;
-
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 560),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        compact ? 6 : 12,
-                        horizontalPadding,
-                        compact ? 10 : 18,
-                      ),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: headerHeight,
-                            child: Stack(
-                              children: [
-                                Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: _AnimatedLogo(width: logoWidth),
-                                ),
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: _SettingsButton(
-                                    compact: compact,
-                                    onPressed: () =>
-                                        Navigator.of(context)
-                                            .pushNamed(AppRoutes.settings),
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          compact ? 6 : 12,
+                          horizontalPadding,
+                          compact ? 10 : 18,
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: headerHeight,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: _AnimatedLogo(width: logoWidth),
                                   ),
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: _SettingsButton(
+                                      compact: compact,
+                                      onPressed: () =>
+                                          Navigator.of(context)
+                                              .pushNamed(AppRoutes.settings),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: compact ? 18 : 4,
                                 ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: compact ? 18 : 4,
-                              ),
-                              child: Image.asset(
-                                'assets/images/doku-home.png',
-                                fit: BoxFit.contain,
-                                alignment: Alignment.bottomCenter,
-                                semanticLabel: 'Doku saluda alegremente',
+                                child: Image.asset(
+                                  'assets/images/doku-home.png',
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.bottomCenter,
+                                  semanticLabel: 'Doku saluda alegremente',
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(height: compact ? 4 : 8),
-                          _PlayButton(
-                            compact: compact,
-                            onPressed: () =>
-                                Navigator.of(context).pushNamed(AppRoutes.map),
-                          ),
-                          SizedBox(height: compact ? 10 : 14),
-                          _GameStatusCard(
-                            compact: compact,
-                            availableLevel: availableLevel,
-                            unlockedLevels: unlockedLevels,
-                          ),
-                        ],
+                            SizedBox(height: compact ? 4 : 8),
+                            _PlayButton(
+                              compact: compact,
+                              onPressed: () =>
+                                  Navigator.of(context)
+                                      .pushNamed(AppRoutes.map),
+                            ),
+                            SizedBox(height: compact ? 10 : 14),
+                            _GameStatusCard(
+                              compact: compact,
+                              availableLevel: availableLevel,
+                              unlockedLevels: unlockedLevels,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -548,7 +558,10 @@ class _SettingsButton extends StatelessWidget {
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onPressed,
+          onTap: () {
+            GameFeedbackScope.tap(context);
+            onPressed();
+          },
           child: Icon(
             Icons.settings_rounded,
             color: _navy,
@@ -597,26 +610,36 @@ class _PlayButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: onPressed,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.play_arrow_rounded,
-                  color: _navy,
-                  size: compact ? 38 : 44,
+            onTap: () {
+              GameFeedbackScope.tap(context);
+              onPressed();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.play_arrow_rounded,
+                      color: _navy,
+                      size: compact ? 38 : 44,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Jugar',
+                      style: TextStyle(
+                        color: _navy,
+                        fontSize: compact ? 27 : 31,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Jugar',
-                  style: TextStyle(
-                    color: _navy,
-                    fontSize: compact ? 27 : 31,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

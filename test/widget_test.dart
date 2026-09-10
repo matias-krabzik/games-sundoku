@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sundoku/app.dart';
+import 'package:sundoku/data/services/game_feedback.dart';
 import 'package:sundoku/screens/home_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
 
 Future<void> _bootToHome(WidgetTester tester) async {
-  await tester.pumpWidget(const SunDokuApp());
+  await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
   await tester.pump(const Duration(seconds: 3)); // wait out the splash
   await tester.pump(const Duration(seconds: 1));
 }
@@ -59,7 +60,7 @@ void main() {
   });
 
   testWidgets('splash advances to the home screen', (tester) async {
-    await tester.pumpWidget(const SunDokuApp());
+    await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
     expect(find.byType(HomeScreen), findsNothing);
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 1));
@@ -72,7 +73,7 @@ void main() {
     await _bootToHome(tester);
     await tester.tap(find.byIcon(Icons.settings_rounded));
     await tester.pumpAndSettle();
-    expect(find.text('Ajustes'), findsOneWidget);
+    expect(find.text('Configuración'), findsOneWidget);
   });
 
   testWidgets('play opens the map and a level shows a toast', (tester) async {

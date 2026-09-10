@@ -57,23 +57,23 @@ void main() {
 
   test(
     'three points in the previous level unlock the next, without scoring it',
-    () {
+    () async {
       final progress = LevelProgress();
       addTearDown(progress.dispose);
       expect(progress.isUnlocked(1), isTrue);
       expect(progress.lightsFor(1), 0);
-      progress.awardLight(2);
+      await progress.awardLight(2);
       expect(progress.lightsFor(2), 0);
       for (int i = 1; i <= 3; i++) {
-        progress.awardLight(1);
+        await progress.awardLight(1);
         expect(progress.isUnlocked(2), i == 3);
       }
-      progress.awardLight(1);
+      await progress.awardLight(1);
       expect(progress.lightsFor(1), 3);
       expect(progress.lightsFor(2), 0);
       expect(progress.isUnlocked(3), isFalse);
-      progress.awardLight(2);
-      progress.resetLevel(1);
+      await progress.awardLight(2);
+      await progress.resetLevel(1);
       expect(progress.isUnlocked(1), isTrue);
       expect(progress.isUnlocked(2), isFalse);
       expect(progress.lightsFor(2), 0);

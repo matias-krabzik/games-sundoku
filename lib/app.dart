@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'routes.dart';
 import 'data/level_progress.dart';
+import 'data/repositories/game_repository.dart';
+import 'data/services/game_feedback.dart';
+import 'data/services/device_game_feedback.dart';
+import 'widgets/game_feedback_scope.dart';
 import 'theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
@@ -10,40 +16,53 @@ import 'screens/map_screen.dart';
 
 /// Root of the app. Wires the theme and the top-level route table.
 class SunDokuApp extends StatefulWidget {
-  const SunDokuApp({super.key});
+  const SunDokuApp({super.key, this.repository, this.feedback});
+
+  final GameRepository? repository;
+  final GameFeedback? feedback;
 
   @override
   State<SunDokuApp> createState() => _SunDokuAppState();
 }
 
 class _SunDokuAppState extends State<SunDokuApp> {
-  final LevelProgress _progress = LevelProgress();
+  late final GameRepository _repository =
+      widget.repository ?? GameRepository.memory();
+  late final LevelProgress _progress = LevelProgress(repository: _repository);
+  late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
 
   @override
   void dispose() {
     _progress.dispose();
+    if (widget.repository == null) unawaited(_repository.close());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SunDoku',
-      debugShowCheckedModeBanner: false,
-      theme: buildSunDokuTheme(),
-      initialRoute: AppRoutes.splash,
-      routes: {
-        AppRoutes.splash: (_) => const SplashScreen(),
-        AppRoutes.home: (_) => ListenableBuilder(
-          listenable: _progress,
-          builder: (_, _) => HomeScreen(
-            availableLevel: _progress.latestUnlocked,
-            unlockedLevels: _progress.unlockedCount,
+    return GameFeedbackHost(
+      repository: _repository,
+      output: _feedback,
+      child: MaterialApp(
+        title: 'SunDoku',
+        debugShowCheckedModeBanner: false,
+        theme: buildSunDokuTheme(),
+        initialRoute: AppRoutes.splash,
+        routes: {
+          AppRoutes.splash: (_) => const SplashScreen(),
+          AppRoutes.home: (_) => ListenableBuilder(
+            listenable: _progress,
+            builder: (_, _) => HomeScreen(
+              availableLevel: _progress.latestUnlocked,
+              unlockedLevels: _progress.unlockedCount,
+            ),
           ),
-        ),
-        AppRoutes.settings: (_) => const SettingsScreen(),
-        AppRoutes.map: (_) => MapScreen(progress: _progress),
-      },
+          AppRoutes.map: (_) => MapScreen(progress: _progress),
+        },
+        onGenerateRoute: (settings) => settings.name == AppRoutes.settings
+            ? SettingsRoute(repository: _repository, settings: settings)
+            : null,
+      ),
     );
   }
 }
