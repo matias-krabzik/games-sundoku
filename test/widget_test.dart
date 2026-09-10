@@ -15,6 +15,9 @@ Future<void> _bootToHome(WidgetTester tester) async {
 Future<void> _openMap(WidgetTester tester) async {
   await _bootToHome(tester);
   await tester.tap(find.text('Jugar'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.pump(const Duration(milliseconds: 200));
   await _finishMapTransition(tester);
 }
 
@@ -25,6 +28,43 @@ Future<void> _finishMapTransition(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('home controls stay reachable with long names and rotation', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    for (final size in [
+      const Size(320, 568),
+      const Size(568, 320),
+      const Size(844, 390),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: HomeScreen(
+            playerName: 'Un nombre de jugador especialmente largo',
+          ),
+        ),
+      );
+      await tester.pump();
+      for (final key in ['home-profile', 'home-settings', 'home-play']) {
+        expect(find.byKey(ValueKey(key)).hitTestable(), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+      final profile = tester.getTopLeft(
+        find.byKey(const ValueKey('home-profile')),
+      );
+      final settings = tester.getTopLeft(
+        find.byKey(const ValueKey('home-settings')),
+      );
+      expect(profile.dy, settings.dy);
+      expect(profile.dx, lessThan(settings.dx));
+    }
+  });
+
   testWidgets('map light handles rapid selection and reduced motion', (
     tester,
   ) async {
@@ -66,12 +106,12 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('Jugar'), findsOneWidget);
-    expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-settings')), findsOneWidget);
   });
 
   testWidgets('settings button opens settings', (tester) async {
     await _bootToHome(tester);
-    await tester.tap(find.byIcon(Icons.settings_rounded));
+    await tester.tap(find.byKey(const ValueKey('home-settings')));
     await tester.pumpAndSettle();
     expect(find.text('Configuración'), findsOneWidget);
   });

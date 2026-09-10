@@ -44,7 +44,7 @@ Future<void> _open(
   );
   await tester.pump(const Duration(seconds: 3));
   await tester.pump(const Duration(seconds: 1));
-  await tester.tap(find.byIcon(Icons.settings_rounded));
+  await tester.tap(find.byKey(const ValueKey('home-settings')));
   await tester.pumpAndSettle();
 }
 

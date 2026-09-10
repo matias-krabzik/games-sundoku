@@ -69,6 +69,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/settings/
+    - assets/images/home/
     - assets/audio/
     - assets/fonts/OFL-Baloo2.txt
 

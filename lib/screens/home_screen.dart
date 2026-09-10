@@ -8,230 +8,377 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../routes.dart';
 import '../data/level_node.dart';
 import '../widgets/game_feedback_scope.dart';
+import '../widgets/home_art.dart';
+import '../widgets/juicy_press.dart';
+import '../widgets/settings_art.dart';
 
-const Color _navy = Color(0xFF082A62);
-const Color _gold = Color(0xFFFFC928);
-const Color _goldDark = Color(0xFFF39A08);
-
-/// Sunny title screen with Doku, the primary play action, and game progress.
+/// Sunny title screen with Doku, illustrated controls, and live game progress.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
     this.availableLevel = 1,
     this.unlockedLevels = 1,
+    this.playerName = 'Jugador',
   });
 
   final int availableLevel;
   final int unlockedLevels;
+  final String playerName;
 
   @override
-  Widget build(BuildContext context) {
-    return TickerMode(
-      enabled: ModalRoute.of(context)?.isCurrent ?? true,
-      child: Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            const _ParallaxBackground(),
-            SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final bool wideShort =
-                      constraints.maxWidth >= 700 &&
-                      constraints.maxHeight < 520;
-                  if (wideShort) {
-                    return _WideHomeLayout(
-                      constraints: constraints,
-                      availableLevel: availableLevel,
-                      unlockedLevels: unlockedLevels,
-                    );
-                  }
-
-                  final bool veryShort = constraints.maxHeight < 620;
-                  final bool compact = constraints.maxHeight < 720;
-                  final double horizontalPadding = compact ? 16 : 20;
-                  final double contentWidth = constraints.maxWidth.clamp(
-                    0,
-                    560,
-                  );
-                  final double innerWidth =
-                      contentWidth - horizontalPadding * 2;
-                  final double logoWidth =
-                      (innerWidth * (veryShort ? 0.72 : 0.82))
-                          .clamp(190, 330)
-                          .toDouble();
-                  final double headerHeight = veryShort
-                      ? 96
-                      : compact
-                      ? 118
-                      : 168;
-
-                  return Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 560),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          compact ? 6 : 12,
-                          horizontalPadding,
-                          compact ? 10 : 18,
-                        ),
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: headerHeight,
-                              child: Stack(
+  Widget build(BuildContext context) => TickerMode(
+    enabled: ModalRoute.of(context)?.isCurrent ?? true,
+    child: Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const _ParallaxBackground(),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, viewport) {
+                final landscape = viewport.maxWidth > viewport.maxHeight * 1.2;
+                final height = math.max(300.0, viewport.maxHeight);
+                final content = Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: landscape ? 960 : 500,
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        8,
+                        16,
+                        landscape ? 14 : (height * .045).clamp(18, 38),
+                      ),
+                      child: Column(
+                        children: [
+                          _HomeHeader(playerName: playerName),
+                          if (landscape)
+                            Expanded(
+                              child: Row(
                                 children: [
-                                  Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: _AnimatedLogo(width: logoWidth),
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        const _AnimatedLogo(width: 240),
+                                        const Expanded(child: _Doku()),
+                                      ],
+                                    ),
                                   ),
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: _SettingsButton(
-                                      compact: compact,
-                                      onPressed: () =>
-                                          Navigator.of(context)
-                                              .pushNamed(AppRoutes.settings),
+                                  const SizedBox(width: 18),
+                                  Expanded(
+                                    child: Center(
+                                      child: _HomeActions(
+                                        availableLevel: availableLevel,
+                                        unlockedLevels: unlockedLevels,
+                                        compact: true,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: compact ? 18 : 4,
-                                ),
-                                child: Image.asset(
-                                  'assets/images/doku-home.png',
-                                  fit: BoxFit.contain,
-                                  alignment: Alignment.bottomCenter,
-                                  semanticLabel: 'Doku saluda alegremente',
+                            )
+                          else ...[
+                            SizedBox(height: height < 650 ? 2 : 8),
+                            LayoutBuilder(
+                              builder: (context, space) => _AnimatedLogo(
+                                width: math.min(
+                                  space.maxWidth * .94,
+                                  height * .46,
                                 ),
                               ),
                             ),
-                            SizedBox(height: compact ? 4 : 8),
-                            _PlayButton(
-                              compact: compact,
-                              onPressed: () =>
-                                  Navigator.of(context)
-                                      .pushNamed(AppRoutes.map),
-                            ),
-                            SizedBox(height: compact ? 10 : 14),
-                            _GameStatusCard(
-                              compact: compact,
+                            const Expanded(child: _Doku()),
+                            const SizedBox(height: 8),
+                            _HomeActions(
                               availableLevel: availableLevel,
                               unlockedLevels: unlockedLevels,
+                              compact: height < 650,
                             ),
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+                return viewport.maxHeight < 300
+                    ? SingleChildScrollView(
+                        child: SizedBox(height: height, child: content),
+                      )
+                    : content;
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _WideHomeLayout extends StatelessWidget {
-  const _WideHomeLayout({
-    required this.constraints,
-    required this.availableLevel,
-    required this.unlockedLevels,
-  });
-
-  final int availableLevel;
-  final int unlockedLevels;
-
-  final BoxConstraints constraints;
+class _Doku extends StatelessWidget {
+  const _Doku();
 
   @override
-  Widget build(BuildContext context) {
-    final double logoWidth = (constraints.maxWidth * 0.38)
-        .clamp(250, 330)
-        .toDouble();
+  Widget build(BuildContext context) => Image.asset(
+    'assets/images/doku-home.png',
+    fit: BoxFit.contain,
+    alignment: Alignment.bottomCenter,
+    semanticLabel: 'Doku saluda alegremente',
+  );
+}
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 920),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-          child: Stack(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: 104,
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: _AnimatedLogo(width: logoWidth),
-                          ),
-                        ),
-                        Expanded(
-                          child: Image.asset(
-                            'assets/images/doku-home.png',
-                            fit: BoxFit.contain,
-                            alignment: Alignment.bottomCenter,
-                            semanticLabel: 'Doku saluda alegremente',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    flex: 5,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 350),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _PlayButton(
-                              compact: true,
-                              onPressed: () =>
-                                  Navigator.of(context)
-                                      .pushNamed(AppRoutes.map),
-                            ),
-                            const SizedBox(height: 18),
-                            _GameStatusCard(
-                              compact: true,
-                              availableLevel: availableLevel,
-                              unlockedLevels: unlockedLevels,
-                            ),
-                          ],
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.playerName});
+  final String playerName;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Flexible(
+        child: SizedBox(
+          width: 168,
+          height: 54,
+          child: JuicyPress(
+            key: const ValueKey('home-profile'),
+            label:
+                'Perfil de ${playerName.trim().isEmpty ? 'Jugador' : playerName}',
+            onFeedback: () => GameFeedbackScope.tap(context),
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.profile),
+            builder: (context, depression) => Stack(
+              fit: StackFit.expand,
+              children: [
+                const HomeArt(HomeSurface.profile),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 9, 17, 10),
+                  child: Row(
+                    children: [
+                      const HomeIcon(HomeGlyph.user, size: 27),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          playerName.trim().isEmpty ? 'Jugador' : playerName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: homeText(20),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: _SettingsButton(
-                  compact: true,
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.settings),
                 ),
-              ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 16),
+      SizedBox.square(
+        dimension: 54,
+        child: JuicyPress(
+          key: const ValueKey('home-settings'),
+          label: 'Ajustes',
+          onFeedback: () => GameFeedbackScope.tap(context),
+          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
+          builder: (context, depression) => const Stack(
+            fit: StackFit.expand,
+            children: [
+              HomeArt(HomeSurface.settings),
+              Center(child: SettingsIcon(SettingsGlyph.gear, size: 33)),
             ],
           ),
         ),
       ),
-    );
-  }
+    ],
+  );
+}
+
+class _HomeActions extends StatelessWidget {
+  const _HomeActions({
+    required this.availableLevel,
+    required this.unlockedLevels,
+    required this.compact,
+  });
+  final int availableLevel;
+  final int unlockedLevels;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 380),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _PlayButton(compact: compact),
+        SizedBox(height: compact ? 9 : 12),
+        _GameStatusCard(
+          availableLevel: availableLevel,
+          unlockedLevels: unlockedLevels,
+        ),
+      ],
+    ),
+  );
+}
+
+class _PlayButton extends StatelessWidget {
+  const _PlayButton({required this.compact});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: compact ? 224 : 244,
+    height: compact ? 70 : 78,
+    child: JuicyPress(
+      key: const ValueKey('home-play'),
+      label: 'Jugar',
+      onFeedback: () => GameFeedbackScope.tap(context),
+      onPressed: () => Navigator.of(context).pushNamed(AppRoutes.map),
+      builder: (context, depression) => Stack(
+        fit: StackFit.expand,
+        children: [
+          const HomeArt(HomeSurface.play),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 17),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const HomeIcon(HomeGlyph.play, size: 34),
+                  const SizedBox(width: 17),
+                  Text('Jugar', style: homeText(34)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _GameStatusCard extends StatelessWidget {
+  const _GameStatusCard({
+    required this.availableLevel,
+    required this.unlockedLevels,
+  });
+  final int availableLevel;
+  final int unlockedLevels;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label:
+        'Nivel $availableLevel. Mundo 1. $unlockedLevels de ${kMap1Nodes.length} niveles desbloqueados',
+    excludeSemantics: true,
+    child: AspectRatio(
+      aspectRatio: 3.12,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const HomeArt(HomeSurface.status),
+          LayoutBuilder(
+            builder: (context, space) {
+              final unit = space.maxWidth / 350;
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  23 * unit,
+                  17 * unit,
+                  23 * unit,
+                  16 * unit,
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _StatusLabel(
+                              HomeGlyph.sun,
+                              'Nivel $availableLevel',
+                              unit,
+                            ),
+                          ),
+                          Container(
+                            width: 1.2,
+                            height: 32 * unit,
+                            color: const Color(0xFFE1CCA3),
+                          ),
+                          SizedBox(width: 13 * unit),
+                          Expanded(
+                            child: _StatusLabel(
+                              HomeGlyph.world,
+                              'Mundo 1',
+                              unit,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 7 * unit),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20 * unit),
+                      child: SizedBox(
+                        height: 16 * unit,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            const HomeArt(HomeSurface.progressTrack),
+                            Padding(
+                              padding: EdgeInsets.all(1.6 * unit),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: FractionallySizedBox(
+                                  widthFactor:
+                                      (unlockedLevels / kMap1Nodes.length)
+                                          .clamp(0, 1),
+                                  heightFactor: 1,
+                                  child: const HomeArt(
+                                    HomeSurface.progressFill,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 3 * unit),
+                    Text(
+                      '$unlockedLevels de ${kMap1Nodes.length}',
+                      style: homeText(15 * unit),
+                      textScaler: TextScaler.noScaling,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _StatusLabel extends StatelessWidget {
+  const _StatusLabel(this.glyph, this.label, this.unit);
+  final HomeGlyph glyph;
+  final String label;
+  final double unit;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      HomeIcon(glyph, size: 37 * unit),
+      SizedBox(width: 7 * unit),
+      Expanded(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(label, style: homeText(22 * unit)),
+        ),
+      ),
+    ],
+  );
 }
 
 class _AnimatedLogo extends StatefulWidget {
@@ -513,256 +660,11 @@ class _ParallaxBackgroundState extends State<_ParallaxBackground>
           child: Image.asset(
             'assets/images/home-background.png',
             fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
+            alignment: MediaQuery.sizeOf(context).aspectRatio > 1.2
+                ? const Alignment(0, .5)
+                : Alignment.topCenter,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SettingsButton extends StatelessWidget {
-  const _SettingsButton({required this.compact, required this.onPressed});
-
-  final bool compact;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final double size = compact ? 50 : 58;
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFF7D7), Color(0xFFFFD45E)],
-        ),
-        border: Border.fromBorderSide(
-          BorderSide(color: Color(0xFFFFED9A), width: 3),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x75062A55),
-            offset: Offset(0, 8),
-            blurRadius: 11,
-          ),
-          BoxShadow(color: Color(0xFFD88C0B), offset: Offset(0, 4)),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            GameFeedbackScope.tap(context);
-            onPressed();
-          },
-          child: Icon(
-            Icons.settings_rounded,
-            color: _navy,
-            size: compact ? 28 : 32,
-            semanticLabel: 'Ajustes',
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlayButton extends StatelessWidget {
-  const _PlayButton({required this.compact, required this.onPressed});
-
-  final bool compact;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Jugar',
-      child: Container(
-        width: compact ? 220 : 260,
-        height: compact ? 62 : 72,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFE65A), _gold],
-          ),
-          border: Border.all(color: const Color(0xFFFFF0A0), width: 3),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x66087549),
-              offset: Offset(0, 8),
-              blurRadius: 12,
-            ),
-            BoxShadow(color: _goldDark, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () {
-              GameFeedbackScope.tap(context);
-              onPressed();
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.play_arrow_rounded,
-                      color: _navy,
-                      size: compact ? 38 : 44,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Jugar',
-                      style: TextStyle(
-                        color: _navy,
-                        fontSize: compact ? 27 : 31,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GameStatusCard extends StatelessWidget {
-  const _GameStatusCard({
-    required this.compact,
-    required this.availableLevel,
-    required this.unlockedLevels,
-  });
-
-  final int availableLevel;
-  final int unlockedLevels;
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: compact ? 112 : 132,
-      padding: EdgeInsets.fromLTRB(
-        compact ? 16 : 22,
-        compact ? 12 : 16,
-        compact ? 16 : 22,
-        compact ? 10 : 14,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFAE9), Color(0xFFFFE2A0)],
-          stops: [0.15, 1],
-        ),
-        borderRadius: BorderRadius.circular(compact ? 28 : 34),
-        border: Border.all(color: const Color(0xFFFFF2B8), width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x73506A22),
-            offset: Offset(0, 11),
-            blurRadius: 17,
-          ),
-          BoxShadow(color: Color(0xFFD99A32), offset: Offset(0, 5)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                const Icon(Icons.sunny, color: _goldDark, size: 32),
-                const SizedBox(width: 8),
-                Expanded(child: _StatusText('Nivel $availableLevel')),
-                Container(
-                  width: 2,
-                  height: compact ? 30 : 38,
-                  color: const Color(0xFFD9A84E),
-                ),
-                const SizedBox(width: 12),
-                const Icon(
-                  Icons.landscape_rounded,
-                  color: Color(0xFF4A9B47),
-                  size: 33,
-                ),
-                const SizedBox(width: 8),
-                const Expanded(child: _StatusText('Mundo 1')),
-              ],
-            ),
-          ),
-          const SizedBox(height: 7),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              height: compact ? 10 : 12,
-              color: const Color(0xFFDCCDA7),
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: unlockedLevels / kMap1Nodes.length,
-                heightFactor: 1,
-                child: const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [_gold, _goldDark]),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: compact ? 3 : 5),
-          Text(
-            '$unlockedLevels de ${kMap1Nodes.length}',
-            style: TextStyle(
-              color: _navy,
-              fontSize: compact ? 14 : 16,
-              height: 1,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusText extends StatelessWidget {
-  const _StatusText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.fade,
-      softWrap: false,
-      style: const TextStyle(
-        color: _navy,
-        fontSize: 18,
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.3,
       ),
     );
   }

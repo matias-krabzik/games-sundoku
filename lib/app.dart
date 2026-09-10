@@ -10,6 +10,7 @@ import 'data/services/device_game_feedback.dart';
 import 'widgets/game_feedback_scope.dart';
 import 'theme.dart';
 import 'screens/home_screen.dart';
+import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/map_screen.dart';
@@ -55,13 +56,24 @@ class _SunDokuAppState extends State<SunDokuApp> {
             builder: (_, _) => HomeScreen(
               availableLevel: _progress.latestUnlocked,
               unlockedLevels: _progress.unlockedCount,
+              playerName: _repository.state.player.nameChosen
+                  ? _repository.state.player.name
+                  : 'Jugador',
             ),
           ),
           AppRoutes.map: (_) => MapScreen(progress: _progress),
         },
-        onGenerateRoute: (settings) => settings.name == AppRoutes.settings
-            ? SettingsRoute(repository: _repository, settings: settings)
-            : null,
+        onGenerateRoute: (settings) => switch (settings.name) {
+          AppRoutes.settings => SettingsRoute(
+            repository: _repository,
+            settings: settings,
+          ),
+          AppRoutes.profile => ProfileRoute(
+            repository: _repository,
+            settings: settings,
+          ),
+          _ => null,
+        },
       ),
     );
   }
