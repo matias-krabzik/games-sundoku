@@ -1,17 +1,48 @@
-# sundoku
+# SunDoku
 
-A new Flutter project.
+Novela visual de Sudoku para niños, con Sol como mascota. La historia se cuenta
+entre y a través de partidas de Sudoku.
 
-## Getting Started
+## Requisitos
 
-This project is a starting point for a Flutter application.
+- Flutter SDK (canal `stable`, 3.47.x o superior) — incluye Dart.
+  Instalación: https://docs.flutter.dev/get-started/install
+- Para correr en Android: Android Studio + un emulador o dispositivo con depuración USB.
+- Para correr en iOS/macOS (solo en Mac): Xcode.
+- Para correr en web: Chrome.
 
-A few resources to get you started if this is your first Flutter project:
+Verificar el entorno:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter doctor
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Puesta en marcha
+
+```bash
+git clone <repo-url>
+cd sundoku
+flutter pub get
+flutter run            # elige un dispositivo, o:
+flutter run -d chrome  # web
+```
+
+## Desarrollo
+
+```bash
+flutter analyze                     # análisis estático
+dart format .                       # formateo
+flutter test                        # tests
+flutter test test/widget_test.dart  # un solo archivo de test
+```
+
+## Builds
+
+```bash
+flutter build apk       # Android
+flutter build ipa       # iOS
+flutter build web       # Web
+flutter build macos     # macOS
+```
+
+Plataformas configuradas: android, ios, web, macos, linux, windows.

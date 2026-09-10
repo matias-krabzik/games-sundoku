@@ -1,5 +1,5 @@
-# Launch Screen Assets
+# SunDoku Launch Screen Assets
 
-You can customize the launch screen with your own desired assets by replacing the image files in this directory.
-
-You can also do it by opening your Flutter project's Xcode project with `open ios/Runner.xcworkspace`, selecting `Runner/Assets.xcassets` in the Project Navigator and dropping in the desired images.
+These files are generated from `assets/images/sundoku-logo.png`. The native
+launch screen is separate from Flutter's `SplashScreen` and is visible while the
+engine starts.
