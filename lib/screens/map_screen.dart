@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/level_progress.dart';
 import '../widgets/map_level_button.dart';
+import '../widgets/map_chrome.dart';
 import '../widgets/light_award_overlay.dart';
 
 import '../data/level_node.dart';
@@ -15,9 +16,14 @@ const _navy = Color(0xFF082A62);
 
 /// A horizontally scrollable world with ten touch targets on the painted path.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, this.progress});
+  const MapScreen({
+    super.key,
+    this.progress,
+    this.showDeveloperControls = kDebugMode,
+  });
 
   final LevelProgress? progress;
+  final bool showDeveloperControls;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -163,7 +169,9 @@ class _MapScreenState extends State<MapScreen>
               }
             });
           }
-          final double nodeSize = compact ? 56 : 68;
+          final double nodeSize = compact
+              ? 68
+              : (viewport.width * .24).clamp(82, 106);
 
           return Stack(
             fit: StackFit.expand,
@@ -247,56 +255,11 @@ class _MapScreenState extends State<MapScreen>
                   padding: EdgeInsets.fromLTRB(16, compact ? 8 : 16, 16, 12),
                   child: Column(
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _RoundButton(
-                            icon: Icons.arrow_back_rounded,
-                            tooltip: 'Volver',
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.topRight,
-                              child: _RaisedPanel(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 22,
-                                    vertical: compact ? 8 : 12,
-                                  ),
-                                  child: const Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'MUNDO 1',
-                                        style: TextStyle(
-                                          color: Color(0xFF9D650D),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 2,
-                                        ),
-                                      ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        'Valle del Sol',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: _navy,
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                      MapWorldHeader(
+                        compact: compact,
+                        onBack: () => Navigator.of(context).pop(),
                       ),
-                      if (kDebugMode) ...[
+                      if (kDebugMode && widget.showDeveloperControls) ...[
                         const SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -360,63 +323,20 @@ class _MapScreenState extends State<MapScreen>
                         ),
                       ],
                       const Spacer(),
-                      _RaisedPanel(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: 'Nivel anterior',
-                                icon: const Icon(Icons.chevron_left_rounded),
-                                color: _navy,
-                                onPressed:
-                                    _awardingLevel == null && _activeLevel > 1
-                                    ? () => _focusLevel(_activeLevel - 1)
-                                    : null,
-                              ),
-                              SizedBox(
-                                width: 160,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Nivel $_activeLevel de ${kMap1Nodes.length}',
-                                      style: const TextStyle(
-                                        color: _navy,
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    Text(
-                                      _progress.isUnlocked(_activeLevel)
-                                          ? '${_progress.lightsFor(_activeLevel)}/3 puntos obtenidos'
-                                          : 'Consigue 3 puntos en el nivel ${_activeLevel - 1}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Color(0xFF716344),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: 'Nivel siguiente',
-                                icon: const Icon(Icons.chevron_right_rounded),
-                                color: _navy,
-                                onPressed:
-                                    _awardingLevel == null &&
-                                        _activeLevel < kMap1Nodes.length
-                                    ? () => _focusLevel(_activeLevel + 1)
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ),
+                      MapStatusCard(
+                        compact: compact,
+                        level: _activeLevel,
+                        totalLevels: kMap1Nodes.length,
+                        points: _progress.lightsFor(_activeLevel),
+                        unlocked: _progress.isUnlocked(_activeLevel),
+                        onPrevious: _awardingLevel == null && _activeLevel > 1
+                            ? () => _focusLevel(_activeLevel - 1)
+                            : null,
+                        onNext:
+                            _awardingLevel == null &&
+                                _activeLevel < kMap1Nodes.length
+                            ? () => _focusLevel(_activeLevel + 1)
+                            : null,
                       ),
                     ],
                   ),
@@ -454,28 +374,5 @@ class _RaisedPanel extends StatelessWidget {
       ],
     ),
     child: child,
-  );
-}
-
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => _RaisedPanel(
-    child: IconButton(
-      icon: Icon(icon),
-      tooltip: tooltip,
-      onPressed: onPressed,
-      color: _navy,
-      iconSize: 28,
-      constraints: const BoxConstraints.tightFor(width: 52, height: 52),
-    ),
   );
 }

@@ -10,50 +10,62 @@ Future<void> finishLight(WidgetTester tester) async {
   await tester.pump();
 }
 
+Future<void> finishNavigation(WidgetTester tester) async {
+  await tester.pump();
+  for (var frame = 0; frame < 10; frame++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
-  testWidgets('score stars overlap from smallest to largest above the level', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: MapScreen()));
-    await tester.pump();
+  testWidgets(
+    'score stars stay separated and centered above the level number',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: MapScreen()));
+      await tester.pump();
 
-    final levelCenter = tester.getCenter(
-      find.byKey(const ValueKey('level-1-label')),
-    );
-    final first = tester.getRect(find.byKey(const ValueKey('level-1-score-1')));
-    final middle = tester.getRect(
-      find.byKey(const ValueKey('level-1-score-2')),
-    );
-    final third = tester.getRect(find.byKey(const ValueKey('level-1-score-3')));
+      final levelCenter = tester.getCenter(
+        find.byKey(const ValueKey('level-1-label')),
+      );
+      final first = tester.getRect(
+        find.byKey(const ValueKey('level-1-score-1')),
+      );
+      final middle = tester.getRect(
+        find.byKey(const ValueKey('level-1-score-2')),
+      );
+      final third = tester.getRect(
+        find.byKey(const ValueKey('level-1-score-3')),
+      );
 
-    expect(first.center.dy, lessThan(levelCenter.dy));
-    expect(middle.center.dy, lessThan(first.center.dy));
-    expect(third.center.dy, lessThan(levelCenter.dy));
-    expect(first.center.dx, lessThan(levelCenter.dx));
-    expect(third.center.dx, greaterThan(levelCenter.dx));
-    expect(first.right, greaterThan(middle.left));
-    expect(middle.right, greaterThan(third.left));
-    expect(middle.width, greaterThan(first.width));
-    expect(third.height, greaterThan(middle.height));
-    expect(first.width, greaterThanOrEqualTo(30));
-    expect(middle.width, greaterThanOrEqualTo(38));
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('level-1-score-1')),
-        matching: find.byType(Text),
-      ),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey('level-1-star-crest')), findsOneWidget);
-    final levelImage = tester.widget<Image>(
-      find.byKey(const ValueKey('level-1-label')),
-    );
-    final resizedNumber = levelImage.image as ResizeImage;
-    expect(
-      (resizedNumber.imageProvider as AssetImage).assetName,
-      'assets/images/level-number-1.png',
-    );
-  });
+      expect(first.center.dy, lessThan(levelCenter.dy));
+      expect(middle.center.dy, lessThan(first.center.dy));
+      expect(third.center.dy, lessThan(levelCenter.dy));
+      expect(first.center.dx, lessThan(levelCenter.dx));
+      expect(third.center.dx, greaterThan(levelCenter.dx));
+      expect(first.right, lessThanOrEqualTo(middle.left));
+      expect(middle.right, lessThanOrEqualTo(third.left));
+      expect(middle.center.dx, closeTo(levelCenter.dx, .1));
+      expect(first.width, closeTo(third.width, .1));
+      expect(first.height, closeTo(third.height, .1));
+      expect(middle.width, greaterThan(first.width));
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('level-1-score-1')),
+          matching: find.byType(Text),
+        ),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('level-1-star-crest')), findsOneWidget);
+      final levelImage = tester.widget<Image>(
+        find.byKey(const ValueKey('level-1-label')),
+      );
+      final resizedNumber = levelImage.image as ResizeImage;
+      expect(
+        (resizedNumber.imageProvider as AssetImage).assetName,
+        'assets/images/level-number-1.png',
+      );
+    },
+  );
 
   test(
     'three points in the previous level unlock the next, without scoring it',
@@ -112,8 +124,7 @@ void main() {
       expect(find.text('Nivel 2 de 10'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
       await tester.tap(find.byTooltip('Nivel anterior'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+      await finishNavigation(tester);
       await tester.tap(find.byTooltip('Reiniciar nivel'));
       await tester.pump();
       expect(progress.lightsFor(1), 0);

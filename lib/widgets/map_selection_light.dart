@@ -253,21 +253,21 @@ class _LightPainter extends CustomPainter {
         scoreCutouts.addOval(
           Rect.fromCircle(
             center: center + mapScoreStarOffset(socket, nodeSize),
-            radius: mapScoreStarSize(socket) / 2 + 3,
+            radius: mapScoreStarSize(socket, nodeSize) / 2 + 3,
           ),
         );
       }
     }
     canvas.clipPath(scoreCutouts);
     final double p = phase() * math.pi * 2;
-    final double radius = nodeSize * 0.56;
+    final double radius = nodeSize * 0.54;
     for (final light in intensities().entries) {
       if (light.value <= 0.005) continue;
       final node = kMap1Nodes[light.key - 1];
       final center = _screen(Offset(node.x, node.y), size);
       if (!(Offset.zero & size).inflate(100).contains(center)) continue;
       final double energy = light.value * (0.83 + math.sin(p) * 0.17);
-      final double haloRadius = radius * 2.1;
+      final double haloRadius = radius * 1.7;
       canvas.drawCircle(
         center,
         haloRadius,
@@ -277,11 +277,11 @@ class _LightPainter extends CustomPainter {
             colors: [
               Colors.transparent,
               Colors.transparent,
-              _gold.withValues(alpha: energy * 0.6),
-              _gold.withValues(alpha: energy * 0.15),
+              _gold.withValues(alpha: energy * 0.14),
+              _gold.withValues(alpha: energy * 0.035),
               Colors.transparent,
             ],
-            stops: const [0, 0.34, 0.48, 0.65, 1],
+            stops: const [0, 0.54, 0.68, 0.82, 1],
           ).createShader(Rect.fromCircle(center: center, radius: haloRadius)),
       );
       for (int i = 0; i < 3; i++) {
@@ -290,6 +290,7 @@ class _LightPainter extends CustomPainter {
             center + Offset(math.cos(angle), math.sin(angle)) * radius;
         final strength =
             energy *
+            .12 *
             (0.52 + 0.48 * math.pow((math.sin(p + i * 2.3) + 1) / 2, 3));
         _flare(canvas, centerOfFlare, strength, -0.3);
       }

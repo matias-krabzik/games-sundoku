@@ -5,6 +5,7 @@ import 'package:sundoku/app.dart';
 import 'package:sundoku/data/services/game_feedback.dart';
 import 'package:sundoku/screens/home_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/widgets/juicy_press.dart';
 
 Future<void> _bootToHome(WidgetTester tester) async {
   await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
@@ -24,8 +25,18 @@ Future<void> _openMap(WidgetTester tester) async {
 // The selected level now keeps a light shimmering while the map is visible.
 Future<void> _finishMapTransition(WidgetTester tester) async {
   await tester.pump();
-  await tester.pump(const Duration(seconds: 1));
+  for (var frame = 0; frame < 10; frame++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 }
+
+JuicyPress _mapArrow(WidgetTester tester, String key) =>
+    tester.widget<JuicyPress>(
+      find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(JuicyPress),
+      ),
+    );
 
 void main() {
   testWidgets('home controls stay reachable with long names and rotation', (
@@ -83,8 +94,12 @@ void main() {
     );
     await tester.pump();
     for (int i = 0; i < 3; i++) {
-      await tester.tap(find.byTooltip('Nivel siguiente'));
+      await tester.tap(find.byKey(const ValueKey('map-next')));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
+      // Repeated input during the same spring must not trigger a second move.
+      await tester.tap(find.byKey(const ValueKey('map-next')));
+      await tester.pump(const Duration(milliseconds: 200));
     }
     await _finishMapTransition(tester);
     expect(find.text('Nivel 4 de 10'), findsOneWidget);
@@ -97,6 +112,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nivel 5 de 10'), findsOneWidget);
     expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('map controls remain reachable with large text and rotation', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    var expectedLevel = 1;
+    for (final size in [const Size(320, 568), const Size(568, 320)]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        const MaterialApp(home: MapScreen(showDeveloperControls: false)),
+      );
+      await _finishMapTransition(tester);
+      expect(find.text('DEV'), findsNothing);
+      expect(find.byTooltip('Simular 1 punto'), findsNothing);
+      for (final key in ['map-back', 'map-previous', 'map-next']) {
+        final control = find.byKey(ValueKey(key));
+        expect(control.hitTestable(), findsOneWidget);
+        final bounds = tester.getRect(control);
+        expect(bounds.left, greaterThanOrEqualTo(0));
+        expect(bounds.top, greaterThanOrEqualTo(0));
+        expect(bounds.right, lessThanOrEqualTo(size.width));
+        expect(bounds.bottom, lessThanOrEqualTo(size.height));
+        expect(bounds.width, greaterThanOrEqualTo(48));
+        expect(bounds.height, greaterThanOrEqualTo(48));
+      }
+      expect(find.text('Valle del Sol'), findsOneWidget);
+      expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byKey(const ValueKey('map-next')));
+      await _finishMapTransition(tester);
+      expectedLevel++;
+      expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('splash advances to the home screen', (tester) async {
@@ -119,6 +174,7 @@ void main() {
   testWidgets('play opens the map and a level shows a toast', (tester) async {
     await _openMap(tester);
     expect(find.byType(MapScreen), findsOneWidget);
+    expect(find.text('DEV'), findsOneWidget);
 
     // Level 2 is visible beside the first node at the default test size.
     await tester.tap(find.byKey(const ValueKey('level-2-label')));
@@ -139,13 +195,11 @@ void main() {
     await _openMap(tester);
 
     // At level 1 the back arrow is disabled, forward is enabled.
-    IconButton arrow(IconData i) =>
-        tester.widget<IconButton>(find.widgetWithIcon(IconButton, i));
-    expect(arrow(Icons.chevron_left_rounded).onPressed, isNull);
-    expect(arrow(Icons.chevron_right_rounded).onPressed, isNotNull);
+    expect(_mapArrow(tester, 'map-previous').onPressed, isNull);
+    expect(_mapArrow(tester, 'map-next').onPressed, isNotNull);
 
     for (int level = 2; level <= 10; level++) {
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+      await tester.tap(find.byKey(const ValueKey('map-next')));
       await _finishMapTransition(tester);
       expect(find.text('Nivel $level de 10'), findsOneWidget);
       expect(
@@ -154,7 +208,7 @@ void main() {
       );
     }
     expect(find.text('11'), findsNothing);
-    expect(arrow(Icons.chevron_right_rounded).onPressed, isNull);
+    expect(_mapArrow(tester, 'map-next').onPressed, isNull);
 
     tester.view.physicalSize = const Size(844, 390);
     await _finishMapTransition(tester);
@@ -169,8 +223,8 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
 
     // Now the back arrow is usable again.
-    expect(arrow(Icons.chevron_left_rounded).onPressed, isNotNull);
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    expect(_mapArrow(tester, 'map-previous').onPressed, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('map-previous')));
     await _finishMapTransition(tester);
     expect(find.text('Nivel 9 de 10'), findsOneWidget);
   });
