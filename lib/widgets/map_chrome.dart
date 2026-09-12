@@ -8,9 +8,15 @@ import 'juicy_press.dart';
 import 'map_art.dart';
 
 class MapWorldHeader extends StatelessWidget {
-  const MapWorldHeader({super.key, required this.onBack, this.compact = false});
+  const MapWorldHeader({
+    super.key,
+    required this.onBack,
+    this.onViewTutorial,
+    this.compact = false,
+  });
 
   final VoidCallback onBack;
+  final VoidCallback? onViewTutorial;
   final bool compact;
 
   @override
@@ -24,7 +30,17 @@ class MapWorldHeader extends StatelessWidget {
         size: compact ? 50 : 58,
         onPressed: onBack,
       ),
-      const SizedBox(width: 16),
+      if (onViewTutorial != null) ...[
+        const SizedBox(width: 8),
+        _MapRoundButton(
+          key: const ValueKey('map-tutorial'),
+          label: 'Ver el tutorial',
+          icon: Icons.menu_book_rounded,
+          size: compact ? 50 : 58,
+          onPressed: onViewTutorial,
+        ),
+      ],
+      const SizedBox(width: 12),
       Expanded(
         child: Align(
           alignment: Alignment.topRight,
@@ -40,8 +56,11 @@ class MapWorldHeader extends StatelessWidget {
                     padding: EdgeInsets.fromLTRB(16, 11, 17, compact ? 13 : 16),
                     child: Row(
                       children: [
-                        HomeIcon(HomeGlyph.sun, size: compact ? 39 : 46),
-                        const SizedBox(width: 7),
+                        if (MediaQuery.sizeOf(context).width >= 400 ||
+                            onViewTutorial == null) ...[
+                          HomeIcon(HomeGlyph.sun, size: compact ? 39 : 46),
+                          const SizedBox(width: 7),
+                        ],
                         Expanded(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -263,7 +282,8 @@ class _MapRoundButton extends StatelessWidget {
   const _MapRoundButton({
     super.key,
     required this.label,
-    required this.glyph,
+    this.glyph,
+    this.icon,
     required this.size,
     required this.onPressed,
     this.gold = false,
@@ -271,7 +291,8 @@ class _MapRoundButton extends StatelessWidget {
   });
 
   final String label;
-  final MapGlyph glyph;
+  final MapGlyph? glyph;
+  final IconData? icon;
   final double size;
   final VoidCallback? onPressed;
   final bool gold;
@@ -300,7 +321,24 @@ class _MapRoundButton extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Transform.flip(
                         flipX: mirrored,
-                        child: MapIcon(glyph, size: size * .45),
+                        child: icon != null
+                            ? Icon(
+                                icon,
+                                size: size * .5,
+                                color: homeNavy,
+                                shadows: const [
+                                  Shadow(
+                                    color: Color(0xFFFFFFFF),
+                                    offset: Offset(0, -1),
+                                  ),
+                                  Shadow(
+                                    color: Color(0x555C3900),
+                                    offset: Offset(0, 2),
+                                    blurRadius: 1,
+                                  ),
+                                ],
+                              )
+                            : MapIcon(glyph!, size: size * .45),
                       ),
                     ),
                   ),

@@ -1,5 +1,7 @@
 # Splash and horizontal world art
 
+Historical generation record. New UI artwork follows [AGENTS.md](../AGENTS.md) and the [current asset prompt template](../design/first-experience/prompts.md): individual extracted assets with genuine transparency, reused buttons/cards/panels, blank modal surfaces and all UI text rendered with Flutter `Text`. Yellow actions stay in the bottom action area and the main content is centered above. The full-background prompts below document existing scenery and are not templates for new UI assets.
+
 Generated with the built-in image generation tool, using `images/home-background.png` as the style reference. The existing `images/sundoku-logo.png` is reused unchanged in the splash.
 
 ## World

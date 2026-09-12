@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'home_art.dart';
 import 'settings_art.dart';
+import 'ui_surface_art.dart';
 
 enum MapGlyph { back, chevron, lock, goldStar, emptyStar }
 
@@ -43,12 +43,8 @@ class MapRoundSurface extends StatelessWidget {
   final bool gold;
 
   @override
-  Widget build(BuildContext context) => gold
-      ? const SettingsArtRegion(
-          asset: 'assets/images/map/icons.png',
-          region: Rect.fromLTRB(.667, .590, .985, .916),
-        )
-      : const HomeArt(HomeSurface.settings);
+  Widget build(BuildContext context) =>
+      UiSurfaceArt(gold ? UiSurface.goldRound : UiSurface.creamRound);
 }
 
 class MapMarkerArt extends StatelessWidget {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'settings_art.dart';
+import 'ui_surface_art.dart';
 
 const homeNavy = Color(0xFF082A62);
 
@@ -39,47 +40,24 @@ enum HomeSurface {
 }
 
 class HomeArt extends StatelessWidget {
-  const HomeArt(this.surface, {super.key});
+  const HomeArt(
+    this.surface, {
+    super.key,
+    this.playReferenceSize = const Size(244, 78),
+  });
 
   final HomeSurface surface;
+  final Size playReferenceSize;
 
   @override
-  Widget build(BuildContext context) {
-    final (asset, region) = switch (surface) {
-      HomeSurface.play => (
-        'play-button',
-        const Rect.fromLTRB(.115, .160, .88, .850),
-      ),
-      HomeSurface.status => (
-        'status-panel',
-        const Rect.fromLTRB(.040, .080, .960, .880),
-      ),
-      HomeSurface.settings => (
-        'header-surfaces',
-        const Rect.fromLTRB(.322, .137, .673, .487),
-      ),
-      HomeSurface.profile => (
-        'header-surfaces',
-        const Rect.fromLTRB(.089, .584, .911, .846),
-      ),
-      HomeSurface.progressTrack => (
-        'progress',
-        const Rect.fromLTRB(.033, .234, .967, .406),
-      ),
-      HomeSurface.progressFill => (
-        'progress',
-        const Rect.fromLTRB(.033, .590, .967, .758),
-      ),
-    };
-    final art = SettingsArtRegion(
-      asset: 'assets/images/home/$asset.png',
-      region: region,
-    );
-    return surface == HomeSurface.progressTrack ||
-            surface == HomeSurface.progressFill
-        ? ClipRRect(borderRadius: BorderRadius.circular(999), child: art)
-        : art;
-  }
+  Widget build(BuildContext context) => UiSurfaceArt(switch (surface) {
+    HomeSurface.play => UiSurface.goldButton,
+    HomeSurface.status => UiSurface.creamPanel,
+    HomeSurface.settings => UiSurface.creamRound,
+    HomeSurface.profile => UiSurface.creamPill,
+    HomeSurface.progressTrack => UiSurface.progressTrack,
+    HomeSurface.progressFill => UiSurface.progressFill,
+  }, referenceSize: surface == HomeSurface.play ? playReferenceSize : null);
 }
 
 TextStyle homeText(double size, {FontWeight weight = FontWeight.w800}) =>

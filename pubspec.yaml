@@ -68,9 +68,10 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/images/settings/
+    - assets/images/settings/icons.png
     - assets/images/home/
     - assets/images/map/
+    - assets/images/tutorial/
     - assets/audio/
     - assets/fonts/OFL-Baloo2.txt
 

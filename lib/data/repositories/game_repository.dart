@@ -175,11 +175,41 @@ class GameRepository extends ChangeNotifier {
   Future<GameSession> startOrResumeLevel(
     String levelId, {
     bool restart = false,
+    List<SudokuDefinition>? definitions,
+    String? moduleKey,
+    Json? moduleData,
   }) async {
+    if ((moduleKey == null) != (moduleData == null)) {
+      throw ArgumentError('Module key and data must be provided together');
+    }
+    final definitionSnapshot = definitions == null
+        ? null
+        : List<SudokuDefinition>.unmodifiable(definitions);
+    final moduleSnapshot = moduleData == null
+        ? null
+        : immutableJson(moduleData);
     late String sessionId;
     await _update((save) {
       if (!save.isUnlocked(levelId)) throw StateError('Level is locked');
       final level = save.levels[levelId]!;
+      final registered = {...save.puzzles};
+      if (definitionSnapshot != null) {
+        if (!listEquals(
+          level.puzzleIds,
+          definitionSnapshot.map((p) => p.id).toList(),
+        )) {
+          throw ArgumentError(
+            'Puzzles must match the ordered level definition',
+          );
+        }
+        for (final puzzle in definitionSnapshot) {
+          final existing = registered[puzzle.id];
+          if (existing != null && !_samePuzzle(existing, puzzle)) {
+            throw StateError('A registered sudoku cannot change');
+          }
+          registered[puzzle.id] = puzzle;
+        }
+      }
       final sessions = {
         for (final e in save.sessions.entries) e.key: _paused(e.value),
       };
@@ -197,7 +227,7 @@ class GameRepository extends ChangeNotifier {
           );
         }
         final boards = level.puzzleIds.map((id) {
-          final puzzle = save.puzzles[id];
+          final puzzle = registered[id];
           if (puzzle == null) {
             throw StateError('Register the level sudokus before playing');
           }
@@ -213,7 +243,17 @@ class GameRepository extends ChangeNotifier {
           updatedAt: _now(),
         );
       }
-      return save.copyWith(sessions: sessions, activeSessionId: sessionId);
+      return save.copyWith(
+        puzzles: registered,
+        sessions: sessions,
+        activeSessionId: sessionId,
+        modules: moduleKey == null
+            ? save.modules
+            : {
+                ...save.modules,
+                moduleKey: {...moduleSnapshot!, 'sessionId': sessionId},
+              },
+      );
     });
     return _save.sessions[sessionId]!;
   }
@@ -295,6 +335,17 @@ class GameRepository extends ChangeNotifier {
 
   Future<void> useHint(String sessionId, String puzzleId, int index) =>
       _editCell(sessionId, puzzleId, index, hint: true);
+
+  /// Records an explanation-only hint without filling a cell for the player.
+  Future<void> recordHint(String sessionId, String puzzleId) => _update((save) {
+    final session = _playable(save, sessionId, puzzleId);
+    final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+    return _replaceBoard(
+      save,
+      session,
+      board.copyWith(hintsUsed: board.hintsUsed + 1),
+    );
+  });
 
   Future<void> _editCell(
     String sessionId,

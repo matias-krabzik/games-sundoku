@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'routes.dart';
+import 'controllers/first_experience_controller.dart';
 import 'data/level_progress.dart';
 import 'data/repositories/game_repository.dart';
 import 'data/services/game_feedback.dart';
@@ -14,6 +15,7 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/first_experience_screen.dart';
 
 /// Root of the app. Wires the theme and the top-level route table.
 class SunDokuApp extends StatefulWidget {
@@ -31,6 +33,39 @@ class _SunDokuAppState extends State<SunDokuApp> {
       widget.repository ?? GameRepository.memory();
   late final LevelProgress _progress = LevelProgress(repository: _repository);
   late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
+
+  bool _openingPlay = false;
+
+  Future<void> _play(BuildContext context) async {
+    if (_openingPlay) return;
+    _openingPlay = true;
+    try {
+      final saved =
+          _repository.state.modules[FirstExperienceController.moduleKey];
+      final firstVisit = saved is! Map || saved.isEmpty;
+      if (firstVisit) {
+        await _repository.saveModule(FirstExperienceController.moduleKey, {
+          'homeIntroductionShown': true,
+        });
+      }
+      if (!context.mounted) return;
+      final navigator = Navigator.of(context);
+      unawaited(navigator.pushNamed(AppRoutes.map));
+      if (firstVisit) {
+        unawaited(navigator.pushNamed(AppRoutes.firstExperience));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos guardar. Vuelve a tocar Jugar.'),
+          ),
+        );
+      }
+    } finally {
+      _openingPlay = false;
+    }
+  }
 
   @override
   void dispose() {
@@ -53,7 +88,8 @@ class _SunDokuAppState extends State<SunDokuApp> {
           AppRoutes.splash: (_) => const SplashScreen(),
           AppRoutes.home: (_) => ListenableBuilder(
             listenable: _progress,
-            builder: (_, _) => HomeScreen(
+            builder: (context, _) => HomeScreen(
+              onPlay: () => _play(context),
               availableLevel: _progress.latestUnlocked,
               unlockedLevels: _progress.unlockedCount,
               playerName: _repository.state.player.nameChosen
@@ -61,7 +97,17 @@ class _SunDokuAppState extends State<SunDokuApp> {
                   : 'Jugador',
             ),
           ),
-          AppRoutes.map: (_) => MapScreen(progress: _progress),
+          AppRoutes.map: (context) => MapScreen(
+            progress: _progress,
+            onViewTutorial: () =>
+                Navigator.of(context).pushNamed(AppRoutes.tutorialReview),
+            onOpenIntroduction: () =>
+                Navigator.of(context).pushNamed(AppRoutes.firstExperience),
+          ),
+          AppRoutes.tutorialReview: (_) =>
+              FirstExperienceScreen(repository: _repository, reviewOnly: true),
+          AppRoutes.firstExperience: (_) =>
+              FirstExperienceScreen(repository: _repository),
         },
         onGenerateRoute: (settings) => switch (settings.name) {
           AppRoutes.settings => SettingsRoute(

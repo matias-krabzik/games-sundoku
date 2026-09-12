@@ -5,12 +5,13 @@ Implemented from the approved SunDoku settings concept. Language selection is om
 ## Reusable art
 
 - `images/settings/icons.png`: RGBA 4 × 2 atlas of navy gear, music, sound, vibration, info, check, close and chevron icons. `SettingsIcon` clips each cell independently at runtime, keeping the extracted artwork reusable.
-- `images/settings/done-button.png`: blank RGBA gold confirmation button. Its label, checkmark, shadow and press animation are separate widgets.
-- Panel, setting cards, toggle tracks/knobs and circular close button: resolution-independent Flutter gradients, borders and shadows matching the concept.
+- Panel, setting cards, gold confirmation button and circular close button now reuse the shared [nine-patch surfaces](ui-surfaces.md). Their labels and icons remain separate widgets.
+- `images/settings/done-button.png`: historical extraction retained as a reference, no longer used or bundled. Confirmation actions reuse the home gold button.
+- Toggle tracks and knobs remain resolution-independent Flutter drawing primitives.
 - `fonts/Baloo2-Variable.ttf`: Baloo 2, locally bundled with `OFL-Baloo2.txt`. A raster concept cannot provide an installable font; Baloo 2 is the matching rounded typeface used for this implementation.
   Source: https://github.com/google/fonts/tree/main/ofl/baloo2
 
-Both PNG files were derived using the built-in image generation tool, then copied into the project. Real alpha channels were verified before use. No simulated checkerboard is included in the shipped assets.
+The original icon atlas and historical button were derived using the built-in image generation tool, then copied into the project. Real alpha channels were verified before use. No simulated checkerboard is included in the shipped assets.
 
 ### Icon extraction prompt
 

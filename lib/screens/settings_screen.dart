@@ -7,6 +7,7 @@ import '../domain/models/player_profile.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../widgets/juicy_press.dart';
 import '../widgets/settings_art.dart';
+import '../widgets/ui_surface_art.dart';
 
 /// A non-opaque route keeps the actual home screen visible behind the panel.
 class SettingsRoute extends RawDialogRoute<void> {
@@ -450,26 +451,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     toggled: toggled,
     onPressed: onPressed,
     onFeedback: toggled == null ? () => GameFeedbackScope.tap(context) : null,
-    builder: (context, depression) => Container(
+    builder: (context, depression) => UiSurfacePanel(
       constraints: const BoxConstraints(minHeight: 67),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(19),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFEF9), Color(0xFFFFF5E0)],
-        ),
-        border: Border.all(color: const Color(0xFFF1DEC0), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x21A66E22),
-            blurRadius: 3,
-            offset: Offset(0, 2 - depression),
-          ),
-          const BoxShadow(color: Color(0xDDFFFFFF), offset: Offset(0, -1)),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
           SettingsIcon(icon, size: 34),

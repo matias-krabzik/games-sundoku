@@ -9,6 +9,7 @@ import '../routes.dart';
 import '../data/level_node.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../widgets/home_art.dart';
+import '../widgets/illustrated_action_button.dart';
 import '../widgets/juicy_press.dart';
 import '../widgets/settings_art.dart';
 
@@ -19,11 +20,13 @@ class HomeScreen extends StatelessWidget {
     this.availableLevel = 1,
     this.unlockedLevels = 1,
     this.playerName = 'Jugador',
+    this.onPlay,
   });
 
   final int availableLevel;
   final int unlockedLevels;
   final String playerName;
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) => TickerMode(
@@ -69,6 +72,7 @@ class HomeScreen extends StatelessWidget {
                                   Expanded(
                                     child: Center(
                                       child: _HomeActions(
+                                        onPlay: onPlay,
                                         availableLevel: availableLevel,
                                         unlockedLevels: unlockedLevels,
                                         compact: true,
@@ -91,6 +95,7 @@ class HomeScreen extends StatelessWidget {
                             const Expanded(child: _Doku()),
                             const SizedBox(height: 8),
                             _HomeActions(
+                              onPlay: onPlay,
                               availableLevel: availableLevel,
                               unlockedLevels: unlockedLevels,
                               compact: height < 650,
@@ -198,7 +203,9 @@ class _HomeActions extends StatelessWidget {
     required this.availableLevel,
     required this.unlockedLevels,
     required this.compact,
+    this.onPlay,
   });
+  final VoidCallback? onPlay;
   final int availableLevel;
   final int unlockedLevels;
   final bool compact;
@@ -209,50 +216,19 @@ class _HomeActions extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _PlayButton(compact: compact),
+        IllustratedActionButton(
+          key: const ValueKey('home-play'),
+          label: 'Jugar',
+          compact: compact,
+          onPressed:
+              onPlay ?? () => Navigator.of(context).pushNamed(AppRoutes.map),
+        ),
         SizedBox(height: compact ? 9 : 12),
         _GameStatusCard(
           availableLevel: availableLevel,
           unlockedLevels: unlockedLevels,
         ),
       ],
-    ),
-  );
-}
-
-class _PlayButton extends StatelessWidget {
-  const _PlayButton({required this.compact});
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: compact ? 224 : 244,
-    height: compact ? 70 : 78,
-    child: JuicyPress(
-      key: const ValueKey('home-play'),
-      label: 'Jugar',
-      onFeedback: () => GameFeedbackScope.tap(context),
-      onPressed: () => Navigator.of(context).pushNamed(AppRoutes.map),
-      builder: (context, depression) => Stack(
-        fit: StackFit.expand,
-        children: [
-          const HomeArt(HomeSurface.play),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 17),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const HomeIcon(HomeGlyph.play, size: 34),
-                  const SizedBox(width: 17),
-                  Text('Jugar', style: homeText(34)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     ),
   );
 }

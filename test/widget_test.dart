@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/app.dart';
 import 'package:sundoku/data/services/game_feedback.dart';
 import 'package:sundoku/screens/home_screen.dart';
+import 'package:sundoku/screens/first_experience_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/juicy_press.dart';
 
@@ -19,6 +20,9 @@ Future<void> _openMap(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump(const Duration(milliseconds: 200));
+  await _finishMapTransition(tester);
+  // A fresh installation now opens onboarding above the map.
+  Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
   await _finishMapTransition(tester);
 }
 

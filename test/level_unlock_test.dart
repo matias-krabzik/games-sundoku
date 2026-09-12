@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/app.dart';
 import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/screens/first_experience_screen.dart';
 
 Future<void> finishLight(WidgetTester tester) async {
   await tester.pump();
@@ -158,6 +159,8 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
       await tester.tap(find.text('Jugar'));
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Simular 3 puntos y abrir siguiente'));
       await tester.pumpAndSettle();

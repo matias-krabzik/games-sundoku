@@ -20,10 +20,14 @@ class MapScreen extends StatefulWidget {
     super.key,
     this.progress,
     this.showDeveloperControls = kDebugMode,
+    this.onOpenIntroduction,
+    this.onViewTutorial,
   });
 
   final LevelProgress? progress;
   final bool showDeveloperControls;
+  final VoidCallback? onOpenIntroduction;
+  final VoidCallback? onViewTutorial;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -125,6 +129,7 @@ class _MapScreenState extends State<MapScreen>
 
   void _focusLevel(int level, {bool select = false}) {
     if (_awardingLevel != null) return;
+    if (select && ModalRoute.of(context)?.isCurrent == false) return;
     final int target = level.clamp(1, kMap1Nodes.length);
     setState(() => _activeLevel = target);
     if (_scroll.hasClients) {
@@ -139,6 +144,12 @@ class _MapScreenState extends State<MapScreen>
       }
     }
     if (select) {
+      if (target == 1 &&
+          _progress.isUnlocked(target) &&
+          widget.onOpenIntroduction != null) {
+        widget.onOpenIntroduction!();
+        return;
+      }
       showToast(
         context,
         _progress.isUnlocked(target)
@@ -256,6 +267,7 @@ class _MapScreenState extends State<MapScreen>
                   child: Column(
                     children: [
                       MapWorldHeader(
+                        onViewTutorial: widget.onViewTutorial,
                         compact: compact,
                         onBack: () => Navigator.of(context).pop(),
                       ),

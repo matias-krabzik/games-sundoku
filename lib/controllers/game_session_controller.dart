@@ -134,6 +134,9 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> useHint(int index) =>
       _input((session, puzzle) => repository.useHint(session, puzzle, index));
 
+  Future<void> recordHint() =>
+      _input((session, puzzle) => repository.recordHint(session, puzzle));
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
