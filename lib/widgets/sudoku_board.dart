@@ -20,6 +20,7 @@ class SudokuBoard extends StatefulWidget {
     this.fixedIndices = const {},
     this.highlightKey,
     this.reveal = SudokuBoardReveal.none,
+    this.onAnimationChanged,
   }) : assert(cells.length == 81),
        assert(
          selectedIndex == null || (selectedIndex >= 0 && selectedIndex < 81),
@@ -34,6 +35,7 @@ class SudokuBoard extends StatefulWidget {
   final Set<int> fixedIndices;
   final Object? highlightKey;
   final SudokuBoardReveal reveal;
+  final ValueChanged<bool>? onAnimationChanged;
 
   @override
   State<SudokuBoard> createState() => _SudokuBoardState();
@@ -48,13 +50,32 @@ class _SudokuBoardState extends State<SudokuBoard>
   );
   late final _lesson = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 500),
+    duration: const Duration(milliseconds: 900),
     value: 1,
   );
   SudokuBoard? _previousLesson;
   Set<int> _incoming = {};
   Set<int> _outgoing = {};
   bool _reducedMotion = false;
+  bool _motionReported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _expansion.addStatusListener(_motionChanged);
+    _lesson.addStatusListener(_motionChanged);
+  }
+
+  void _motionChanged(AnimationStatus _) {
+    // Controllers may start during didUpdateWidget; notify the parent after build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final animating = _expansion.isAnimating || _lesson.isAnimating;
+      if (animating == _motionReported) return;
+      _motionReported = animating;
+      widget.onAnimationChanged?.call(animating);
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -79,7 +100,9 @@ class _SudokuBoardState extends State<SudokuBoard>
           highlighted.difference(oldWidget.highlightedIndices.toSet()),
         SudokuBoardReveal.remaining => {
           for (var i = 0; i < 81; i++)
-            if (!_centerIndices.contains(i) && i ~/ 9 != 4 && i % 9 != 4) i,
+            if (!_centerIndices.contains(i) ||
+                oldWidget.cells[i] != widget.cells[i])
+              i,
         },
         SudokuBoardReveal.none => <int>{},
       };
@@ -90,6 +113,11 @@ class _SudokuBoardState extends State<SudokuBoard>
           : <int>{};
       if (!_reducedMotion && widget.reveal != SudokuBoardReveal.none) {
         _expansion.value = 1;
+        _lesson.duration = Duration(
+          milliseconds: widget.reveal == SudokuBoardReveal.remaining
+              ? 1700
+              : 900,
+        );
         _lesson.forward(from: 0);
       } else {
         _lesson.value = 1;
@@ -129,6 +157,14 @@ class _SudokuBoardState extends State<SudokuBoard>
           : 0,
     );
     final incoming = _incoming.contains(index);
+    final sequential = widget.reveal == SudokuBoardReveal.remaining;
+    final elapsed = _lesson.value * (sequential ? 1700 : 900);
+    final arrival = sequential
+        ? ((elapsed - 900) / 800).clamp(0.0, 1.0)
+        : _lesson.value;
+    final departure = sequential
+        ? (elapsed / 900).clamp(0.0, 1.0)
+        : _lesson.value;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -138,11 +174,23 @@ class _SudokuBoardState extends State<SudokuBoard>
           )
         else
           child,
+        if (sequential && incoming && _outgoing.contains(index))
+          ExcludeSemantics(
+            child: IgnorePointer(
+              child: _TileArrival(
+                index: index,
+                progress: 1 - departure,
+                extent: extent,
+                animationKey: 'lesson-departure-$index',
+                child: oldCell(highlighted: true),
+              ),
+            ),
+          ),
         ExcludeSemantics(
           child: IgnorePointer(
             child: _TileArrival(
               index: index,
-              progress: incoming ? _lesson.value : 1 - _lesson.value,
+              progress: incoming ? arrival : 1 - departure,
               extent: extent,
               animationKey: 'lesson-tile-$index',
               child: incoming ? child : oldCell(highlighted: true),
@@ -200,6 +248,13 @@ class _SudokuBoardState extends State<SudokuBoard>
             return start + (target - start) * shrink;
           }
 
+          final innerSize = constraints.maxWidth - padding * 2;
+          final blockEdges = [
+            0.0,
+            innerMargin + extent * 3 + blockGap * .5,
+            innerMargin + extent * 6 + blockGap * 1.5,
+            innerSize,
+          ];
           final visible = centerOnly
               ? _centerIndices
               : List.generate(81, (i) => i);
@@ -214,11 +269,26 @@ class _SudokuBoardState extends State<SudokuBoard>
                 padding: EdgeInsets.all(padding),
                 child: ClipRect(
                   child: Material(
-                    color: const Color(0xFFEBDAB6),
+                    color: const Color(0xFFFFEB9C),
                     borderRadius: boardRadius,
                     child: FocusTraversalGroup(
                       child: Stack(
                         children: [
+                          if (!centerOnly)
+                            for (final block in [1, 3, 5, 7])
+                              Positioned(
+                                left: blockEdges[block % 3],
+                                top: blockEdges[block ~/ 3],
+                                width:
+                                    blockEdges[block % 3 + 1] -
+                                    blockEdges[block % 3],
+                                height:
+                                    blockEdges[block ~/ 3 + 1] -
+                                    blockEdges[block ~/ 3],
+                                child: const IgnorePointer(
+                                  child: ColoredBox(color: Color(0xFFFFDB74)),
+                                ),
+                              ),
                           for (final index in visible)
                             Positioned(
                               key: ValueKey('sudoku-cell-$index'),
@@ -270,6 +340,35 @@ class _SudokuBoardState extends State<SudokuBoard>
                                           index: index,
                                           value: cells[index],
                                           selected: selectedIndex == index,
+                                          inSelectedLine:
+                                              !centerOnly &&
+                                              onSelect != null &&
+                                              selectedIndex != null &&
+                                              (index ~/ 9 ==
+                                                      selectedIndex ~/ 9 ||
+                                                  index % 9 ==
+                                                      selectedIndex % 9),
+                                          matchingNumber:
+                                              !centerOnly &&
+                                              onSelect != null &&
+                                              selectedIndex != null &&
+                                              cells[selectedIndex] != null &&
+                                              cells[index] ==
+                                                  cells[selectedIndex],
+                                          related:
+                                              !widget.centerOnly &&
+                                              onSelect != null &&
+                                              selectedIndex != null &&
+                                              (index ~/ 9 ==
+                                                      selectedIndex ~/ 9 ||
+                                                  index % 9 ==
+                                                      selectedIndex % 9 ||
+                                                  (index ~/ 27 ==
+                                                          selectedIndex ~/ 27 &&
+                                                      index % 9 ~/ 3 ==
+                                                          selectedIndex %
+                                                              9 ~/
+                                                              3)),
                                           onSelect: onSelect,
                                           fixed: fixedIndices.contains(index),
                                           marked: fixedIndices.isNotEmpty,
@@ -299,7 +398,7 @@ class _SudokuBoardState extends State<SudokuBoard>
                                 decoration: BoxDecoration(
                                   borderRadius: boardRadius,
                                   border: Border.all(
-                                    color: const Color(0xFFD4B77D),
+                                    color: const Color(0xFFE8BC4F),
                                     width: 1,
                                   ),
                                 ),
@@ -384,6 +483,9 @@ class _SudokuCell extends StatelessWidget {
     required this.marked,
     required this.conflict,
     required this.highlight,
+    this.related = false,
+    this.matchingNumber = false,
+    this.inSelectedLine = false,
   });
 
   final int index;
@@ -394,6 +496,9 @@ class _SudokuCell extends StatelessWidget {
   final bool marked;
   final bool conflict;
   final double highlight;
+  final bool related;
+  final bool matchingNumber;
+  final bool inSelectedLine;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -405,6 +510,20 @@ class _SudokuCell extends StatelessWidget {
     child: LayoutBuilder(
       builder: (context, bounds) {
         final radius = BorderRadius.circular(bounds.maxWidth * .11);
+        final alternateBlock = (index ~/ 27 + (index % 9) ~/ 3).isOdd;
+        final tint = selected
+            ? const Color(0xFFCB8A16)
+            : matchingNumber
+            ? Colors.white
+            : inSelectedLine
+            ? const Color(0xFFFFF0AD)
+            : related
+            ? const Color(0xFFCDDDC3)
+            : fixed
+            ? (alternateBlock
+                  ? const Color(0xFFF4EBD9)
+                  : const Color(0xFFFFF7E6))
+            : (alternateBlock ? const Color(0xFFFFFAED) : Colors.white);
         return Padding(
           padding: EdgeInsets.all(bounds.maxWidth > 50 ? 1.2 : .55),
           child: ClipRRect(
@@ -412,9 +531,20 @@ class _SudokuCell extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                UiSurfaceArt(
-                  selected ? UiSurface.goldTile : UiSurface.creamTile,
-                  referenceSize: Size.square(bounds.maxWidth),
+                ColorFiltered(
+                  key: related && !selected
+                      ? ValueKey('sudoku-peer-$index')
+                      : null,
+                  colorFilter: ColorFilter.mode(tint, BlendMode.modulate),
+                  child: UiSurfaceArt(
+                    selected || matchingNumber
+                        ? UiSurface.goldTile
+                        : UiSurface.creamTile,
+                    key: matchingNumber
+                        ? ValueKey('sudoku-matching-number-$index')
+                        : null,
+                    referenceSize: Size.square(bounds.maxWidth),
+                  ),
                 ),
                 if (highlight > 0 && !selected)
                   IgnorePointer(
@@ -457,24 +587,13 @@ class _SudokuCell extends StatelessWidget {
                                   Opacity(opacity: opacity, child: child),
                               child: SudokuDigit(
                                 value!,
-                                size: bounds.maxWidth * (marked ? .64 : .72),
+                                size: bounds.maxWidth * (marked ? .52 : .58),
+                                color: selected ? Colors.white : homeNavy,
                               ),
                             ),
                           ),
                   ),
                 ),
-                if (marked && !fixed && value != null)
-                  Positioned(
-                    bottom: 3,
-                    left: bounds.maxWidth * .32,
-                    right: bounds.maxWidth * .32,
-                    child: const IgnorePointer(
-                      child: SizedBox(
-                        height: 2,
-                        child: ColoredBox(color: homeNavy),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),

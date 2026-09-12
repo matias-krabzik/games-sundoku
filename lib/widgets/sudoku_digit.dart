@@ -2,15 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'home_art.dart';
 
-/// Glossy blue numerals remain real Flutter text at every board size.
+/// Real Flutter numerals, with an optional solid color for board readability.
 class SudokuDigit extends StatelessWidget {
-  const SudokuDigit(this.value, {super.key, required this.size});
+  const SudokuDigit(this.value, {super.key, required this.size, this.color});
   final int value;
   final double size;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final style = homeText(size, weight: FontWeight.w900).copyWith(height: 1);
+    if (color != null) {
+      return ExcludeSemantics(
+        child: Text(
+          '$value',
+          textScaler: TextScaler.noScaling,
+          style: style.copyWith(color: color, shadows: const []),
+        ),
+      );
+    }
     return ExcludeSemantics(
       child: Stack(
         alignment: Alignment.center,

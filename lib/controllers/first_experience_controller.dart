@@ -48,9 +48,6 @@ class FirstExperienceController extends ChangeNotifier {
   String? _error;
   GameSessionController? _play;
   int? _gameCell;
-  TutorialHint? _hint;
-  bool _revealAnswer = false;
-  bool _confirmMove = false;
   String? _feedback;
   Set<int> _conflicts = {};
   int _attention = 0;
@@ -81,8 +78,6 @@ class FirstExperienceController extends ChangeNotifier {
   int get storyIndex => tutorialStorySteps.indexOf(step);
   int get storyCount => tutorialStorySteps.length;
   bool get isStory => storyIndex >= 0;
-  bool get confirmingMove => _confirmMove;
-  bool get showingAnswer => _revealAnswer;
   bool get readyToPlay =>
       step == FirstExperienceStep.playing &&
       !_isBusy &&
@@ -90,7 +85,6 @@ class FirstExperienceController extends ChangeNotifier {
   int? get gameCell => _gameCell;
   int get attention => _attention;
   Set<int> get conflicts => _conflicts;
-  TutorialHint? get hint => _hint;
   bool get hasGameBoard =>
       step == FirstExperienceStep.givensIntroduction ||
       (session != null && step.index >= FirstExperienceStep.playing.index);
@@ -135,19 +129,11 @@ class FirstExperienceController extends ChangeNotifier {
     if (current?.group != null) {
       return groupCells(current!.anchor, current.group!);
     }
-    return _hint?.cells ?? [];
+    return [];
   }
 
   int get remaining => boardValues.where((n) => n == null).length;
-  String get playMessage {
-    if (_feedback != null) return _feedback!;
-    if (_hint != null) {
-      return _revealAnswer ? _hint!.explanation : _hint!.invitation;
-    }
-    return _gameCell == null
-        ? 'Toca una casilla vacía.\nDespués elige un número.'
-        : 'Mira su fila, columna y bloque.\n¿Qué número falta?';
-  }
+  String get playMessage => _feedback ?? '';
 
   String get lessonMessage => _feedback ?? lesson?.message ?? '';
 
@@ -233,57 +219,32 @@ class FirstExperienceController extends ChangeNotifier {
     }
     await _run(() async {
       await _player.start(session!.id);
-      _nextGuidance();
+      _resetMoveFeedback();
     });
   }
 
-  void _nextGuidance() {
+  Future<void> pauseGame() async {
+    if (_play != null) await _play!.pause();
+  }
+
+  void _resetMoveFeedback() {
     _feedback = null;
     _conflicts = {};
-    _confirmMove = false;
-    _hint = null;
-    _revealAnswer = false;
-    _gameCell = null;
-    if (gameIndex != 0 || step != FirstExperienceStep.playing) return;
-    final board = boardValues;
-    final position = TutorialSudokus.guidedOrder.indexWhere(
-      (i) => board[i] == null,
-    );
-    if (position < 0) return;
-    _hint = findTutorialHint(
-      board,
-      preferredIndex: TutorialSudokus.guidedOrder[position],
-      preferredGroup: TutorialSudokus.guidedGroups[position],
-    );
-    _gameCell = _hint?.index;
-    _revealAnswer = remaining > 3;
-    _attention++;
   }
 
   void selectGameCell(int index) {
     RangeError.checkValueInInterval(index, 0, 80, 'index');
-    if (!readyToPlay || _confirmMove) return;
-    if (fixedIndices.contains(index)) {
-      _feedback = 'Esta es una pista.\nLas pistas no se cambian.';
-    } else {
-      _gameCell = index;
-      _feedback = null;
-      _conflicts = {};
-      if (_hint?.index != index) {
-        _hint = null;
-        _revealAnswer = false;
-      }
-    }
+    if (!readyToPlay) return;
+    _gameCell = index;
+    _feedback = null;
+    _conflicts = {};
     notifyListeners();
   }
 
   Future<void> placeGameNumber(int number) async {
     RangeError.checkValueInInterval(number, 1, 9, 'number');
     final index = _gameCell;
-    if (!readyToPlay ||
-        _confirmMove ||
-        index == null ||
-        fixedIndices.contains(index)) {
+    if (!readyToPlay || index == null || fixedIndices.contains(index)) {
       return;
     }
     final board = boardValues;
@@ -303,32 +264,20 @@ class FirstExperienceController extends ChangeNotifier {
       }
     }
     if (number != puzzleDefinition!.solution[index]) {
-      _hint = findTutorialHint(board);
-      _gameCell = _hint?.index;
-      _revealAnswer = false;
-      _feedback = 'Busquemos una casilla con más pistas.\nToca «Pista» y la miramos juntos.';
+      _conflicts = {index};
+      _feedback = 'Ese número no encaja aquí.';
       notifyListeners();
       return;
     }
-    final explanation = _hint?.index == index ? _hint?.explanation : null;
-    final confirm = gameIndex == 0 && remaining > 3;
     await _run(() async {
       await _player.setCell(index, number);
-      _nextGuidance();
-      if (step == FirstExperienceStep.playing && confirm) {
-        _confirmMove = true;
-        _gameCell = index;
-        _hint = null;
-        _feedback =
-            '¡Bien! ${explanation ?? 'Colocaste el $number sin repetir.'}';
-      }
+      _resetMoveFeedback();
     });
   }
 
   Future<void> clearGameCell() async {
     final index = _gameCell;
     if (!readyToPlay ||
-        _confirmMove ||
         index == null ||
         fixedIndices.contains(index) ||
         boardValues[index] == null) {
@@ -336,36 +285,9 @@ class FirstExperienceController extends ChangeNotifier {
     }
     await _run(() async {
       await _player.setCell(index, null);
-      _hint = null;
       _feedback = null;
       _conflicts = {};
-      _revealAnswer = false;
     });
-  }
-
-  void continuePlaying() {
-    if (!readyToPlay || !_confirmMove) return;
-    _nextGuidance();
-    notifyListeners();
-  }
-
-  /// First points out a group; a second request explains the missing number.
-  Future<void> requestHint() async {
-    if (!readyToPlay || _confirmMove) return;
-    if (_hint == null || _feedback != null || _revealAnswer) {
-      _hint = findTutorialHint(boardValues, preferredIndex: _gameCell);
-      _gameCell = _hint?.index;
-      _feedback = null;
-      _conflicts = {};
-      _revealAnswer = false;
-      _attention++;
-      notifyListeners();
-    } else {
-      await _run(() async {
-        await _player.recordHint();
-        _revealAnswer = true;
-      });
-    }
   }
 
   Future<void> repeatLessons() async {
@@ -527,9 +449,7 @@ class FirstExperienceController extends ChangeNotifier {
       _step = nextStep;
       _cells = snapshot;
       _feedback = null;
-      _hint = null;
       _conflicts = {};
-      _confirmMove = false;
       _gameCell = null;
       if (advanceSelection) {
         final empty = [

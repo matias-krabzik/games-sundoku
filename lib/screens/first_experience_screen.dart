@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../controllers/first_experience_controller.dart';
+import 'settings_screen.dart';
+import '../widgets/game_navigation_header.dart';
 import '../data/repositories/game_repository.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../widgets/home_art.dart';
@@ -38,7 +40,7 @@ class FirstExperienceScreen extends StatefulWidget {
 }
 
 class _FirstExperienceScreenState extends State<FirstExperienceScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const _center = [30, 31, 32, 39, 40, 41, 48, 49, 50];
   late final _flow = FirstExperienceController(
     widget.repository,
@@ -56,6 +58,30 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
           setState(() => _dokuReady = true);
         }
       });
+  late final _gameEntrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+    value: 1,
+  );
+  Offset _gameStartOffset = Offset.zero;
+  double _gameStartScale = 1;
+  bool _briefingPending = false;
+  bool _briefingScheduled = false;
+  bool _settingsOpen = false;
+  bool _boardAnimating = false;
+  bool get _navigationBlocked =>
+      _settingsOpen ||
+      _flow.isBusy ||
+      _boardAnimating ||
+      _briefingPending ||
+      _gameEntrance.isAnimating;
+
+  void _boardAnimationChanged(bool animating) {
+    if (mounted && _boardAnimating != animating) {
+      setState(() => _boardAnimating = animating);
+    }
+  }
+
   bool _dokuReady = false;
   bool _entranceStarted = false;
   bool _hasLeftWelcome = false;
@@ -85,9 +111,16 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   void initState() {
     super.initState();
     _previousStep = _flow.step;
+    _briefingPending =
+        _flow.step == FirstExperienceStep.playing && _needsBriefing;
     _flow.addListener(_changed);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_flow.resumeGame());
+      if (mounted) {
+        unawaited(_flow.resumeGame());
+        if (_flow.step == FirstExperienceStep.playing && _needsBriefing) {
+          _openGameBriefing();
+        }
+      }
     });
   }
 
@@ -103,7 +136,108 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _entranceStarted = true;
   }
 
+  Future<void> _openSettings() async {
+    if (_navigationBlocked) return;
+    setState(() => _settingsOpen = true);
+    try {
+      await _flow.pauseGame();
+      if (!mounted) return;
+      await Navigator.of(context)
+          .push(SettingsRoute(repository: widget.repository));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos abrir configuración. Intenta de nuevo.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        await _flow.resumeGame();
+        if (mounted) setState(() => _settingsOpen = false);
+      }
+    }
+  }
+
+  bool get _needsBriefing =>
+      !widget.reviewOnly &&
+      _flow.gameIndex == 0 &&
+      (widget.repository.state.modules[FirstExperienceController.moduleKey]
+              as Map?)?['briefingAccepted'] !=
+          true;
+
+  Rect? _boardRect() {
+    final box = _stageKey.currentContext?.findRenderObject();
+    return box is RenderBox && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+  }
+
+  Future<void> _openGameBriefing({Rect? from}) async {
+    if (_briefingScheduled || !mounted) return;
+    _briefingScheduled = true;
+    setState(() => _briefingPending = true);
+    final target = _boardRect();
+    final reduced =
+        MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context);
+    if (!reduced && from != null && target != null) {
+      _gameStartOffset = from.topLeft - target.topLeft;
+      _gameStartScale = from.width / target.width;
+      try {
+        await _gameEntrance.forward(from: 0).orCancel;
+      } on TickerCanceled {
+        return;
+      }
+    }
+    if (!mounted) return;
+    if (!_needsBriefing) {
+      setState(() => _briefingPending = false);
+      _briefingScheduled = false;
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.all(20),
+          child: _GameBriefing(
+            onAccept: () async {
+              final saved =
+                  widget.repository.state.modules[FirstExperienceController
+                          .moduleKey]
+                      as Map?;
+              await widget.repository.saveModule(
+                FirstExperienceController.moduleKey,
+                {
+                  if (saved != null) ...Map<String, dynamic>.from(saved),
+                  'briefingAccepted': true,
+                },
+              );
+              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+            },
+          ),
+        ),
+      ),
+    );
+    if (mounted) setState(() => _briefingPending = false);
+    _briefingScheduled = false;
+  }
+
   void _changed() {
+    if (_previousStep == FirstExperienceStep.givensIntroduction &&
+        _flow.step == FirstExperienceStep.playing) {
+      final from = _boardRect();
+      _briefingPending = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openGameBriefing(from: from);
+      });
+    }
     if (_previousStep == FirstExperienceStep.welcome && !_welcome) {
       _hasLeftWelcome = true;
     }
@@ -127,10 +261,12 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _flow.removeListener(_changed);
     _flow.dispose();
     _dokuEntrance.dispose();
+    _gameEntrance.dispose();
     super.dispose();
   }
 
   void _back() {
+    if (_navigationBlocked) return;
     if (_flow.isBusy) return;
     if (_welcome ||
         _flow.session != null ||
@@ -155,9 +291,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
           (_welcome ||
               _flow.session != null ||
               _flow.step.index > FirstExperienceStep.expansion.index) &&
-          !_flow.isBusy,
+          !_navigationBlocked,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && !_flow.isBusy && !_welcome) _back();
+        if (!didPop && !_navigationBlocked && !_welcome) _back();
       },
       child: Scaffold(
         key: const ValueKey('first-experience-flow'),
@@ -182,6 +318,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                   } else if (_flow.isStory ||
                       _flow.step.index >= FirstExperienceStep.expansion.index) {
                     content = TutorialJourney(
+                      navigationBlocked: _navigationBlocked,
                       flow: _flow,
                       board: _stage(cells, motion),
                       header: Column(
@@ -193,15 +330,28 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             ),
                             const SizedBox(height: 8),
                           ],
+                          if (_flow.step == FirstExperienceStep.playing) ...[
+                            GameNavigationHeader(
+                              onBack: _navigationBlocked ? null : _back,
+                              onSettings: _navigationBlocked
+                                  ? null
+                                  : _openSettings,
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           _FlowHeader(
                             welcome: false,
                             title: TutorialJourney.title(_flow),
-                            showDeveloperControls: widget.showDeveloperControls,
-                            onBack: _flow.isBusy ? null : _back,
+                            showDeveloperControls:
+                                widget.showDeveloperControls &&
+                                _flow.step != FirstExperienceStep.playing,
+                            onBack: _navigationBlocked ? null : _back,
                           ),
                         ],
                       ),
-                      onExit: () => Navigator.of(context).pop(),
+                      onExit: () {
+                        if (!_navigationBlocked) Navigator.of(context).pop();
+                      },
                     );
                   } else {
                     content = _blockLayout(cells, motion);
@@ -209,8 +359,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                   if (!_flow.isStory) return content;
                   return TutorialStoryGestures(
                     key: const ValueKey('tutorial-story-gestures'),
-                    enabled: !_flow.isBusy,
+                    enabled: !_navigationBlocked,
                     onNext: () {
+                      if (_navigationBlocked) return;
                       if (_flow.reviewOnly &&
                           _flow.storyIndex == _flow.storyCount - 1) {
                         Navigator.of(context).pop();
@@ -219,7 +370,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       }
                     },
                     onPrevious: _flow.storyIndex > 0
-                        ? _flow.previousStory
+                        ? () {
+                            if (!_navigationBlocked) _flow.previousStory();
+                          }
                         : null,
                     child: content,
                   );
@@ -252,7 +405,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
             _FlowHeader(
               welcome: _welcome,
               showDeveloperControls: widget.showDeveloperControls,
-              onBack: _flow.isBusy ? null : _back,
+              onBack: _navigationBlocked ? null : _back,
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -346,7 +499,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                 welcome: false,
                 expanded: expanded,
                 showDeveloperControls: widget.showDeveloperControls,
-                onBack: _flow.isBusy ? null : _back,
+                onBack: _navigationBlocked ? null : _back,
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -459,76 +612,93 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
   Widget _stage(List<int?> cells, Duration motion) => Center(
     key: _stageKey,
-    child: Stack(
-      fit: StackFit.expand,
-      children: [
-        IgnorePointer(
-          ignoring: _explaining || _flow.isBusy,
-          child: ExcludeSemantics(
-            excluding: _explaining,
-            child: AnimatedOpacity(
-              opacity: _explaining ? 0 : 1,
-              duration: motion,
-              child: Center(
-                child: SudokuBoard(
-                  key: const ValueKey('intro-board'),
-                  reveal: switch (_flow.step) {
-                    FirstExperienceStep.rowRule => SudokuBoardReveal.row,
-                    FirstExperienceStep.columnRule => SudokuBoardReveal.column,
-                    FirstExperienceStep.givensIntroduction =>
-                      SudokuBoardReveal.remaining,
-                    _ => SudokuBoardReveal.none,
-                  },
-                  cells: cells,
-                  selectedIndex: _explaining
-                      ? null
-                      : _flow.step == FirstExperienceStep.block
-                      ? _center[_activeCell]
-                      : _flow.step == FirstExperienceStep.playing
-                      ? _flow.gameCell
-                      : _flow.step == FirstExperienceStep.rowRule ||
-                            _flow.step == FirstExperienceStep.columnRule
-                      ? 40
-                      : null,
-                  centerOnly:
-                      _flow.step.index < FirstExperienceStep.expansion.index,
-                  highlightedIndices: _flow.highlightedIndices,
-                  conflictIndices: _flow.conflicts,
-                  fixedIndices: _flow.fixedIndices,
-                  highlightKey: '${_flow.step}-${_flow.attention}',
-                  onSelect: _explaining || _flow.isBusy
-                      ? null
-                      : _flow.step == FirstExperienceStep.playing
-                      ? _flow.selectGameCell
-                      : _flow.step != FirstExperienceStep.block
-                      ? null
-                      : (index) {
-                          GameFeedbackScope.tap(context);
-                          _flow.selectCell(_center.indexOf(index));
-                        },
+    child: AnimatedBuilder(
+      animation: _gameEntrance,
+      builder: (_, child) {
+        final remaining =
+            1 - Curves.easeInOutCubic.transform(_gameEntrance.value);
+        return Transform.translate(
+          offset: _gameStartOffset * remaining,
+          child: Transform.scale(
+            alignment: Alignment.topLeft,
+            scale: 1 + (_gameStartScale - 1) * remaining,
+            child: child,
+          ),
+        );
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          IgnorePointer(
+            ignoring: _explaining || _navigationBlocked,
+            child: ExcludeSemantics(
+              excluding: _explaining,
+              child: AnimatedOpacity(
+                opacity: _explaining ? 0 : 1,
+                duration: motion,
+                child: Center(
+                  child: SudokuBoard(
+                    key: const ValueKey('intro-board'),
+                    onAnimationChanged: _boardAnimationChanged,
+                    reveal: switch (_flow.step) {
+                      FirstExperienceStep.rowRule => SudokuBoardReveal.row,
+                      FirstExperienceStep.columnRule =>
+                        SudokuBoardReveal.column,
+                      FirstExperienceStep.givensIntroduction =>
+                        SudokuBoardReveal.remaining,
+                      _ => SudokuBoardReveal.none,
+                    },
+                    cells: cells,
+                    selectedIndex: _explaining
+                        ? null
+                        : _flow.step == FirstExperienceStep.block
+                        ? _center[_activeCell]
+                        : _flow.step == FirstExperienceStep.playing
+                        ? _flow.gameCell
+                        : _flow.step == FirstExperienceStep.rowRule ||
+                              _flow.step == FirstExperienceStep.columnRule
+                        ? 40
+                        : null,
+                    centerOnly:
+                        _flow.step.index < FirstExperienceStep.expansion.index,
+                    highlightedIndices: _flow.highlightedIndices,
+                    conflictIndices: _flow.conflicts,
+                    fixedIndices: _flow.fixedIndices,
+                    highlightKey: '${_flow.step}-${_flow.attention}',
+                    onSelect: _explaining || _navigationBlocked
+                        ? null
+                        : _flow.step == FirstExperienceStep.playing
+                        ? _flow.selectGameCell
+                        : _flow.step != FirstExperienceStep.block
+                        ? null
+                        : (index) {
+                            GameFeedbackScope.tap(context);
+                            _flow.selectCell(_center.indexOf(index));
+                          },
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        IgnorePointer(
-          child: ExcludeSemantics(
-            excluding: !_explaining,
-            child: AnimatedOpacity(
-              duration: motion,
-              opacity: _explaining ? 1 : 0,
-              child: FadeTransition(
-                key: const ValueKey('intro-doku-entrance'),
-                opacity: _dokuEntrance,
-                child: ScaleTransition(
-                  scale: Tween(begin: .94, end: 1.0).animate(_dokuEntrance),
-                  child: const _WelcomeGuide(),
+          IgnorePointer(
+            child: ExcludeSemantics(
+              excluding: !_explaining,
+              child: AnimatedOpacity(
+                duration: motion,
+                opacity: _explaining ? 1 : 0,
+                child: FadeTransition(
+                  key: const ValueKey('intro-doku-entrance'),
+                  opacity: _dokuEntrance,
+                  child: ScaleTransition(
+                    scale: Tween(begin: .94, end: 1.0).animate(_dokuEntrance),
+                    child: const _WelcomeGuide(),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 
@@ -793,5 +963,72 @@ class _IllustratedPanel extends StatelessWidget {
         child: Padding(padding: padding, child: child),
       ),
     ],
+  );
+}
+
+class _GameBriefing extends StatefulWidget {
+  const _GameBriefing({required this.onAccept});
+  final Future<void> Function() onAccept;
+  @override
+  State<_GameBriefing> createState() => _GameBriefingState();
+}
+
+class _GameBriefingState extends State<_GameBriefing> {
+  bool _saving = false;
+  String? _error;
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 420),
+    child: SingleChildScrollView(
+      child: UiSurfacePanel(
+        key: const ValueKey('game-briefing'),
+        surface: UiSurface.goldCreamPanel,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '¡Ahora te toca!',
+              textAlign: TextAlign.center,
+              style: homeText(28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Completa las casillas vacías con los números que faltan.\nToca una casilla y elige un número.\nRecuerda: no repitas números en la fila, la columna ni el bloque.',
+              textAlign: TextAlign.center,
+              style: homeText(20),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, textAlign: TextAlign.center, style: homeText(16)),
+            ],
+            const SizedBox(height: 20),
+            IllustratedActionButton(
+              key: const ValueKey('game-briefing-accept'),
+              label: _saving ? 'Guardando…' : '¡A jugar!',
+              fontSize: 23,
+              onPressed: _saving
+                  ? null
+                  : () async {
+                      setState(() {
+                        _saving = true;
+                        _error = null;
+                      });
+                      try {
+                        await widget.onAccept();
+                      } catch (_) {
+                        if (mounted) {
+                          setState(() {
+                            _saving = false;
+                            _error = 'No pudimos guardar. Intenta de nuevo.';
+                          });
+                        }
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }

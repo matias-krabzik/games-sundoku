@@ -11,8 +11,11 @@ import 'package:sundoku/data/repositories/game_repository.dart';
 import 'package:sundoku/domain/models/game_session.dart';
 import 'package:sundoku/domain/tutorial/tutorial_sudokus.dart';
 import 'package:sundoku/screens/first_experience_screen.dart';
+import 'package:sundoku/screens/settings_screen.dart';
 import 'package:sundoku/theme.dart';
 import 'package:sundoku/widgets/sudoku_board.dart';
+import 'package:sundoku/widgets/illustrated_action_button.dart';
+import 'package:sundoku/widgets/tutorial_block_controls.dart';
 import 'package:sundoku/widgets/tutorial_story_navigation.dart';
 import 'package:sundoku/widgets/ui_surface_art.dart';
 
@@ -47,6 +50,7 @@ Future<void> capture(WidgetTester tester, String name) async {
       'assets/images/home-background.png',
       'assets/images/tutorial/block-guide-atlas.png',
       'assets/images/tutorial/cleaning-brush.png',
+      'assets/images/tutorial/lives-icons.png',
       'assets/images/map/icons.png',
     }) {
       await precacheImage(AssetImage(asset), context);
@@ -119,6 +123,181 @@ Future<void> show(
 }
 
 void main() {
+  testWidgets('step navigation stays locked for the entire board animation', (
+    tester,
+  ) async {
+    configure(tester, reduced: false);
+    final repo = GameRepository.memory();
+    addTearDown(repo.dispose);
+    await repo.saveModule(FirstExperienceController.moduleKey, {
+      'step': 'blockIntroduction',
+      'cells': center,
+    });
+    await show(tester, repo);
+    final gestures = find.byKey(const ValueKey('tutorial-story-gestures'));
+    String step() =>
+        (repo.state.modules[FirstExperienceController.moduleKey] as Map)['step']
+            as String;
+    for (final target in [
+      'expansion',
+      'rowRule',
+      'columnRule',
+      'givensIntroduction',
+    ]) {
+      await tester.widget<IllustratedActionButton>(next).onPressed!();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pump();
+      expect(step(), target);
+      expect(tester.widget<TutorialStoryGestures>(gestures).enabled, false);
+      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      final bounds = tester.getRect(gestures);
+      await tester.tapAt(Offset(bounds.right - 20, bounds.center.dy));
+      await tester.drag(gestures, const Offset(180, 0));
+      await tester.tap(next);
+      await tester.pump();
+      expect(step(), target);
+      if (target == 'givensIntroduction') {
+        await tester.pump(const Duration(milliseconds: 950));
+        await tester.pump();
+        expect(tester.widget<TutorialStoryGestures>(gestures).enabled, false);
+        expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+      }
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(tester.widget<TutorialStoryGestures>(gestures).enabled, true);
+      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
+      expect(step(), target);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'board moves upward before briefing and play controls wait for acceptance',
+    (tester) async {
+      configure(tester, reduced: false);
+      tester.view.physicalSize = const Size(390, 1000);
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await repo.saveModule(FirstExperienceController.moduleKey, {
+        'step': 'givensIntroduction',
+        'cells': center,
+      });
+      await show(tester, repo);
+      final before = tester.getRect(board);
+      final element = tester.element(board);
+      await tester.widget<IllustratedActionButton>(next).onPressed!();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 10));
+      expect(tester.widget<SudokuBoard>(board).onSelect, isNull);
+      expect(find.byKey(const ValueKey('game-briefing')), findsNothing);
+      await tester.pump(const Duration(milliseconds: 350));
+      final middle = tester.getRect(board);
+      await tester.pump(const Duration(milliseconds: 400));
+      await settle(tester);
+      final after = tester.getRect(board);
+      expect(middle.top, lessThan(before.top));
+      expect(middle.top, greaterThan(after.top));
+      expect(tester.element(board), same(element));
+      expect(find.byKey(const ValueKey('game-briefing')), findsOneWidget);
+      expect(tester.widget<SudokuBoard>(board).onSelect, isNull);
+      await tester.tapAt(const Offset(2, 2));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('game-briefing')), findsOneWidget);
+      await capture(tester, 'tutorial-antes-de-jugar');
+      await tap(tester, find.byKey(const ValueKey('game-briefing-accept')));
+      expect(tester.widget<SudokuBoard>(board).onSelect, isNotNull);
+      final tray = tester.widget<TutorialNumberTray>(
+        find.byType(TutorialNumberTray),
+      );
+      expect(tray.horizontal, true);
+      final buttons = [
+        for (var n = 1; n <= 9; n++)
+          tester.getRect(find.byKey(ValueKey('intro-number-$n'))),
+      ];
+      for (var i = 1; i < buttons.length; i++) {
+        expect(buttons[i].top, buttons.first.top);
+        expect(buttons[i].left, greaterThan(buttons[i - 1].right));
+      }
+      final clear = tester.getRect(find.byKey(const ValueKey('intro-clear')));
+      final lives = tester.getRect(
+        find.byKey(const ValueKey('game-unlimited-lives')),
+      );
+      final banner = tester.getRect(find.text('Sudoku 1 de 3'));
+      expect(lives.top, greaterThan(banner.bottom));
+      expect(lives.bottom, lessThanOrEqualTo(after.top));
+      expect(clear.top, greaterThan(buttons.first.bottom));
+      expect(clear.left, closeTo(buttons.first.left + 12, 1));
+      expect(clear.width, clear.height);
+      expect(
+        (repo.state.modules[FirstExperienceController.moduleKey]
+            as Map)['briefingAccepted'],
+        true,
+      );
+      await capture(tester, 'tutorial-tablero-arriba');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'normal play opens settings above the title and returns to the map',
+    (tester) async {
+      configure(tester);
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await repo.startOrResumeLevel(
+        mapLevelId(1),
+        definitions: TutorialSudokus.create(center),
+        moduleKey: FirstExperienceController.moduleKey,
+        moduleData: {
+          'step': 'playing',
+          'gameIndex': 0,
+          'cells': center,
+          'briefingAccepted': true,
+        },
+      );
+      await show(tester, repo, withParentRoute: true);
+      await tap(tester, find.text('Abrir tutorial'));
+      expect(next, findsNothing);
+      expect(find.text('Pista'), findsNothing);
+      expect(find.text('Seguir'), findsNothing);
+      final title = tester.getRect(find.text('Sudoku 1 de 3'));
+      final back = find.byKey(const ValueKey('game-back'));
+      final settings = find.byKey(const ValueKey('game-settings'));
+      expect(tester.getRect(back).bottom, lessThan(title.top));
+      expect(tester.getRect(settings).bottom, lessThan(title.top));
+      expect(tester.widget<SudokuBoard>(board).selectedIndex, isNull);
+      final session = repo.state.sessions.values.single;
+      final definition = repo.state.puzzles[session.puzzles.first.puzzleId]!;
+      final target = tester.widget<SudokuBoard>(board).cells.indexOf(null);
+      await tap(tester, find.byKey(ValueKey('sudoku-cell-$target')));
+      await tap(
+        tester,
+        find.byKey(ValueKey('intro-number-${definition.solution[target]}')),
+      );
+      final element = tester.element(board);
+      final saved = [...tester.widget<SudokuBoard>(board).cells];
+      expect(next, findsNothing);
+      await tap(tester, settings);
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(repo.state.sessions.values.single.status, PlayStatus.paused);
+      await tap(tester, find.byKey(const ValueKey('settings-close')));
+      expect(find.byType(SettingsScreen), findsNothing);
+      expect(tester.element(board), same(element));
+      expect(tester.widget<SudokuBoard>(board).cells, saved);
+      expect(tester.widget<SudokuBoard>(board).selectedIndex, target);
+      await tap(tester, back);
+      expect(find.byType(FirstExperienceScreen), findsNothing);
+      expect(find.text('Abrir tutorial'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   setUpAll(() async {
     final font = FontLoader('Baloo2')
       ..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'));
@@ -168,6 +347,9 @@ void main() {
         await tap(tester, next);
         expect(tester.element(board), same(element));
       }
+      expect(find.byKey(const ValueKey('game-briefing')), findsOneWidget);
+      expect(tester.widget<SudokuBoard>(board).onSelect, isNull);
+      await tap(tester, find.byKey(const ValueKey('game-briefing-accept')));
       for (var game = 0; game < 3; game++) {
         expect(find.byType(TutorialStoryProgress), findsNothing);
         expect(
@@ -175,28 +357,15 @@ void main() {
           PlayStatus.active,
         );
         if (game == 0) await capture(tester, 'tutorial-primer-sudoku');
-        if (game == 1) {
-          await tap(tester, next); // point out group
-          expect(find.text('Ver el número'), findsOneWidget);
-          await capture(tester, 'tutorial-segundo-pista');
-          final values = repo.state.sessions.values.single.puzzles[game].cells
-              .map((c) => c.value)
-              .toList();
-          await tap(tester, next); // explain, without solving
-          expect(
-            repo.state.sessions.values.single.puzzles[game].cells.map(
-              (c) => c.value,
-            ),
-            values,
-          );
-        }
+        expect(next, findsNothing);
+        expect(find.text('Pista'), findsNothing);
+        expect(find.text('Seguir'), findsNothing);
+        expect(find.byKey(const ValueKey('game-back')), findsOneWidget);
+        expect(find.byKey(const ValueKey('game-settings')), findsOneWidget);
         var moves = 0;
         while (repo.state.sessions.values.single.puzzles[game].status !=
                 PlayStatus.completed &&
             moves++ < 81) {
-          if (find.text('Seguir').evaluate().isNotEmpty) {
-            await tap(tester, next);
-          }
           final progress = repo.state.sessions.values.single.puzzles[game];
           final definition = repo.state.puzzles[progress.puzzleId]!;
           final widget = tester.widget<SudokuBoard>(board);
@@ -334,7 +503,12 @@ void main() {
         mapLevelId(1),
         definitions: TutorialSudokus.create(center),
         moduleKey: FirstExperienceController.moduleKey,
-        moduleData: {'step': 'playing', 'gameIndex': 0, 'cells': center},
+        moduleData: {
+          'step': 'playing',
+          'gameIndex': 0,
+          'cells': center,
+          'briefingAccepted': true,
+        },
       );
       await show(tester, repo, textScale: 2);
       final element = tester.element(board);
@@ -347,9 +521,12 @@ void main() {
         await settle(tester);
         expect(tester.element(board), same(element));
         expect(tester.takeException(), isNull);
-        final buttonBounds = tester.getRect(next);
-        expect(buttonBounds.bottom, lessThanOrEqualTo(size.height - 5));
-        expect(buttonBounds.top, greaterThan(0));
+        expect(next, findsNothing);
+        final settingsBounds = tester.getRect(
+          find.byKey(const ValueKey('game-settings')),
+        );
+        expect(settingsBounds.top, greaterThanOrEqualTo(0));
+        expect(settingsBounds.bottom, lessThan(size.height));
         await tester.ensureVisible(
           find.byKey(const ValueKey('intro-number-3')),
         );

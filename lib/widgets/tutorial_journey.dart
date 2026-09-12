@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/first_experience_controller.dart';
 import 'home_art.dart';
+import 'gameplay_status_bar.dart';
 import 'illustrated_action_button.dart';
 import 'map_art.dart';
 import 'tutorial_block_art.dart';
@@ -12,17 +13,21 @@ import 'ui_surface_art.dart';
 
 /// The board is supplied by the route so its element survives every lesson.
 class TutorialJourney extends StatelessWidget {
+  static const _maxBoardWidth = 430.0;
+
   const TutorialJourney({
     super.key,
     required this.flow,
     required this.board,
     required this.header,
     required this.onExit,
+    this.navigationBlocked = false,
   });
   final FirstExperienceController flow;
   final Widget board;
   final Widget header;
   final VoidCallback onExit;
+  final bool navigationBlocked;
 
   bool get _playing => flow.step == FirstExperienceStep.playing;
   bool get _celebrating =>
@@ -49,9 +54,9 @@ class TutorialJourney extends StatelessWidget {
       ? flow.lessonMessage
       : switch (flow.step) {
           FirstExperienceStep.gameIntroduction => [
-            'Tu bloque sigue aquí.\nDoku te ayudará a completar el tablero.',
-            'Ahora elige tú la casilla.\nSi necesitas ayuda, toca «Pista».',
-            '¡Vamos con el tercero!\nPuedes pedir una pista cuando quieras.',
+            'Tu bloque sigue aquí.\nCompleta las casillas vacías.',
+            'Elige una casilla vacía\ny coloca el número que falta.',
+            '¡Vamos con el tercero!\nCompleta el tablero sin repetir números.',
           ][flow.gameIndex],
           FirstExperienceStep.givensIntroduction => 'Las pistas no se cambian.\nToca una casilla vacía y elige un número.',
           FirstExperienceStep.inputIntroduction =>
@@ -76,14 +81,7 @@ class TutorialJourney extends StatelessWidget {
               FirstExperienceStep.givensIntroduction =>
                 flow.session?.lights == 3 ? 'Terminar repaso' : 'Jugar',
               FirstExperienceStep.inputIntroduction => 'Empezar',
-              FirstExperienceStep.playing =>
-                !flow.readyToPlay && flow.error != null
-                    ? 'Reintentar'
-                    : flow.confirmingMove
-                    ? 'Seguir'
-                    : flow.hint != null && !flow.showingAnswer
-                    ? 'Ver el número'
-                    : 'Pista',
+              FirstExperienceStep.playing => 'Reintentar',
               FirstExperienceStep.celebration => [
                 'Vamos al segundo',
                 'Vamos al tercero',
@@ -94,17 +92,12 @@ class TutorialJourney extends StatelessWidget {
             };
 
   Future<void> _advance() async {
+    if (navigationBlocked) return;
     if (flow.step == FirstExperienceStep.complete ||
         (flow.reviewOnly && flow.storyIndex == flow.storyCount - 1)) {
       onExit();
     } else if (_playing) {
-      if (!flow.readyToPlay) {
-        await flow.resumeGame();
-      } else if (flow.confirmingMove) {
-        flow.continuePlaying();
-      } else {
-        await flow.requestHint();
-      }
+      await flow.resumeGame();
     } else {
       await flow.advance();
     }
@@ -115,22 +108,30 @@ class TutorialJourney extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, bounds) {
         final wide =
-            bounds.maxWidth >= 700 && bounds.maxWidth > bounds.maxHeight * 1.2;
+            !_playing &&
+            bounds.maxWidth >= 700 &&
+            bounds.maxWidth > bounds.maxHeight * 1.2;
         return Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: wide ? 950 : 502),
+            constraints: BoxConstraints(
+              maxWidth: wide ? 950 : (_playing ? _maxBoardWidth + 32 : 502),
+            ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Column(
                 children: [
                   header,
                   const SizedBox(height: 8),
+                  if (_playing) ...[
+                    const GameplayStatusBar(),
+                    const SizedBox(height: 4),
+                  ],
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, body) {
                         final boardWidth = math.min(
                           wide ? body.maxWidth * .47 : body.maxWidth,
-                          430.0,
+                          _maxBoardWidth,
                         );
                         final boardArea = SizedBox(
                           width: boardWidth,
@@ -146,23 +147,6 @@ class TutorialJourney extends StatelessWidget {
                                     opacity: _celebrating ? 0 : 1,
                                     child: Row(
                                       children: [
-                                        if (_playing) ...[
-                                          TutorialEraseButton(
-                                            onPressed:
-                                                flow.readyToPlay &&
-                                                    !flow.confirmingMove &&
-                                                    flow.gameCell != null &&
-                                                    !flow.fixedIndices.contains(
-                                                      flow.gameCell,
-                                                    ) &&
-                                                    flow.boardValues[flow
-                                                            .gameCell!] !=
-                                                        null
-                                                ? flow.clearGameCell
-                                                : null,
-                                          ),
-                                          const SizedBox(width: 6),
-                                        ],
                                         Expanded(
                                           child: AspectRatio(
                                             aspectRatio: 1,
@@ -188,8 +172,9 @@ class TutorialJourney extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (_playing) ...[
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 20),
                               TutorialNumberTray(
+                                horizontal: true,
                                 available: [
                                   for (var n = 1; n <= 9; n++)
                                     if (flow.boardValues
@@ -199,23 +184,58 @@ class TutorialJourney extends StatelessWidget {
                                       n,
                                 ],
                                 onSelected:
-                                    flow.readyToPlay &&
-                                        !flow.confirmingMove &&
-                                        flow.gameCell != null
+                                    !navigationBlocked &&
+                                        flow.readyToPlay &&
+                                        flow.gameCell != null &&
+                                        !flow.fixedIndices.contains(
+                                          flow.gameCell,
+                                        )
                                     ? flow.placeGameNumber
                                     : null,
                               ),
                               const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TutorialEraseButton(
+                                    iconSize: 28,
+                                    surface: UiSurface.creamTile,
+                                    onPressed:
+                                        !navigationBlocked &&
+                                            flow.readyToPlay &&
+                                            flow.gameCell != null &&
+                                            !flow.fixedIndices.contains(
+                                              flow.gameCell,
+                                            ) &&
+                                            flow.boardValues[flow.gameCell!] !=
+                                                null
+                                        ? flow.clearGameCell
+                                        : null,
+                                  ),
+                                ),
+                              ),
                             ] else if (!_celebrating && wide == false)
                               const SizedBox(height: 12),
-                            TutorialLessonCard(
-                              message: _message,
-                              messageKey:
-                                  '${flow.step}-${flow.gameCell}-${flow.playMessage}',
-                              progress: _playing
-                                  ? '${flow.remaining} casillas por completar'
-                                  : null,
-                            ),
+                            if (!_playing)
+                              TutorialLessonCard(
+                                message: _message,
+                                messageKey:
+                                    '${flow.step}-${flow.gameCell}-${flow.playMessage}',
+                              ),
+                            if (_playing) ...[
+                              if (flow.playMessage.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  flow.playMessage,
+                                  style: homeText(16),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ],
                             if (flow.step ==
                                     FirstExperienceStep.blockIntroduction &&
                                 flow.session == null &&
@@ -272,8 +292,9 @@ class TutorialJourney extends StatelessWidget {
                                       ],
                                     )
                                   : Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: _playing
+                                          ? MainAxisAlignment.start
+                                          : MainAxisAlignment.center,
                                       children: [boardArea, information],
                                     ),
                             ),
@@ -282,17 +303,20 @@ class TutorialJourney extends StatelessWidget {
                       },
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: IllustratedActionButton(
-                      key: const ValueKey('tutorial-next'),
-                      compact: bounds.maxHeight < 650,
-                      showPlayIcon: !_playing,
-                      fontSize: 23,
-                      label: flow.isBusy ? 'Guardando…' : _action,
-                      onPressed: flow.isBusy ? null : _advance,
+                  if (!_playing || (flow.error != null && !flow.readyToPlay))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: IllustratedActionButton(
+                        key: const ValueKey('tutorial-next'),
+                        compact: bounds.maxHeight < 650,
+                        showPlayIcon: !_playing,
+                        fontSize: 23,
+                        label: flow.isBusy ? 'Guardando…' : _action,
+                        onPressed: flow.isBusy || navigationBlocked
+                            ? null
+                            : _advance,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

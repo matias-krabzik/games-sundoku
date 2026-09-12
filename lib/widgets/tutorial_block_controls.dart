@@ -1,8 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'home_art.dart';
 import 'juicy_press.dart';
-import 'map_art.dart';
 import 'sudoku_digit.dart';
 import 'tutorial_block_art.dart';
 import 'ui_surface_art.dart';
@@ -12,13 +13,36 @@ class TutorialNumberTray extends StatelessWidget {
     super.key,
     required this.available,
     required this.onSelected,
+    this.horizontal = false,
   });
+  final bool horizontal;
   final List<int> available;
   final ValueChanged<int>? onSelected;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
+      if (horizontal) {
+        final gap = bounds.maxWidth < 340 ? 2.0 : 4.0;
+        final width = (bounds.maxWidth - gap * 8) / 9;
+        return SizedBox(
+          height: math.max(48, width),
+          child: Row(
+            children: [
+              for (var number = 1; number <= 9; number++) ...[
+                if (number > 1) SizedBox(width: gap),
+                Expanded(
+                  child: _NumberButton(
+                    number: number,
+                    placed: !available.contains(number),
+                    onSelected: onSelected,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -91,15 +115,9 @@ class _NumberButton extends StatelessWidget {
           Center(
             child: Opacity(
               opacity: placed ? .38 : 1,
-              child: SudokuDigit(number, size: bounds.maxWidth * .69),
+              child: SudokuDigit(number, size: bounds.maxWidth * .55),
             ),
           ),
-          if (placed)
-            const Positioned(
-              right: 5,
-              bottom: 5,
-              child: MapIcon(MapGlyph.lock, size: 13),
-            ),
         ],
       ),
     ),
@@ -107,8 +125,15 @@ class _NumberButton extends StatelessWidget {
 }
 
 class TutorialEraseButton extends StatelessWidget {
-  const TutorialEraseButton({super.key, required this.onPressed});
+  const TutorialEraseButton({
+    super.key,
+    required this.onPressed,
+    this.iconSize = 40,
+    this.surface = UiSurface.creamRound,
+  });
   final VoidCallback? onPressed;
+  final double iconSize;
+  final UiSurface surface;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -122,14 +147,14 @@ class TutorialEraseButton extends StatelessWidget {
         builder: (_, _) => Stack(
           fit: StackFit.expand,
           children: [
-            const UiSurfaceArt(UiSurface.creamRound),
+            UiSurfaceArt(surface),
             Center(
               child: Opacity(
                 opacity: onPressed == null ? .5 : 1,
                 child: Image.asset(
                   'assets/images/tutorial/cleaning-brush.png',
-                  width: 40,
-                  height: 40,
+                  width: iconSize,
+                  height: iconSize,
                   fit: BoxFit.contain,
                   excludeFromSemantics: true,
                 ),

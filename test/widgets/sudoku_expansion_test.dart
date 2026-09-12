@@ -61,23 +61,41 @@ void main() {
       expect(lessonOpacity(tester, 36), 0);
       expect(find.byKey(const ValueKey('lesson-tile-0')), findsNothing);
       expect(find.byKey(const ValueKey('lesson-tile-40')), findsNothing);
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 900));
       expect(find.byKey(const ValueKey('lesson-tile-36')), findsNothing);
       await tester.pumpWidget(lesson(SudokuBoardReveal.column));
       expect(lessonOpacity(tester, 36), 1);
       expect(lessonOpacity(tester, 4), 0);
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 720));
       expect(lessonOpacity(tester, 36), 0);
       expect(lessonOpacity(tester, 4), 1);
       expect(tester.getRect(center), position);
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 180));
       await tester.pumpWidget(lesson(SudokuBoardReveal.remaining));
       expect(lessonOpacity(tester, 0), 0);
-      expect(find.byKey(const ValueKey('lesson-tile-36')), findsNothing);
+      expect(lessonOpacity(tester, 36), 0);
+      expect(lessonOpacity(tester, 4), 0);
       // The old column overlay leaves above the stationary board.
       expect(lessonOpacity(tester, 40), 1);
       expect(tester.getRect(center), position);
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 899));
+      expect(lessonOpacity(tester, 0), 0);
+      expect(lessonOpacity(tester, 20), 0);
+      expect(lessonOpacity(tester, 36), 0);
+      expect(lessonOpacity(tester, 4), 0);
+      expect(
+        tester
+            .widget<Opacity>(find.byKey(const ValueKey('lesson-departure-4')))
+            .opacity,
+        0,
+      );
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(lessonOpacity(tester, 40), 0);
+      expect(lessonOpacity(tester, 20), 0);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(lessonOpacity(tester, 20), greaterThan(0));
+      expect(lessonOpacity(tester, 0), 0);
+      await tester.pump(const Duration(milliseconds: 600));
       expect(find.byKey(const ValueKey('lesson-tile-0')), findsNothing);
       expect(tester.takeException(), isNull);
     },
