@@ -1044,6 +1044,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                     centerOnly:
                         _flow.step.index < FirstExperienceStep.expansion.index,
                     highlightedIndices: _flow.highlightedIndices,
+                    helpFocusIndices: _flow.helpTip?.focusIndices ?? const {},
+                    helpEmphasizedNumber: _flow.helpTip?.emphasizedNumber,
+                    helpTraces: _flow.helpTip?.traces ?? const [],
+                    helpArrivalIndex: _flow.helpTip?.arrivalIndex,
                     conflictIndices: _flow.conflicts,
                     errorPulse: _flow.attention,
                     completion: _flow.completion,

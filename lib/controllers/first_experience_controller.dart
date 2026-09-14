@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../data/level_catalog.dart';
 import '../data/repositories/game_repository.dart';
 import '../domain/models/game_session.dart';
+import '../domain/help/sudoku_help.dart';
 import '../domain/models/json_data.dart';
 import '../domain/models/sudoku_definition.dart';
 import '../domain/models/sudoku_completion.dart';
@@ -20,6 +21,7 @@ class FirstExperienceController extends ChangeNotifier {
     this.repository, {
     Random? random,
     this.reviewOnly = false,
+    this.helpEngine = const SudokuHelpEngine(),
   }) : _random = random ?? Random() {
     final saved = _module;
     _cells = _readCells(saved['cells']);
@@ -39,6 +41,8 @@ class FirstExperienceController extends ChangeNotifier {
 
   final GameRepository repository;
   final bool reviewOnly;
+  final SudokuHelpEngine helpEngine;
+  bool _helpVisible = false;
   final Random _random;
   late FirstExperienceStep _savedStep;
   late FirstExperienceStep _step;
@@ -84,6 +88,30 @@ class FirstExperienceController extends ChangeNotifier {
       !_isBusy &&
       _play?.isRunning == true;
   int? get gameCell => _gameCell;
+  bool get canShowHelp =>
+      readyToPlay && _gameCell != null && boardValues[_gameCell!] == null;
+  SudokuHelpTip? get helpTip => !_helpVisible || !canShowHelp
+      ? null
+      : helpEngine.explain(
+          SudokuHelpContext(
+            cells: boardValues,
+            selectedIndex: _gameCell!,
+            fixedIndices: fixedIndices,
+          ),
+        );
+
+  void showHelp() {
+    if (!canShowHelp) return;
+    _helpVisible = true;
+    notifyListeners();
+  }
+
+  void dismissHelp() {
+    if (!_helpVisible) return;
+    _helpVisible = false;
+    notifyListeners();
+  }
+
   int get attention => _attention;
   SudokuCompletion? get completion => _completion;
   Set<int> get conflicts {
@@ -278,6 +306,7 @@ class FirstExperienceController extends ChangeNotifier {
     RangeError.checkValueInInterval(index, 0, 80, 'index');
     if (!readyToPlay) return;
     _gameCell = index;
+    _helpVisible = false;
     _feedback = null;
     notifyListeners();
   }
@@ -288,6 +317,7 @@ class FirstExperienceController extends ChangeNotifier {
     if (!readyToPlay || index == null || fixedIndices.contains(index)) {
       return;
     }
+    dismissHelp();
     final board = boardValues;
     if (board[index] == number) {
       if (conflicts.contains(index)) {
@@ -415,6 +445,7 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    _helpVisible = false;
     _isBusy = true;
     _error = null;
     notifyListeners();
@@ -550,6 +581,7 @@ class FirstExperienceController extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    _helpVisible = false;
     _isBusy = true;
     _error = null;
     notifyListeners();

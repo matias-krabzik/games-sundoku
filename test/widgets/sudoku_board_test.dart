@@ -1,8 +1,13 @@
 import 'dart:io';
+
+import 'package:sundoku/domain/help/sudoku_help.dart';
+import 'package:sundoku/domain/tutorial/tutorial_sudokus.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
+import 'package:sundoku/widgets/sudoku_help.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/widgets/sudoku_board.dart';
@@ -11,6 +16,158 @@ import 'package:sundoku/widgets/ui_surface_art.dart';
 import 'package:sundoku/domain/models/sudoku_completion.dart';
 
 void main() {
+  testWidgets(
+    'help hops all nine block tiles together without moving other tiles',
+    (tester) async {
+      final block = groupCells(40, SudokuGroup.block).toSet();
+      var visible = true;
+      var reduced = false;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return MediaQuery(
+                    data: MediaQuery.of(context)
+                        .copyWith(disableAnimations: reduced),
+                    child: SizedBox.square(
+                      dimension: 360,
+                      child: SudokuBoard(
+                        cells: List<int?>.filled(81, null),
+                        selectedIndex: 40,
+                        onSelect: (_) {},
+                        helpFocusIndices: visible ? block : {},
+                        helpTraces: visible
+                            ? scanHelpGroup(40, SudokuGroup.block)
+                            : [],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      double offset(int index) => tester
+          .widget<Transform>(find.byKey(ValueKey('sudoku-help-hop-$index')))
+          .transform
+          .storage[13];
+      await tester.pump(const Duration(milliseconds: 370));
+      final lift = offset(40);
+      expect(lift, lessThan(-1));
+      for (var index = 0; index < 81; index++) {
+        expect(offset(index), block.contains(index) ? lift : 0);
+      }
+      await tester.pumpAndSettle();
+      for (final index in block) {
+        expect(offset(index), 0);
+      }
+      update(() {});
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 370));
+      expect(
+        offset(40),
+        0,
+        reason: 'Equivalent rebuild must not replay the hop',
+      );
+      update(() => visible = false);
+      await tester.pumpAndSettle();
+      update(() {
+        visible = true;
+        reduced = true;
+      });
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 370));
+      expect(offset(40), 0, reason: 'Reduced motion keeps the tiles still');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'help highlights the named number even on an empty selection and clears on close',
+    (tester) async {
+      final cells = List<int?>.filled(81, null)
+        ..[0] = 3
+        ..[80] = 3
+        ..[8] = 5;
+      int? emphasized = 3;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.square(
+                dimension: 360,
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    update = setState;
+                    return SudokuBoard(
+                      cells: cells,
+                      selectedIndex: 40,
+                      fixedIndices: {0, 8},
+                      onSelect: (_) {},
+                      helpEmphasizedNumber: emphasized,
+                      helpFocusIndices: emphasized == null
+                          ? {}
+                          : {30, 31, 32, 39, 40, 41, 48, 49, 50},
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final index in [0, 80]) {
+        expect(
+          find.byKey(ValueKey('sudoku-matching-number-$index')),
+          findsOneWidget,
+        );
+        final spotlight = find.byType(SudokuHelpSpotlight);
+        final areas = tester.widget<SudokuHelpSpotlight>(spotlight).areas;
+        final position =
+            tester.getCenter(find.byKey(ValueKey('sudoku-cell-$index'))) -
+            tester.getTopLeft(spotlight);
+        expect(areas.any((area) => area.contains(position)), isTrue);
+      }
+      expect(
+        find.byKey(const ValueKey('sudoku-matching-number-8')),
+        findsNothing,
+      );
+      update(() => emphasized = 5);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('sudoku-matching-number-8')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('sudoku-matching-number-0')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('sudoku-matching-number-80')),
+        findsNothing,
+      );
+      update(() => emphasized = null);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('sudoku-matching-number-8')),
+        findsNothing,
+      );
+      expect(
+        tester
+            .widget<SudokuHelpSpotlight>(find.byType(SudokuHelpSpotlight))
+            .areas,
+        isEmpty,
+      );
+    },
+  );
+
   testWidgets(
     'selection highlights spread radially within 180ms and matches crossfade without jumps',
     (tester) async {

@@ -6,6 +6,9 @@ import '../domain/models/sudoku_completion.dart';
 
 import 'home_art.dart';
 import 'sudoku_digit.dart';
+import 'sudoku_help.dart';
+import 'sudoku_help_trails.dart';
+import '../domain/help/sudoku_help_motion.dart';
 import 'ui_surface_art.dart';
 
 enum SudokuBoardReveal { none, row, column, remaining }
@@ -15,6 +18,10 @@ class SudokuBoard extends StatefulWidget {
     super.key,
     required this.cells,
     this.selectedIndex,
+    this.helpFocusIndices = const {},
+    this.helpEmphasizedNumber,
+    this.helpTraces = const [],
+    this.helpArrivalIndex,
     this.onSelect,
     this.centerOnly = false,
     this.highlightedIndices = const [],
@@ -34,6 +41,10 @@ class SudokuBoard extends StatefulWidget {
 
   final List<int?> cells;
   final int? selectedIndex;
+  final Set<int> helpFocusIndices;
+  final int? helpEmphasizedNumber;
+  final List<SudokuHelpTrace> helpTraces;
+  final int? helpArrivalIndex;
   final ValueChanged<int>? onSelect;
   final bool centerOnly;
   final List<int> highlightedIndices;
@@ -70,6 +81,7 @@ class _SudokuBoardState extends State<SudokuBoard>
     duration: const Duration(milliseconds: 420),
     value: 1,
   );
+  late final _helpHop = AnimationController(vsync: this, value: 1);
   int? _errorIndex;
   late final _completionWave = AnimationController(vsync: this, value: 1)
     ..addStatusListener((status) {
@@ -113,7 +125,9 @@ class _SudokuBoardState extends State<SudokuBoard>
     _reducedMotion =
         MediaQuery.disableAnimationsOf(context) ||
         MediaQuery.accessibleNavigationOf(context);
+    if (_helpHop.duration == null) _startHelpHop();
     if (_reducedMotion) {
+      _helpHop.value = 1;
       _expansion.value = 1;
       _lesson.value = 1;
       _errorBuzz.value = 1;
@@ -124,6 +138,10 @@ class _SudokuBoardState extends State<SudokuBoard>
   @override
   void didUpdateWidget(SudokuBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (helpMotionSignature(oldWidget.helpTraces) !=
+        helpMotionSignature(widget.helpTraces)) {
+      _startHelpHop();
+    }
     if (!identical(oldWidget.completion, widget.completion)) {
       final completion = _waveCompletion = widget.completion;
       _completionDelays = {};
@@ -218,11 +236,16 @@ class _SudokuBoardState extends State<SudokuBoard>
     _lesson.dispose();
     _errorBuzz.dispose();
     _completionWave.dispose();
+    _helpHop.dispose();
     super.dispose();
   }
 
   Widget _lessonTile(int index, double extent, Widget child) {
-    child = _completionTile(index, extent, _errorTile(index, extent, child));
+    child = _helpHopTile(
+      index,
+      extent,
+      _completionTile(index, extent, _errorTile(index, extent, child)),
+    );
     final previous = _previousLesson;
     if (_lesson.value >= 1 ||
         previous == null ||
@@ -326,6 +349,38 @@ class _SudokuBoardState extends State<SudokuBoard>
     );
   }
 
+  void _startHelpHop() {
+    _helpHop.stop();
+    _helpHop.duration = Duration(
+      milliseconds: helpMotionMilliseconds(widget.helpTraces),
+    );
+    if (_reducedMotion || !widget.helpTraces.any((trace) => trace.isBlockHop)) {
+      _helpHop.value = 1;
+    } else {
+      _helpHop.forward(from: 0);
+    }
+  }
+
+  Widget _helpHopTile(int index, double extent, Widget child) {
+    var lift = 0.0;
+    if (!_reducedMotion && _helpHop.value < 1) {
+      final time = _helpHop.value * helpMotionMilliseconds(widget.helpTraces);
+      for (var i = 0; i < widget.helpTraces.length; i++) {
+        final trace = widget.helpTraces[i];
+        if (!trace.isBlockHop || !trace.cells.contains(index)) continue;
+        final phase = ((time - 180 - i * 380) / 380).clamp(0.0, 1.0);
+        if (phase > 0 && phase < 1) {
+          lift = math.max(lift, math.sin(phase * math.pi));
+        }
+      }
+    }
+    return Transform.translate(
+      key: ValueKey('sudoku-help-hop-$index'),
+      offset: Offset(0, -extent * .075 * lift),
+      child: child,
+    );
+  }
+
   Widget _errorTile(int index, double extent, Widget child) {
     final t = _errorBuzz.value;
     final wave = index == _errorIndex && t < 1
@@ -347,6 +402,7 @@ class _SudokuBoardState extends State<SudokuBoard>
         _lesson,
         _errorBuzz,
         _completionWave,
+        _helpHop,
       ]),
       builder: (context, _) => LayoutBuilder(
         builder: (context, constraints) {
@@ -395,6 +451,45 @@ class _SudokuBoardState extends State<SudokuBoard>
             innerMargin + extent * 6 + blockGap * 1.5,
             innerSize,
           ];
+          final helpAreas = <Rect>[];
+          final remainingFocus = {
+            ...widget.helpFocusIndices,
+            if (widget.helpEmphasizedNumber != null)
+              for (var i = 0; i < 81; i++)
+                if (cells[i] == widget.helpEmphasizedNumber) i,
+          };
+          if (!centerOnly) {
+            for (var block = 0; block < 9; block++) {
+              final row = block ~/ 3;
+              final column = block % 3;
+              final indices = {
+                for (var r = 0; r < 3; r++)
+                  for (var c = 0; c < 3; c++)
+                    (row * 3 + r) * 9 + column * 3 + c,
+              };
+              if (remainingFocus.containsAll(indices)) {
+                helpAreas.add(
+                  Rect.fromLTRB(
+                    blockEdges[column],
+                    blockEdges[row],
+                    blockEdges[column + 1],
+                    blockEdges[row + 1],
+                  ),
+                );
+                remainingFocus.removeAll(indices);
+              }
+            }
+            for (final index in remainingFocus) {
+              helpAreas.add(
+                Rect.fromLTWH(
+                  offset(index % 9),
+                  offset(index ~/ 9),
+                  extent,
+                  extent,
+                ),
+              );
+            }
+          }
           final visible = centerOnly
               ? _centerIndices
               : List.generate(81, (i) => i);
@@ -495,67 +590,93 @@ class _SudokuBoardState extends State<SudokuBoard>
                                             )
                                         ? Duration.zero
                                         : const Duration(milliseconds: 1000),
-                                    builder: (context, progress, _) =>
-                                        _SudokuCell(
-                                          index: index,
-                                          value: cells[index],
-                                          selected: selectedIndex == index,
-                                          selectionOrigin: selectedIndex,
-                                          inSelectedLine:
-                                              !centerOnly &&
-                                              onSelect != null &&
-                                              selectedIndex != null &&
-                                              (index ~/ 9 ==
-                                                      selectedIndex ~/ 9 ||
-                                                  index % 9 ==
-                                                      selectedIndex % 9),
-                                          matchingNumber:
-                                              !centerOnly &&
-                                              onSelect != null &&
-                                              selectedIndex != null &&
-                                              cells[selectedIndex] != null &&
-                                              cells[index] ==
-                                                  cells[selectedIndex],
-                                          related:
-                                              !widget.centerOnly &&
-                                              onSelect != null &&
-                                              selectedIndex != null &&
-                                              (index ~/ 9 ==
-                                                      selectedIndex ~/ 9 ||
-                                                  index % 9 ==
-                                                      selectedIndex % 9 ||
-                                                  (index ~/ 27 ==
-                                                          selectedIndex ~/ 27 &&
-                                                      index % 9 ~/ 3 ==
-                                                          selectedIndex %
-                                                              9 ~/
-                                                              3)),
-                                          onSelect: onSelect,
-                                          fixed: fixedIndices.contains(index),
-                                          marked: fixedIndices.isNotEmpty,
-                                          conflict: conflictIndices.contains(
-                                            index,
-                                          ),
-                                          celebrating:
-                                              _completionWave.isAnimating &&
-                                              _waveCompletion?.origin == index,
-                                          highlight:
-                                              highlightedIndices.contains(index)
-                                              ? ((progress * 1.5 -
+                                    builder: (context, progress, _) => _SudokuCell(
+                                      index: index,
+                                      value: cells[index],
+                                      selected: selectedIndex == index,
+                                      selectionOrigin: selectedIndex,
+                                      inSelectedLine:
+                                          widget.helpFocusIndices.isEmpty &&
+                                          !centerOnly &&
+                                          onSelect != null &&
+                                          selectedIndex != null &&
+                                          (index ~/ 9 == selectedIndex ~/ 9 ||
+                                              index % 9 == selectedIndex % 9),
+                                      matchingNumber:
+                                          !centerOnly &&
+                                          (widget.helpEmphasizedNumber != null
+                                              ? cells[index] ==
+                                                    widget.helpEmphasizedNumber
+                                              : onSelect != null &&
+                                                    selectedIndex != null &&
+                                                    cells[selectedIndex] !=
+                                                        null &&
+                                                    cells[index] ==
+                                                        cells[selectedIndex]),
+                                      related:
+                                          widget.helpFocusIndices.isEmpty &&
+                                          !widget.centerOnly &&
+                                          onSelect != null &&
+                                          selectedIndex != null &&
+                                          (index ~/ 9 == selectedIndex ~/ 9 ||
+                                              index % 9 == selectedIndex % 9 ||
+                                              (index ~/ 27 ==
+                                                      selectedIndex ~/ 27 &&
+                                                  index % 9 ~/ 3 ==
+                                                      selectedIndex % 9 ~/ 3)),
+                                      onSelect: onSelect,
+                                      fixed: fixedIndices.contains(index),
+                                      marked: fixedIndices.isNotEmpty,
+                                      conflict: conflictIndices.contains(index),
+                                      celebrating:
+                                          _completionWave.isAnimating &&
+                                          _waveCompletion?.origin == index,
+                                      highlight:
+                                          highlightedIndices.contains(index)
+                                          ? ((progress * 1.5 -
+                                                    highlightedIndices.indexOf(
+                                                          index,
+                                                        ) /
                                                         highlightedIndices
-                                                                .indexOf(
-                                                                  index,
-                                                                ) /
-                                                            highlightedIndices
-                                                                .length *
-                                                            .5)
-                                                    .clamp(0.0, 1.0))
-                                              : 0,
-                                        ),
+                                                            .length *
+                                                        .5)
+                                                .clamp(0.0, 1.0))
+                                          : 0,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: boardRadius,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  SudokuHelpSpotlight(
+                                    key: const ValueKey('game-help-spotlight'),
+                                    areas: helpAreas,
+                                  ),
+                                  SudokuHelpTrails(
+                                    traces: centerOnly
+                                        ? const []
+                                        : widget.helpTraces,
+                                    arrivalIndex: centerOnly
+                                        ? null
+                                        : widget.helpArrivalIndex,
+                                    centers: [
+                                      for (var i = 0; i < 81; i++)
+                                        Offset(
+                                          offset(i % 9) + extent / 2,
+                                          offset(i ~/ 9) + extent / 2,
+                                        ),
+                                    ],
+                                    cellExtent: extent,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

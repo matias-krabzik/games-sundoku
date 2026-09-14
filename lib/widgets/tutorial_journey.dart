@@ -9,6 +9,7 @@ import 'game_layout.dart';
 import 'gameplay_status_bar.dart';
 import 'illustrated_action_button.dart';
 import 'sudoku_board.dart';
+import 'sudoku_help.dart';
 import 'tutorial_celebration.dart';
 import 'tutorial_block_controls.dart';
 import 'ui_surface_art.dart';
@@ -185,6 +186,7 @@ class TutorialJourney extends StatelessWidget {
         onAction: flow.isBusy || navigationBlocked ? null : _advance,
       );
     }
+    final help = flow.helpTip;
     return LayoutBuilder(
       builder: (context, bounds) {
         final wide =
@@ -252,24 +254,38 @@ class TutorialJourney extends StatelessWidget {
                                         horizontal: 12,
                                         vertical: 4,
                                       ),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: TutorialEraseButton(
-                                          iconSize: 28,
-                                          surface: UiSurface.creamTile,
-                                          onPressed:
-                                              !navigationBlocked &&
-                                                  flow.readyToPlay &&
-                                                  flow.gameCell != null &&
-                                                  !flow.fixedIndices.contains(
-                                                    flow.gameCell,
-                                                  ) &&
-                                                  flow.boardValues[flow
-                                                          .gameCell!] !=
-                                                      null
-                                              ? flow.clearGameCell
-                                              : null,
-                                        ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          TutorialEraseButton(
+                                            iconSize: 28,
+                                            surface: UiSurface.creamTile,
+                                            onPressed:
+                                                !navigationBlocked &&
+                                                    flow.readyToPlay &&
+                                                    flow.gameCell != null &&
+                                                    !flow.fixedIndices.contains(
+                                                      flow.gameCell,
+                                                    ) &&
+                                                    flow.boardValues[flow
+                                                            .gameCell!] !=
+                                                        null
+                                                ? flow.clearGameCell
+                                                : null,
+                                          ),
+                                          SudokuHelpButton(
+                                            key: const ValueKey('game-help'),
+                                            active: help != null,
+                                            onPressed:
+                                                !navigationBlocked &&
+                                                    flow.canShowHelp
+                                                ? (help == null
+                                                      ? flow.showHelp
+                                                      : flow.dismissHelp)
+                                                : null,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ] else if (!_celebrating && wide == false)
@@ -281,7 +297,16 @@ class TutorialJourney extends StatelessWidget {
                                           '${flow.step}-${flow.gameCell}-${flow.playMessage}',
                                     ),
                                   if (_playing) ...[
-                                    if (flow.playMessage.isNotEmpty) ...[
+                                    if (help != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: SudokuHelpCard(
+                                          key: const ValueKey('game-help-card'),
+                                          tip: help,
+                                        ),
+                                      ),
+                                    if (help == null &&
+                                        flow.playMessage.isNotEmpty) ...[
                                       const SizedBox(height: 8),
                                       Text(
                                         flow.playMessage,
