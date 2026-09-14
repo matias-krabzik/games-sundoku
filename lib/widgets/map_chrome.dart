@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../routes.dart';
 import 'game_feedback_scope.dart';
@@ -79,6 +80,9 @@ class MapStatusCard extends StatelessWidget {
     constraints: const BoxConstraints(maxWidth: 370),
     child: LayoutBuilder(
       builder: (context, constraints) {
+        final desktop =
+            defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS;
         final width = math.min(constraints.maxWidth, 370.0);
         final unit = (width / 350).clamp(.82, 1.06);
         final worldHeight = compact ? 48.0 : 58.0;
@@ -149,16 +153,18 @@ class MapStatusCard extends StatelessWidget {
                     Expanded(
                       child: Row(
                         children: [
-                          _MapRoundButton(
-                            key: const ValueKey('map-previous'),
-                            label: 'Nivel anterior',
-                            glyph: MapGlyph.chevron,
-                            mirrored: true,
-                            gold: onPrevious != null,
-                            size: compact ? 48 : 50 * unit,
-                            onPressed: onPrevious,
-                          ),
-                          SizedBox(width: 6 * unit),
+                          if (desktop) ...[
+                            _MapRoundButton(
+                              key: const ValueKey('map-previous'),
+                              label: 'Nivel anterior',
+                              glyph: MapGlyph.chevron,
+                              mirrored: true,
+                              gold: onPrevious != null,
+                              size: compact ? 48 : 50 * unit,
+                              onPressed: onPrevious,
+                            ),
+                            SizedBox(width: 6 * unit),
+                          ],
                           Expanded(
                             child: Semantics(
                               label: 'Nivel $level de $totalLevels. $status',
@@ -204,15 +210,17 @@ class MapStatusCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          SizedBox(width: 6 * unit),
-                          _MapRoundButton(
-                            key: const ValueKey('map-next'),
-                            label: 'Nivel siguiente',
-                            glyph: MapGlyph.chevron,
-                            gold: onNext != null,
-                            size: compact ? 48 : 50 * unit,
-                            onPressed: onNext,
-                          ),
+                          if (desktop) ...[
+                            SizedBox(width: 6 * unit),
+                            _MapRoundButton(
+                              key: const ValueKey('map-next'),
+                              label: 'Nivel siguiente',
+                              glyph: MapGlyph.chevron,
+                              gold: onNext != null,
+                              size: compact ? 48 : 50 * unit,
+                              onPressed: onNext,
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/app.dart';
 import 'package:sundoku/data/level_progress.dart';
@@ -20,8 +21,19 @@ Future<void> finishNavigation(WidgetTester tester) async {
   }
 }
 
+void _desktopTestWidgets(String description, WidgetTesterCallback body) {
+  testWidgets(description, (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      await body(tester);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+}
+
 void main() {
-  testWidgets(
+  _desktopTestWidgets(
     'saved rewards wait for return, scroll first and never award twice',
     (tester) async {
       final progress = LevelProgress();
@@ -97,7 +109,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  _desktopTestWidgets(
     'score stars stay separated and centered above the level number',
     (tester) async {
       await tester.pumpWidget(const MaterialApp(home: MapScreen()));
@@ -171,7 +183,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  _desktopTestWidgets(
     'points land on the played level, then unlock and focus the next',
     (tester) async {
       final progress = LevelProgress();
@@ -202,7 +214,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1200));
       expect(find.text('Nivel 2 de 10'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
-      await tester.tap(find.byTooltip('Nivel anterior'));
+      await tester.tap(find.byKey(const ValueKey('map-previous')));
       await finishNavigation(tester);
       await tester.tap(find.byTooltip('Reiniciar nivel'));
       await tester.pump();
@@ -211,7 +223,9 @@ void main() {
     },
   );
 
-  testWidgets('leaving during delivery cancels unearned score', (tester) async {
+  _desktopTestWidgets('leaving during delivery cancels unearned score', (
+    tester,
+  ) async {
     final progress = LevelProgress();
     addTearDown(progress.dispose);
     await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
@@ -225,7 +239,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
+  _desktopTestWidgets(
     'reduced motion unlocks immediately and progress survives map reentry',
     (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue =
@@ -255,12 +269,12 @@ void main() {
       expect(find.text('Nivel 2 de 10'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0);
-      await tester.tap(find.byTooltip('Volver'));
+      await tester.tap(find.byKey(const ValueKey('map-back')));
       await tester.pumpAndSettle();
       expect(find.text('2 de 10'), findsOneWidget);
       await tester.tap(find.text('Jugar'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Nivel siguiente'));
+      await tester.tap(find.byKey(const ValueKey('map-next')));
       await tester.pumpAndSettle();
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
     },

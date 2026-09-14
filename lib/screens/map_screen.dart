@@ -397,7 +397,6 @@ class _MapScreenState extends State<MapScreen>
               ),
               MapSelectionLight(
                 level: _activeLevel,
-                enabled: _unlocked(_activeLevel),
                 scoreLevels: {
                   for (final node in kMap1Nodes)
                     if (_unlocked(node.level)) node.level,

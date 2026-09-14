@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sundoku/app.dart';
@@ -7,6 +8,7 @@ import 'package:sundoku/screens/home_screen.dart';
 import 'package:sundoku/screens/first_experience_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/juicy_press.dart';
+import 'package:sundoku/widgets/map_selection_light.dart';
 
 Future<void> _bootToHome(WidgetTester tester) async {
   await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
@@ -53,45 +55,57 @@ JuicyPress _mapArrow(WidgetTester tester, String key) =>
       ),
     );
 
-void main() {
-  testWidgets('home controls stay reachable with long names and rotation', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    for (final size in [
-      const Size(320, 568),
-      const Size(568, 320),
-      const Size(844, 390),
-    ]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: HomeScreen(
-            playerName: 'Un nombre de jugador especialmente largo',
-          ),
-        ),
-      );
-      await tester.pump();
-      for (final key in ['home-profile', 'home-settings', 'home-play']) {
-        expect(find.byKey(ValueKey(key)).hitTestable(), findsOneWidget);
-      }
-      expect(tester.takeException(), isNull);
-      final profile = tester.getTopLeft(
-        find.byKey(const ValueKey('home-profile')),
-      );
-      final settings = tester.getTopLeft(
-        find.byKey(const ValueKey('home-settings')),
-      );
-      expect(profile.dy, settings.dy);
-      expect(profile.dx, lessThan(settings.dx));
+void _desktopTestWidgets(String description, WidgetTesterCallback body) {
+  testWidgets(description, (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      await body(tester);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
     }
   });
+}
 
-  testWidgets('map light handles rapid selection and reduced motion', (
+void main() {
+  _desktopTestWidgets(
+    'home controls stay reachable with long names and rotation',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      for (final size in [
+        const Size(320, 568),
+        const Size(568, 320),
+        const Size(844, 390),
+      ]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: HomeScreen(
+              playerName: 'Un nombre de jugador especialmente largo',
+            ),
+          ),
+        );
+        await tester.pump();
+        for (final key in ['home-profile', 'home-settings', 'home-play']) {
+          expect(find.byKey(ValueKey(key)).hitTestable(), findsOneWidget);
+        }
+        expect(tester.takeException(), isNull);
+        final profile = tester.getTopLeft(
+          find.byKey(const ValueKey('home-profile')),
+        );
+        final settings = tester.getTopLeft(
+          find.byKey(const ValueKey('home-settings')),
+        );
+        expect(profile.dy, settings.dy);
+        expect(profile.dx, lessThan(settings.dx));
+      }
+    },
+  );
+
+  _desktopTestWidgets('map light handles rapid selection and reduced motion', (
     tester,
   ) async {
     final reduceMotion = ValueNotifier(false);
@@ -123,53 +137,54 @@ void main() {
     reduceMotion.value = true;
     await tester.pumpAndSettle();
     expect(tester.binding.transientCallbackCount, 0);
-    await tester.tap(find.byTooltip('Nivel siguiente'));
+    await tester.tap(find.byKey(const ValueKey('map-next')));
     await tester.pumpAndSettle();
     expect(find.text('Nivel 5 de 10'), findsOneWidget);
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('map controls remain reachable with large text and rotation', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  _desktopTestWidgets(
+    'map controls remain reachable with large text and rotation',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    var expectedLevel = 1;
-    for (final size in [const Size(320, 568), const Size(568, 320)]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        const MaterialApp(home: MapScreen(showDeveloperControls: false)),
-      );
-      await _finishMapTransition(tester);
-      expect(find.text('DEV'), findsNothing);
-      expect(find.byTooltip('Simular 1 punto'), findsNothing);
-      for (final key in ['map-back', 'map-previous', 'map-next']) {
-        final control = find.byKey(ValueKey(key));
-        expect(control.hitTestable(), findsOneWidget);
-        final bounds = tester.getRect(control);
-        expect(bounds.left, greaterThanOrEqualTo(0));
-        expect(bounds.top, greaterThanOrEqualTo(0));
-        expect(bounds.right, lessThanOrEqualTo(size.width));
-        expect(bounds.bottom, lessThanOrEqualTo(size.height));
-        expect(bounds.width, greaterThanOrEqualTo(48));
-        expect(bounds.height, greaterThanOrEqualTo(48));
+      var expectedLevel = 1;
+      for (final size in [const Size(320, 568), const Size(568, 320)]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(
+          const MaterialApp(home: MapScreen(showDeveloperControls: false)),
+        );
+        await _finishMapTransition(tester);
+        expect(find.text('DEV'), findsNothing);
+        expect(find.byTooltip('Simular 1 punto'), findsNothing);
+        for (final key in ['map-back', 'map-previous', 'map-next']) {
+          final control = find.byKey(ValueKey(key));
+          expect(control.hitTestable(), findsOneWidget);
+          final bounds = tester.getRect(control);
+          expect(bounds.left, greaterThanOrEqualTo(0));
+          expect(bounds.top, greaterThanOrEqualTo(0));
+          expect(bounds.right, lessThanOrEqualTo(size.width));
+          expect(bounds.bottom, lessThanOrEqualTo(size.height));
+          expect(bounds.width, greaterThanOrEqualTo(48));
+          expect(bounds.height, greaterThanOrEqualTo(48));
+        }
+        expect(find.text('Valle del Sol'), findsOneWidget);
+        expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byKey(const ValueKey('map-next')));
+        await _finishMapTransition(tester);
+        expectedLevel++;
+        expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
+        expect(tester.takeException(), isNull);
       }
-      expect(find.text('Valle del Sol'), findsOneWidget);
-      expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.tap(find.byKey(const ValueKey('map-next')));
-      await _finishMapTransition(tester);
-      expectedLevel++;
-      expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    }
-  });
+    },
+  );
 
-  testWidgets('splash advances to the home screen', (tester) async {
+  _desktopTestWidgets('splash advances to the home screen', (tester) async {
     await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
     expect(find.byType(HomeScreen), findsNothing);
     await tester.pump(const Duration(seconds: 3));
@@ -179,14 +194,38 @@ void main() {
     expect(find.byKey(const ValueKey('home-settings')), findsOneWidget);
   });
 
-  testWidgets('settings button opens settings', (tester) async {
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    _desktopTestWidgets(
+      'mobile map hides arrows and lights locked selection on $platform',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = platform;
+        await _openMap(tester);
+        expect(find.byKey(const ValueKey('map-previous')), findsNothing);
+        expect(find.byKey(const ValueKey('map-next')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('level-2-label')));
+        await _finishMapTransition(tester);
+        final light = tester.widget<MapSelectionLight>(
+          find.byType(MapSelectionLight),
+        );
+        expect(light.level, 2);
+        expect(light.enabled, isTrue);
+        expect(light.scoreLevels, isNot(contains(2)));
+        expect(find.text('Consigue 3 puntos en el nivel 1'), findsWidgets);
+        await tester.pump(const Duration(seconds: 3));
+      },
+    );
+  }
+
+  _desktopTestWidgets('settings button opens settings', (tester) async {
     await _bootToHome(tester);
     await tester.tap(find.byKey(const ValueKey('home-settings')));
     await tester.pumpAndSettle();
     expect(find.text('Configuración'), findsOneWidget);
   });
 
-  testWidgets('play opens the map and a level shows a toast', (tester) async {
+  _desktopTestWidgets('play opens the map and a level shows a toast', (
+    tester,
+  ) async {
     await _openMap(tester);
     expect(find.byType(MapScreen), findsOneWidget);
     expect(find.text('DEV'), findsOneWidget);
@@ -200,47 +239,48 @@ void main() {
     await tester.pump(const Duration(seconds: 3)); // let the toast dismiss
   });
 
-  testWidgets('all ten levels remain reachable after rotating a small phone', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(320, 568);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await _openMap(tester);
+  _desktopTestWidgets(
+    'all ten levels remain reachable after rotating a small phone',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 568);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await _openMap(tester);
 
-    // At level 1 the back arrow is disabled, forward is enabled.
-    expect(_mapArrow(tester, 'map-previous').onPressed, isNull);
-    expect(_mapArrow(tester, 'map-next').onPressed, isNotNull);
+      // At level 1 the back arrow is disabled, forward is enabled.
+      expect(_mapArrow(tester, 'map-previous').onPressed, isNull);
+      expect(_mapArrow(tester, 'map-next').onPressed, isNotNull);
 
-    for (int level = 2; level <= 10; level++) {
-      await tester.tap(find.byKey(const ValueKey('map-next')));
+      for (int level = 2; level <= 10; level++) {
+        await tester.tap(find.byKey(const ValueKey('map-next')));
+        await _finishMapTransition(tester);
+        expect(find.text('Nivel $level de 10'), findsOneWidget);
+        expect(
+          find.byKey(ValueKey('level-$level-label')).hitTestable(),
+          findsOneWidget,
+        );
+      }
+      expect(find.text('11'), findsNothing);
+      expect(_mapArrow(tester, 'map-next').onPressed, isNull);
+
+      tester.view.physicalSize = const Size(844, 390);
       await _finishMapTransition(tester);
-      expect(find.text('Nivel $level de 10'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       expect(
-        find.byKey(ValueKey('level-$level-label')).hitTestable(),
+        find.byKey(const ValueKey('level-10-label')).hitTestable(),
         findsOneWidget,
       );
-    }
-    expect(find.text('11'), findsNothing);
-    expect(_mapArrow(tester, 'map-next').onPressed, isNull);
+      await tester.tap(find.byKey(const ValueKey('level-10-label')));
+      await _finishMapTransition(tester);
+      expect(find.text('Consigue 3 puntos en el nivel 9'), findsWidgets);
+      await tester.pump(const Duration(seconds: 3));
 
-    tester.view.physicalSize = const Size(844, 390);
-    await _finishMapTransition(tester);
-    expect(tester.takeException(), isNull);
-    expect(
-      find.byKey(const ValueKey('level-10-label')).hitTestable(),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const ValueKey('level-10-label')));
-    await _finishMapTransition(tester);
-    expect(find.text('Consigue 3 puntos en el nivel 9'), findsWidgets);
-    await tester.pump(const Duration(seconds: 3));
-
-    // Now the back arrow is usable again.
-    expect(_mapArrow(tester, 'map-previous').onPressed, isNotNull);
-    await tester.tap(find.byKey(const ValueKey('map-previous')));
-    await _finishMapTransition(tester);
-    expect(find.text('Nivel 9 de 10'), findsOneWidget);
-  });
+      // Now the back arrow is usable again.
+      expect(_mapArrow(tester, 'map-previous').onPressed, isNotNull);
+      await tester.tap(find.byKey(const ValueKey('map-previous')));
+      await _finishMapTransition(tester);
+      expect(find.text('Nivel 9 de 10'), findsOneWidget);
+    },
+  );
 }
