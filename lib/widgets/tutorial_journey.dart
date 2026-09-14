@@ -189,10 +189,15 @@ class TutorialJourney extends StatelessWidget {
     final help = flow.helpTip;
     return LayoutBuilder(
       builder: (context, bounds) {
+        final desktopPlay =
+            _playing &&
+            GameLayout.isDesktop &&
+            bounds.maxWidth >= GameLayout.desktopPlayWidth + 32;
         final wide =
-            !_playing &&
-            bounds.maxWidth >= 700 &&
-            bounds.maxWidth > bounds.maxHeight * 1.2;
+            desktopPlay ||
+            (!_playing &&
+                bounds.maxWidth >= 700 &&
+                bounds.maxWidth > bounds.maxHeight * 1.2);
         return Column(
           children: [
             if (navigation != null)
@@ -204,7 +209,9 @@ class TutorialJourney extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: wide
+                    maxWidth: desktopPlay
+                        ? GameLayout.desktopPlayWidth + 32
+                        : wide
                         ? 950
                         : (_playing ? _maxBoardWidth + 32 : 502),
                   ),
@@ -212,7 +219,18 @@ class TutorialJourney extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                     child: Column(
                       children: [
-                        _gameUi(header, 'header', .60),
+                        _gameUi(
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: desktopPlay
+                                  ? _maxBoardWidth
+                                  : double.infinity,
+                            ),
+                            child: header,
+                          ),
+                          'header',
+                          .60,
+                        ),
                         const SizedBox(height: 8),
                         if (_playing) ...[
                           _gameUi(const GameplayStatusBar(), 'status', .70),
@@ -222,7 +240,11 @@ class TutorialJourney extends StatelessWidget {
                           child: LayoutBuilder(
                             builder: (context, body) {
                               final boardWidth = math.min(
-                                wide ? body.maxWidth * .47 : body.maxWidth,
+                                desktopPlay
+                                    ? _maxBoardWidth
+                                    : wide
+                                    ? body.maxWidth * .47
+                                    : body.maxWidth,
                                 _maxBoardWidth,
                               );
                               final boardArea = SizedBox.square(
@@ -234,9 +256,11 @@ class TutorialJourney extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (_playing) ...[
-                                    const SizedBox(height: 20),
+                                    if (!desktopPlay)
+                                      const SizedBox(height: 20),
                                     TutorialNumberTray(
-                                      horizontal: true,
+                                      horizontal: !desktopPlay,
+                                      showGuide: !desktopPlay,
                                       available: flow.availableGameNumbers,
                                       onSelected:
                                           !navigationBlocked &&
@@ -250,8 +274,8 @@ class TutorialJourney extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 8),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: desktopPlay ? 0 : 12,
                                         vertical: 4,
                                       ),
                                       child: Row(
@@ -296,7 +320,7 @@ class TutorialJourney extends StatelessWidget {
                                       messageKey:
                                           '${flow.step}-${flow.gameCell}-${flow.playMessage}',
                                     ),
-                                  if (_playing) ...[
+                                  if (_playing && !desktopPlay) ...[
                                     if (help != null)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 8),
@@ -356,7 +380,83 @@ class TutorialJourney extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 6,
                                     ),
-                                    child: wide
+                                    child: desktopPlay
+                                        ? Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Row(
+                                                key: const ValueKey(
+                                                  'desktop-play-group',
+                                                ),
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  boardArea,
+                                                  const SizedBox(
+                                                    width: GameLayout
+                                                        .desktopBoardGap,
+                                                  ),
+                                                  SizedBox(
+                                                    width: GameLayout
+                                                        .numberGridWidth,
+                                                    child: _gameUi(
+                                                      information,
+                                                      'controls',
+                                                      .77,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (help != null ||
+                                                  flow.playMessage.isNotEmpty)
+                                                ConstrainedBox(
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                        maxWidth:
+                                                            _maxBoardWidth,
+                                                      ),
+                                                  child: _gameUi(
+                                                    Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        if (help != null)
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets.only(
+                                                                  top: 12,
+                                                                ),
+                                                            child: SudokuHelpCard(
+                                                              key:
+                                                                  const ValueKey(
+                                                                    'game-help-card',
+                                                                  ),
+                                                              tip: help,
+                                                            ),
+                                                          )
+                                                        else ...[
+                                                          const SizedBox(
+                                                            height: 12,
+                                                          ),
+                                                          Text(
+                                                            flow.playMessage,
+                                                            style: homeText(16),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                    'help',
+                                                    .77,
+                                                  ),
+                                                ),
+                                            ],
+                                          )
+                                        : wide
                                         ? Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,

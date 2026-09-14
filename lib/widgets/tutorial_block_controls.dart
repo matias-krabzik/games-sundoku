@@ -15,8 +15,10 @@ class TutorialNumberTray extends StatelessWidget {
     required this.available,
     required this.onSelected,
     this.horizontal = false,
+    this.showGuide = true,
   });
   final bool horizontal;
+  final bool showGuide;
   final List<int> available;
   final ValueChanged<int>? onSelected;
 
@@ -49,6 +51,14 @@ class TutorialNumberTray extends StatelessWidget {
           ),
         );
       }
+      if (!showGuide) {
+        return Center(
+          child: SizedBox(
+            width: math.min(bounds.maxWidth, GameLayout.numberGridWidth),
+            child: _grid(),
+          ),
+        );
+      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -70,31 +80,33 @@ class TutorialNumberTray extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
-                  maxWidth: GameLayout.controlSize * 3 + 12,
+                  maxWidth: GameLayout.numberGridWidth,
                 ),
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 6,
-                  mainAxisSpacing: 6,
-                  shrinkWrap: true,
-                  primary: false,
-                  padding: EdgeInsets.zero,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    for (var number = 1; number <= 9; number++)
-                      _NumberButton(
-                        number: number,
-                        placed: !available.contains(number),
-                        onSelected: onSelected,
-                      ),
-                  ],
-                ),
+                child: _grid(),
               ),
             ),
           ),
         ],
       );
     },
+  );
+
+  Widget _grid() => GridView.count(
+    crossAxisCount: 3,
+    crossAxisSpacing: 6,
+    mainAxisSpacing: 6,
+    shrinkWrap: true,
+    primary: false,
+    padding: EdgeInsets.zero,
+    physics: const NeverScrollableScrollPhysics(),
+    children: [
+      for (var number = 1; number <= 9; number++)
+        _NumberButton(
+          number: number,
+          placed: !available.contains(number),
+          onSelected: onSelected,
+        ),
+    ],
   );
 }
 

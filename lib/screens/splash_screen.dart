@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../routes.dart';
 
-/// The original SunDoku logo against its own quiet morning landscape.
+/// The shared SunDoku logo against its own quiet morning landscape.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 

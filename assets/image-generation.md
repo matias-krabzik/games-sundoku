@@ -2,7 +2,7 @@
 
 Historical generation record. New UI artwork follows [AGENTS.md](../AGENTS.md) and the [current asset prompt template](../design/first-experience/prompts.md): individual extracted assets with genuine transparency, reused buttons/cards/panels, blank modal surfaces and all UI text rendered with Flutter `Text`. Yellow actions stay in the bottom action area and the main content is centered above. The full-background prompts below document existing scenery and are not templates for new UI assets.
 
-Generated with the built-in image generation tool, using `images/home-background.png` as the style reference. The existing `images/sundoku-logo.png` is reused unchanged in the splash.
+Generated with the built-in image generation tool, using `images/home-background.png` as the style reference. The shared `images/sundoku-logo.png` is reused in the splash, home and settings; its current version uses a hollow golden sun for the O.
 
 ## World
 
@@ -23,3 +23,9 @@ Final prompt:
 Use case: stylized-concept. Asset type: mobile game splash screen background, portrait 2:3.
 Reference home-background.png provides the exact visual style: premium soft 3D storybook meadow with vivid fresh green grass, rounded modeled trees, pale blue sky and warm golden sunlight.
 Create a NEW peaceful airy opening scene in this world. Composition: upper 75 percent mostly clear soft blue sky, creamy fluffy clouds framing edges only, subtle golden morning glow around middle; gently rolling lush green meadow restricted to the bottom quarter, tiny daisies, rounded shrubs at lower corners and far hills. Center must be calm uncluttered blue sky so the existing SunDoku logo can be placed at vertical center by app code. Rich soft volume, charming tactile materials, beautiful warm ambient light, polished casual game art. Full bleed. No characters, no sun face, no words, no typography, no logo, no UI, no loading indicator, no watermark.
+
+## Logo: hollow golden O (2026-09-14)
+
+Selected from three variants generated with the built-in image tool, using the previous logo and the home yellow button as style references. The chosen RGBA PNG retains the rounded glossy yellow/navy lettering and replaces the blue sun ring with a hollow golden O. Its central opening and exterior are transparent.
+
+Canonical asset: `images/sundoku-logo.png` (2172×724). The Android `launch_logo` / `launch_logo_android12` density variants and iOS `LaunchImage` variants are resized from this same asset, preserving alpha and the existing launch canvas dimensions and placement.

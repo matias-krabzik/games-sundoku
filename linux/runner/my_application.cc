@@ -52,7 +52,25 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "sundoku");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  gtk_window_set_default_size(window, 1024, 768);
+  GdkGeometry geometry = {};
+  geometry.min_width = 960;
+  geometry.min_height = 720;
+  geometry.min_aspect = 4.0 / 3.0;
+  geometry.max_aspect = 4.0 / 3.0;
+  gtk_window_set_geometry_hints(
+      window, nullptr, &geometry,
+      static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_ASPECT));
+
+  // Resolve the shared identity from the installed Flutter asset bundle.
+  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable != nullptr) {
+    g_autofree gchar* directory = g_path_get_dirname(executable);
+    g_autofree gchar* icon_path = g_build_filename(
+        directory, "data", "flutter_assets", "assets", "images",
+        "sundoku-app-icon.png", nullptr);
+    gtk_window_set_icon_from_file(window, icon_path, nullptr);
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
