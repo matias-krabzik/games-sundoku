@@ -7,6 +7,7 @@ import '../data/repositories/game_repository.dart';
 import '../domain/models/game_session.dart';
 import '../domain/models/json_data.dart';
 import '../domain/models/sudoku_definition.dart';
+import '../domain/models/sudoku_completion.dart';
 import '../domain/tutorial/tutorial_steps.dart';
 import '../domain/tutorial/tutorial_sudokus.dart';
 import 'game_session_controller.dart';
@@ -49,8 +50,8 @@ class FirstExperienceController extends ChangeNotifier {
   GameSessionController? _play;
   int? _gameCell;
   String? _feedback;
-  Set<int> _conflicts = {};
   int _attention = 0;
+  SudokuCompletion? _completion;
 
   FirstExperienceStep get step =>
       _step == FirstExperienceStep.playing &&
@@ -84,7 +85,31 @@ class FirstExperienceController extends ChangeNotifier {
       _play?.isRunning == true;
   int? get gameCell => _gameCell;
   int get attention => _attention;
-  Set<int> get conflicts => _conflicts;
+  SudokuCompletion? get completion => _completion;
+  Set<int> get conflicts {
+    if (isStory) return {};
+    final progress = puzzleProgress;
+    if (progress == null) return {};
+    return {
+      for (var i = 0; i < progress.cells.length; i++)
+        if (progress.cells[i].errorRevealed) i,
+    };
+  }
+
+  List<int> get availableGameNumbers {
+    final board = boardValues;
+    final solution = puzzleDefinition?.solution;
+    final correctCounts = List<int>.filled(10, 0);
+    for (var i = 0; i < board.length; i++) {
+      final value = board[i];
+      if (value != null && value == solution?[i]) correctCounts[value]++;
+    }
+    return [
+      for (var number = 1; number <= 9; number++)
+        if (correctCounts[number] < 9) number,
+    ];
+  }
+
   bool get hasGameBoard =>
       step == FirstExperienceStep.givensIntroduction ||
       (session != null && step.index >= FirstExperienceStep.playing.index);
@@ -177,6 +202,24 @@ class FirstExperienceController extends ChangeNotifier {
     }
   }
 
+  /// Starts another practice session while preserving earned stars and unlocks.
+  Future<void> restartGames() async {
+    final center = exampleCenter;
+    await repository.startOrResumeLevel(
+      mapLevelId(1),
+      restart: true,
+      definitions: TutorialSudokus.create(center),
+      moduleKey: moduleKey,
+      moduleData: {
+        ..._module,
+        'step': FirstExperienceStep.playing.name,
+        'cells': center,
+        'gameIndex': 0,
+        'briefingAccepted': true,
+      },
+    );
+  }
+
   Future<void> _prepareGames() async {
     if (session != null) {
       await _save(FirstExperienceStep.playing, exampleCenter);
@@ -229,7 +272,6 @@ class FirstExperienceController extends ChangeNotifier {
 
   void _resetMoveFeedback() {
     _feedback = null;
-    _conflicts = {};
   }
 
   void selectGameCell(int index) {
@@ -237,7 +279,6 @@ class FirstExperienceController extends ChangeNotifier {
     if (!readyToPlay) return;
     _gameCell = index;
     _feedback = null;
-    _conflicts = {};
     notifyListeners();
   }
 
@@ -248,30 +289,41 @@ class FirstExperienceController extends ChangeNotifier {
       return;
     }
     final board = boardValues;
-    if (board[index] == number) return;
-    for (final group in SudokuGroup.values) {
-      final duplicates = groupCells(
-        index,
-        group,
-      ).where((i) => i != index && board[i] == number).toSet();
-      if (duplicates.isNotEmpty) {
-        _conflicts = {index, ...duplicates};
-        _feedback =
-            'Ya hay un $number en ${group.demonstrative} ${group.nameForChild}.\nPrueba otro número.';
+    if (board[index] == number) {
+      if (conflicts.contains(index)) {
         _attention++;
         notifyListeners();
-        return;
       }
-    }
-    if (number != puzzleDefinition!.solution[index]) {
-      _conflicts = {index};
-      _feedback = 'Ese número no encaja aquí.';
-      notifyListeners();
       return;
+    }
+    String? feedback;
+    final incorrect = puzzleDefinition!.hasError(index, number);
+    if (incorrect) {
+      for (final group in SudokuGroup.values) {
+        final hasDuplicate = groupCells(
+          index,
+          group,
+        ).any((i) => i != index && board[i] == number);
+        if (hasDuplicate) {
+          feedback =
+              'Ya hay un $number en ${group.demonstrative} ${group.nameForChild}.\nPrueba otro número.';
+          break;
+        }
+      }
+      feedback ??= 'Ese número no encaja aquí. Prueba otro.';
     }
     await _run(() async {
       await _player.setCell(index, number);
-      _resetMoveFeedback();
+      _feedback = feedback;
+      if (incorrect) {
+        _attention++;
+        _completion = null;
+      } else {
+        _completion = SudokuCompletion.fromPosition(
+          origin: index,
+          wholeBoard: puzzleProgress!.status == PlayStatus.completed,
+        );
+      }
     });
   }
 
@@ -286,8 +338,71 @@ class FirstExperienceController extends ChangeNotifier {
     await _run(() async {
       await _player.setCell(index, null);
       _feedback = null;
-      _conflicts = {};
+      _completion = null;
     });
+  }
+
+  Future<void> debugFillExceptOne() async {
+    if (!kDebugMode || _disposed || reviewOnly || !readyToPlay) return;
+    final fixed = fixedIndices;
+    final editable = [
+      for (var i = 0; i < 81; i++)
+        if (!fixed.contains(i)) i,
+    ];
+    if (editable.isEmpty) return;
+    final selected = _gameCell;
+    final board = boardValues;
+    final emptyIndex = selected != null && !fixed.contains(selected)
+        ? selected
+        : editable.firstWhere(
+            (i) => board[i] == null,
+            orElse: () => editable.first,
+          );
+    await _run(() async {
+      await _player.debugFillExceptCell(emptyIndex);
+      _gameCell = emptyIndex;
+      _feedback = null;
+      _completion = null;
+    });
+  }
+
+  int? get debugPreviousGameIndex {
+    if (!kDebugMode || reviewOnly || _disposed || _isBusy || session == null) {
+      return null;
+    }
+    final index = step == FirstExperienceStep.playing
+        ? gameIndex - 1
+        : (step == FirstExperienceStep.celebration ||
+              step == FirstExperienceStep.complete)
+        ? gameIndex
+        : -1;
+    return index >= 0 && session!.puzzles[index].status == PlayStatus.completed
+        ? index
+        : null;
+  }
+
+  Future<void> debugRestartPrevious() async {
+    final index = debugPreviousGameIndex;
+    if (index == null) return;
+    await _run(() async {
+      await _play?.pause();
+      await repository.debugRestartPuzzle(
+        session!.id,
+        index,
+        moduleKey: moduleKey,
+        moduleData: {
+          ..._module,
+          'step': FirstExperienceStep.playing.name,
+          'gameIndex': index,
+          'briefingAccepted': true,
+        },
+      );
+      _step = _savedStep = FirstExperienceStep.playing;
+      _gameCell = null;
+      _feedback = null;
+      _completion = null;
+    });
+    if (!_disposed && _error == null) await resumeGame();
   }
 
   Future<void> repeatLessons() async {
@@ -449,8 +564,8 @@ class FirstExperienceController extends ChangeNotifier {
       _step = nextStep;
       _cells = snapshot;
       _feedback = null;
-      _conflicts = {};
       _gameCell = null;
+      _completion = null;
       if (advanceSelection) {
         final empty = [
           for (var i = 0; i < _cells.length; i++)

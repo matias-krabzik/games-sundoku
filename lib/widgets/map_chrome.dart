@@ -2,10 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../routes.dart';
 import 'game_feedback_scope.dart';
 import 'home_art.dart';
 import 'juicy_press.dart';
 import 'map_art.dart';
+import 'settings_art.dart';
 
 class MapWorldHeader extends StatelessWidget {
   const MapWorldHeader({
@@ -40,65 +42,13 @@ class MapWorldHeader extends StatelessWidget {
           onPressed: onViewTutorial,
         ),
       ],
-      const SizedBox(width: 12),
-      Expanded(
-        child: Align(
-          alignment: Alignment.topRight,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: compact ? 236 : 260),
-            child: SizedBox(
-              height: compact ? 66 : 78,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  const HomeArt(HomeSurface.status),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16, 11, 17, compact ? 13 : 16),
-                    child: Row(
-                      children: [
-                        if (MediaQuery.sizeOf(context).width >= 400 ||
-                            onViewTutorial == null) ...[
-                          HomeIcon(HomeGlyph.sun, size: compact ? 39 : 46),
-                          const SizedBox(width: 7),
-                        ],
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    'MUNDO 1',
-                                    style: homeText(12).copyWith(
-                                      color: const Color(0xFFA46A0E),
-                                      letterSpacing: 2.3,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Flexible(
-                                flex: 2,
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    'Valle del Sol',
-                                    style: homeText(compact ? 22 : 26),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      const Spacer(),
+      _MapRoundButton(
+        key: const ValueKey('map-settings'),
+        label: 'Ajustes',
+        artwork: SettingsIcon(SettingsGlyph.gear, size: compact ? 30 : 35),
+        size: compact ? 50 : 58,
+        onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
       ),
     ],
   );
@@ -131,7 +81,9 @@ class MapStatusCard extends StatelessWidget {
       builder: (context, constraints) {
         final width = math.min(constraints.maxWidth, 370.0);
         final unit = (width / 350).clamp(.82, 1.06);
-        final height = (compact ? 88.0 : 102.0) + (unlocked ? 0 : 12);
+        final worldHeight = compact ? 48.0 : 58.0;
+        final height =
+            (compact ? 88.0 : 102.0) + worldHeight + 13 + (unlocked ? 0 : 12);
         final status = unlocked
             ? '$points/3 puntos obtenidos'
             : 'Consigue 3 puntos en el nivel ${level - 1}';
@@ -145,71 +97,124 @@ class MapStatusCard extends StatelessWidget {
               const HomeArt(HomeSurface.status),
               Padding(
                 padding: EdgeInsets.fromLTRB(16 * unit, 12, 16 * unit, 16),
-                child: Row(
+                child: Column(
                   children: [
-                    _MapRoundButton(
-                      key: const ValueKey('map-previous'),
-                      label: 'Nivel anterior',
-                      glyph: MapGlyph.chevron,
-                      mirrored: true,
-                      gold: onPrevious != null,
-                      size: compact ? 48 : 50 * unit,
-                      onPressed: onPrevious,
-                    ),
-                    SizedBox(width: 6 * unit),
-                    Expanded(
-                      child: Semantics(
-                        label: 'Nivel $level de $totalLevels. $status',
-                        excludeSemantics: true,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  'Nivel $level de $totalLevels',
-                                  style: homeText(23 * unit),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Expanded(
-                              flex: unlocked ? 2 : 3,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: SizedBox(
-                                  width: unlocked ? null : 190,
-                                  child: Text(
-                                    status,
-                                    textAlign: TextAlign.center,
-                                    style: homeText(
-                                      14 * unit,
-                                      weight: FontWeight.w600,
+                    SizedBox(
+                      height: worldHeight,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'MUNDO 1',
+                                      textAlign: TextAlign.center,
+                                      style: homeText(11 * unit).copyWith(
+                                        color: const Color(0xFFA46A0E),
+                                        letterSpacing: 1.8,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
+                                Flexible(
+                                  flex: 2,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Valle del Sol',
+                                      textAlign: TextAlign.center,
+                                      style: homeText(25 * unit),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 3),
-                            SizedBox(
-                              height: compact ? 21 : 26,
-                              child: _MapPointsTrack(
-                                points: unlocked ? points : 0,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(width: 6 * unit),
-                    _MapRoundButton(
-                      key: const ValueKey('map-next'),
-                      label: 'Nivel siguiente',
-                      glyph: MapGlyph.chevron,
-                      gold: onNext != null,
-                      size: compact ? 48 : 50 * unit,
-                      onPressed: onNext,
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      child: SizedBox(
+                        height: 1,
+                        width: double.infinity,
+                        child: ColoredBox(color: Color(0xFFE8C477)),
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          _MapRoundButton(
+                            key: const ValueKey('map-previous'),
+                            label: 'Nivel anterior',
+                            glyph: MapGlyph.chevron,
+                            mirrored: true,
+                            gold: onPrevious != null,
+                            size: compact ? 48 : 50 * unit,
+                            onPressed: onPrevious,
+                          ),
+                          SizedBox(width: 6 * unit),
+                          Expanded(
+                            child: Semantics(
+                              label: 'Nivel $level de $totalLevels. $status',
+                              excludeSemantics: true,
+                              child: Column(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        'Nivel $level de $totalLevels',
+                                        style: homeText(23 * unit),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Expanded(
+                                    flex: unlocked ? 2 : 3,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: SizedBox(
+                                        width: unlocked ? null : 190,
+                                        child: Text(
+                                          status,
+                                          textAlign: TextAlign.center,
+                                          style: homeText(
+                                            14 * unit,
+                                            weight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  SizedBox(
+                                    height: compact ? 21 : 26,
+                                    child: _MapPointsTrack(
+                                      points: unlocked ? points : 0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 6 * unit),
+                          _MapRoundButton(
+                            key: const ValueKey('map-next'),
+                            label: 'Nivel siguiente',
+                            glyph: MapGlyph.chevron,
+                            gold: onNext != null,
+                            size: compact ? 48 : 50 * unit,
+                            onPressed: onNext,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -284,6 +289,7 @@ class _MapRoundButton extends StatelessWidget {
     required this.label,
     this.glyph,
     this.icon,
+    this.artwork,
     required this.size,
     required this.onPressed,
     this.gold = false,
@@ -293,57 +299,57 @@ class _MapRoundButton extends StatelessWidget {
   final String label;
   final MapGlyph? glyph;
   final IconData? icon;
+  final Widget? artwork;
   final double size;
   final VoidCallback? onPressed;
   final bool gold;
   final bool mirrored;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: label,
-    child: SizedBox.square(
-      dimension: math.max(48, size),
-      child: JuicyPress(
-        label: label,
-        onFeedback: () => GameFeedbackScope.tap(context),
-        onPressed: onPressed,
-        builder: (context, depression) => Center(
-          child: SizedBox.square(
-            dimension: size,
-            child: Opacity(
-              opacity: onPressed == null ? .42 : 1,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  MapRoundSurface(gold: gold),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 3),
-                      child: Transform.flip(
-                        flipX: mirrored,
-                        child: icon != null
-                            ? Icon(
-                                icon,
-                                size: size * .5,
-                                color: homeNavy,
-                                shadows: const [
-                                  Shadow(
-                                    color: Color(0xFFFFFFFF),
-                                    offset: Offset(0, -1),
-                                  ),
-                                  Shadow(
-                                    color: Color(0x555C3900),
-                                    offset: Offset(0, 2),
-                                    blurRadius: 1,
-                                  ),
-                                ],
-                              )
-                            : MapIcon(glyph!, size: size * .45),
-                      ),
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: math.max(48, size),
+    child: JuicyPress(
+      label: label,
+      onFeedback: () => GameFeedbackScope.tap(context),
+      onPressed: onPressed,
+      builder: (context, depression) => Center(
+        child: SizedBox.square(
+          dimension: size,
+          child: Opacity(
+            opacity: onPressed == null ? .42 : 1,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                MapRoundSurface(gold: gold),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Transform.flip(
+                      flipX: mirrored,
+                      child:
+                          artwork ??
+                          (icon != null
+                              ? Icon(
+                                  icon,
+                                  size: size * .5,
+                                  color: homeNavy,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0xFFFFFFFF),
+                                      offset: Offset(0, -1),
+                                    ),
+                                    Shadow(
+                                      color: Color(0x555C3900),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 1,
+                                    ),
+                                  ],
+                                )
+                              : MapIcon(glyph!, size: size * .45)),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

@@ -18,3 +18,10 @@
 - Composición del asistente: botones amarillos de acción siempre en la zona inferior, dentro de `SafeArea`; el resto del contenido principal se centra en el espacio disponible encima. Mantener este orden también en horizontal, pantallas pequeñas y texto ampliado. Si hace falta desplazamiento, desplazar el contenido central sin taparlo con las acciones inferiores. Los encabezados y la navegación permanecen en su zona superior.
 - Los prompts y láminas antiguos con pantallas enteras o texto dibujado son referencias históricas de diseño. Para producir recursos nuevos se aplican estas reglas y la plantilla vigente de `design/first-experience/prompts.md`.
 - La introducción del nivel 1 es un único flujo por pasos. Conserva su estado y el bloque central elegido por el jugador. Las explicaciones de filas y columnas se muestran sobre el tablero real del juego, sin abrir pantallas ilustradas independientes.
+
+# Proyecto responsive
+
+- SunDoku es responsive: usar el espacio disponible de la ventana con `LayoutBuilder` y respetar `SafeArea`, también en horizontal, ventanas pequeñas y texto ampliado.
+- En el juego, Volver y Configuración se alinean a los extremos del ancho disponible con margen de 16 px; no quedan dentro del límite del tablero.
+- El tablero se centra y se adapta al ancho con un máximo de 430 píxeles lógicos. Los controles no crecen sin límite: números de hasta 54 px por lado (nunca mayores que Volver/Configuración), borrado de 52 px. Mantener estos límites compartidos en `lib/widgets/game_layout.dart`.
+- Si falta altura, permitir desplazar el contenido sin ocultar la navegación ni las acciones inferiores del asistente. Conservar el estado del tablero al redimensionar.

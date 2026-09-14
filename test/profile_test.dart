@@ -48,6 +48,7 @@ Finder _profileName(String name) =>
     find.descendant(of: _profileButton, matching: find.text(name));
 
 Future<void> _openProfile(WidgetTester tester) async {
+  if (find.byType(ProfileScreen).evaluate().isNotEmpty) return;
   await tester.tap(_profileButton);
   await tester.pumpAndSettle();
   expect(find.byType(ProfileScreen), findsOneWidget);
@@ -60,19 +61,51 @@ Future<void> _save(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('profile button defaults to Jugador and opens name editor', (
-    tester,
-  ) async {
-    final repository = GameRepository.memory();
-    await _boot(tester, repository);
+  testWidgets(
+    'first home automatically asks for a name and hides level status',
+    (tester) async {
+      final repository = GameRepository.memory();
+      await _boot(tester, repository);
 
-    expect(_profileButton.hitTestable(), findsOneWidget);
-    expect(_profileName('Jugador'), findsOneWidget);
-    await _openProfile(tester);
-    expect(tester.widget<TextField>(_nameField).controller!.text, isEmpty);
-    expect(find.text('Tu perfil'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-game-status')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('profile-close')));
+      await tester.pumpAndSettle();
+      expect(_profileButton.hitTestable(), findsOneWidget);
+      expect(_profileName('Jugador'), findsOneWidget);
+      await _openProfile(tester);
+      expect(tester.widget<TextField>(_nameField).controller!.text, isEmpty);
+      expect(find.text('Tu perfil'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'dismissed welcome stays dismissed after restart and status follows Play',
+    (tester) async {
+      final store = MemorySaveStore();
+      final repository = await GameRepository.open(store);
+      await _boot(tester, repository, disposeRepository: false);
+      await tester.tap(find.byKey(const ValueKey('profile-close')));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+      await repository.close();
+      final reopened = await GameRepository.open(store);
+      await _boot(tester, reopened);
+      expect(find.byType(ProfileScreen), findsNothing);
+      expect(find.byKey(const ValueKey('home-game-status')), findsNothing);
+      expect(reopened.state.player.nameChosen, isFalse);
+      await tester.tap(find.byKey(const ValueKey('home-play')));
+      await tester.pumpAndSettle();
+      final navigator = tester.state<NavigatorState>(
+        find.byType(Navigator).first,
+      );
+      navigator.popUntil((route) => route.isFirst);
+      await tester.pumpAndSettle();
+      expect(find.byType(ProfileScreen), findsNothing);
+      expect(find.byKey(const ValueKey('home-game-status')), findsOneWidget);
+    },
+  );
 
   testWidgets('chosen player name renders and updates reactively on home', (
     tester,

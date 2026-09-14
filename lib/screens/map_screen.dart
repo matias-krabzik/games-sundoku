@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,9 @@ import 'package:flutter/foundation.dart';
 import '../data/level_progress.dart';
 import '../widgets/map_level_button.dart';
 import '../widgets/map_chrome.dart';
+import '../widgets/completed_level_popover.dart';
 import '../widgets/light_award_overlay.dart';
+import '../widgets/parallax_background.dart';
 
 import '../data/level_node.dart';
 import '../widgets/app_toast.dart';
@@ -22,12 +25,14 @@ class MapScreen extends StatefulWidget {
     this.showDeveloperControls = kDebugMode,
     this.onOpenIntroduction,
     this.onViewTutorial,
+    this.onReplayIntroduction,
   });
 
   final LevelProgress? progress;
   final bool showDeveloperControls;
   final VoidCallback? onOpenIntroduction;
   final VoidCallback? onViewTutorial;
+  final Future<void> Function()? onReplayIntroduction;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -40,6 +45,15 @@ class _MapScreenState extends State<MapScreen>
     vsync: this,
     duration: const Duration(milliseconds: 750),
   );
+  late final Map<int, int> _visibleLights = {
+    for (final node in kMap1Nodes) node.level: _progress.lightsFor(node.level),
+  };
+  bool _replaying = false;
+  bool _checkQueued = false;
+  int _lightsFor(int level) => _visibleLights[level]!;
+  bool _unlocked(int level) =>
+      _progress.isUnlocked(level) && (level == 1 || _lightsFor(level - 1) >= 3);
+
   int? _awardingLevel;
   int _socket = 0;
   int _awardVariant = 0;
@@ -48,11 +62,111 @@ class _MapScreenState extends State<MapScreen>
   @override
   void initState() {
     super.initState();
+    _visibleLights;
     _progress.addListener(_progressChanged);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route visibility: rewards must wait until the player returns.
+    ModalRoute.of(context);
+    _queueRewards();
+  }
+
   void _progressChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {
+      for (final node in kMap1Nodes) {
+        final saved = _progress.lightsFor(node.level);
+        if (saved < _lightsFor(node.level) ||
+            (_awardingLevel != null && !_replaying)) {
+          _visibleLights[node.level] = saved;
+        }
+      }
+    });
+    _queueRewards();
+  }
+
+  void _queueRewards() {
+    if (_checkQueued) return;
+    _checkQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkQueued = false;
+      if (mounted) unawaited(_revealSavedRewards());
+    });
+  }
+
+  Future<void> _revealSavedRewards() async {
+    if (_awardingLevel != null || ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
+    final pending = kMap1Nodes
+        .where(
+          (node) => _progress.lightsFor(node.level) > _lightsFor(node.level),
+        )
+        .toList();
+    if (pending.isEmpty) return;
+    int? nextLevel;
+    setState(() {
+      _replaying = true;
+      _awardingLevel = pending.first.level;
+    });
+    try {
+      for (final node in pending) {
+        final level = node.level;
+        if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
+        setState(() {
+          _activeLevel = level;
+          _awardingLevel = level;
+          _award.value = 0;
+        });
+        if (_scroll.hasClients) {
+          if (MediaQuery.disableAnimationsOf(context)) {
+            _scroll.jumpTo(_offsetFor(level));
+          } else {
+            await _scroll.animateTo(
+              _offsetFor(level),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeInOutCubic,
+            );
+          }
+        }
+        while (_lightsFor(level) < _progress.lightsFor(level)) {
+          if (!mounted) return;
+          if (ModalRoute.of(context)?.isCurrent == false) return;
+          setState(() {
+            _socket = _lightsFor(level);
+            _awardVariant = _awardRandom.nextInt(1 << 31);
+          });
+          if (!MediaQuery.disableAnimationsOf(context)) {
+            await _award.forward(from: 0).orCancel;
+          }
+          if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
+          setState(
+            () => _visibleLights[level] = math.min(
+              _socket + 1,
+              _progress.lightsFor(level),
+            ),
+          );
+          if (_lightsFor(level) == 3 && level < kMap1Nodes.length) {
+            nextLevel = level + 1;
+          }
+        }
+      }
+    } on TickerCanceled {
+      // The score is already saved; only its visual presentation is canceled.
+    } finally {
+      if (mounted) {
+        setState(() {
+          _replaying = false;
+          _awardingLevel = null;
+        });
+        if (nextLevel != null && ModalRoute.of(context)?.isCurrent != false) {
+          _focusLevel(nextLevel);
+        }
+      }
+    }
   }
 
   Future<void> _giveLights({required bool complete}) async {
@@ -109,6 +223,7 @@ class _MapScreenState extends State<MapScreen>
   }
 
   int _activeLevel = 1;
+  int _focusRequest = 0;
   Size _viewport = Size.zero;
   double _worldWidth = 0;
 
@@ -127,23 +242,66 @@ class _MapScreenState extends State<MapScreen>
         math.max(0, _worldWidth - _viewport.width),
       );
 
-  void _focusLevel(int level, {bool select = false}) {
+  Future<void> _focusLevel(int level, {bool select = false}) async {
     if (_awardingLevel != null) return;
     if (select && ModalRoute.of(context)?.isCurrent == false) return;
+    final request = ++_focusRequest;
     final int target = level.clamp(1, kMap1Nodes.length);
     setState(() => _activeLevel = target);
     if (_scroll.hasClients) {
       if (MediaQuery.disableAnimationsOf(context)) {
         _scroll.jumpTo(_offsetFor(target));
       } else {
-        _scroll.animateTo(
+        final movement = _scroll.animateTo(
           _offsetFor(target),
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOutCubic,
         );
+        if (select) {
+          await movement;
+        } else {
+          unawaited(movement);
+        }
       }
     }
+    if (!mounted ||
+        request != _focusRequest ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
     if (select) {
+      if (target == 1 &&
+          _lightsFor(target) == 3 &&
+          widget.onReplayIntroduction != null) {
+        final worldHeight = _worldWidth / 3;
+        final nodeSize = _viewport.height < 520
+            ? 68.0
+            : (_viewport.width * .24).clamp(82.0, 106.0);
+        final node = kMap1Nodes[target - 1];
+        final replay = await Navigator.of(context).push<bool>(
+          CompletedLevelRoute(
+            anchor: Offset(
+              node.x * _worldWidth - _scroll.offset,
+              node.y * worldHeight +
+                  (_viewport.height - worldHeight) / 2 -
+                  nodeSize * .9 -
+                  8,
+            ),
+          ),
+        );
+        if (!mounted || replay != true) return;
+        try {
+          await widget.onReplayIntroduction!();
+        } catch (_) {
+          if (mounted) {
+            showToast(
+              context,
+              'No pudimos iniciar la partida. Inténtalo de nuevo.',
+            );
+          }
+        }
+        return;
+      }
       if (target == 1 &&
           _progress.isUnlocked(target) &&
           widget.onOpenIntroduction != null) {
@@ -201,16 +359,21 @@ class _MapScreenState extends State<MapScreen>
                     clipBehavior: Clip.none,
                     children: [
                       Positioned(
-                        left: 0,
-                        top: (viewport.height - worldHeight) / 2,
-                        width: _worldWidth,
-                        height: worldHeight,
-                        child: Image.asset(
-                          'assets/images/world-1-horizontal.png',
-                          fit: BoxFit.fill,
-                          excludeFromSemantics: true,
-                        ),
+                      left: 0,
+                      top: (viewport.height - worldHeight) / 2,
+                      width: _worldWidth,
+                      height: worldHeight,
+                      child: ParallaxBackground(
+                        backgroundAsset: 'assets/images/world-1-horizontal.png',
+                        maxX: 8.0,
+                        maxY: 6.0,
+                        backgroundFit: BoxFit.fill,
+                        backgroundAlignment: Alignment.topCenter,
+                        mobileSensorEnabled: false,
+                        scaleBase: 1.04,
+                        child: const SizedBox.expand(),
                       ),
+                    ),
                       for (final node in kMap1Nodes)
                         Positioned(
                           left: node.x * _worldWidth - nodeSize / 2,
@@ -222,8 +385,8 @@ class _MapScreenState extends State<MapScreen>
                           height: nodeSize + 22,
                           child: MapLevelButton(
                             level: node.level,
-                            lights: _progress.lightsFor(node.level),
-                            unlocked: _progress.isUnlocked(node.level),
+                            lights: _lightsFor(node.level),
+                            unlocked: _unlocked(node.level),
                             active: node.level == _activeLevel,
                             onTap: () => _focusLevel(node.level, select: true),
                           ),
@@ -234,10 +397,10 @@ class _MapScreenState extends State<MapScreen>
               ),
               MapSelectionLight(
                 level: _activeLevel,
-                enabled: _progress.isUnlocked(_activeLevel),
+                enabled: _unlocked(_activeLevel),
                 scoreLevels: {
                   for (final node in kMap1Nodes)
-                    if (_progress.isUnlocked(node.level)) node.level,
+                    if (_unlocked(node.level)) node.level,
                 },
                 worldSize: Size(_worldWidth, worldHeight),
                 nodeSize: nodeSize,
@@ -336,11 +499,11 @@ class _MapScreenState extends State<MapScreen>
                       ],
                       const Spacer(),
                       MapStatusCard(
-                        compact: compact,
+                        compact: viewport.height < 650,
                         level: _activeLevel,
                         totalLevels: kMap1Nodes.length,
-                        points: _progress.lightsFor(_activeLevel),
-                        unlocked: _progress.isUnlocked(_activeLevel),
+                        points: _lightsFor(_activeLevel),
+                        unlocked: _unlocked(_activeLevel),
                         onPrevious: _awardingLevel == null && _activeLevel > 1
                             ? () => _focusLevel(_activeLevel - 1)
                             : null,

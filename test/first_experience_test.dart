@@ -76,6 +76,12 @@ Future<void> _openFromHome(
   );
   await tester.pump(const Duration(seconds: 3));
   await _settle(tester);
+  final welcome = find.byKey(const ValueKey('profile-close'));
+  if (welcome.evaluate().isNotEmpty) {
+    await tester.tap(welcome);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+  }
   await _tap(tester, find.byKey(const ValueKey('home-play')));
   if (find.byType(MapScreen).evaluate().isNotEmpty) {
     await _tap(tester, find.byKey(const ValueKey('level-1-label')));

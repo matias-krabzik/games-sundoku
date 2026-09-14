@@ -18,7 +18,7 @@ double mapScoreStarSize(int socket, [double nodeSize = 100]) =>
     nodeSize * (socket == 1 ? .34 : .29);
 
 /// The approved illustrated medallion with independently earned stars.
-class MapLevelButton extends StatelessWidget {
+class MapLevelButton extends StatefulWidget {
   const MapLevelButton({
     super.key,
     required this.level,
@@ -35,114 +35,139 @@ class MapLevelButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<MapLevelButton> createState() => _MapLevelButtonState();
+}
+
+class _MapLevelButtonState extends State<MapLevelButton> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Nivel $level',
-    value: unlocked
-        ? 'Disponible, $lights de 3 puntos'
-        : 'Bloqueado, consigue 3 puntos en el nivel ${level - 1}',
+    label: 'Nivel ${widget.level}',
+    value: widget.unlocked
+        ? 'Disponible, ${widget.lights} de 3 puntos'
+        : 'Bloqueado, consigue 3 puntos en el nivel ${widget.level - 1}',
     button: true,
-    selected: active,
+    selected: widget.active,
     child: LayoutBuilder(
       builder: (context, bounds) {
         final size = bounds.maxWidth;
         final reduced = MediaQuery.disableAnimationsOf(context);
-        final gold = unlocked && (active || lights == 3);
+        final gold = widget.unlocked && (widget.active || widget.lights == 3);
         final artwork = MapMarkerArt(gold: gold);
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: -size * .16,
-              top: -size * .35,
-              width: size * 1.32,
-              height: size * 1.34,
-              child: IgnorePointer(
-                child: AnimatedScale(
-                  scale: active ? 1.035 : 1,
-                  duration: reduced
-                      ? Duration.zero
-                      : const Duration(milliseconds: 220),
-                  child: KeyedSubtree(
-                    key: ValueKey('level-$level-star-crest'),
-                    child: unlocked
-                        ? artwork
-                        : ColorFiltered(
-                            colorFilter: const ColorFilter.mode(
-                              Color(0xFFAFBBC3),
-                              BlendMode.modulate,
+        return AnimatedScale(
+          scale:
+              _hovered && !reduced && widget.unlocked ? 1.03 : 1,
+          duration: reduced ? Duration.zero : const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: -size * .16,
+                top: -size * .35,
+                width: size * 1.32,
+                height: size * 1.34,
+                child: IgnorePointer(
+                  child: AnimatedScale(
+                    scale: widget.active ? 1.035 : 1,
+                    duration: reduced
+                        ? Duration.zero
+                        : const Duration(milliseconds: 220),
+                    child: KeyedSubtree(
+                      key: ValueKey('level-${widget.level}-star-crest'),
+                      child: widget.unlocked
+                          ? artwork
+                          : ColorFiltered(
+                              colorFilter: const ColorFilter.mode(
+                                Color(0xFFAFBBC3),
+                                BlendMode.modulate,
+                              ),
+                              child: artwork,
                             ),
-                            child: artwork,
+                    ),
+                  ),
+                ),
+              ),
+              for (int socket = 0; socket < 3; socket++)
+                Positioned(
+                  left:
+                      size / 2 +
+                      mapScoreStarOffset(socket, size).dx -
+                      mapScoreStarSize(socket, size) / 2,
+                  top:
+                      size / 2 +
+                      mapScoreStarOffset(socket, size).dy -
+                      mapScoreStarSize(socket, size) / 2,
+                  child: IgnorePointer(
+                    child: _ScoreStar(
+                      key: ValueKey('level-${widget.level}-score-${socket + 1}'),
+                      size: mapScoreStarSize(socket, size),
+                      earned: widget.lights > socket,
+                      reduced: reduced,
+                    ),
+                  ),
+                ),
+              MouseRegion(
+                onEnter: (_) {
+                  if (!mounted || !widget.unlocked) return;
+                  setState(() => _hovered = true);
+                },
+                onExit: (_) {
+                  if (!mounted || !widget.unlocked) return;
+                  setState(() => _hovered = false);
+                },
+                child: SizedBox.square(
+                  dimension: size,
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () {
+                        GameFeedbackScope.tap(context);
+                        widget.onTap();
+                      },
+                      child: Center(
+                        child: Image.asset(
+                          'assets/images/level-number-${widget.level}.png',
+                          key: ValueKey('level-${widget.level}-label'),
+                          width: widget.level == 10 ? size * .60 : size * .49,
+                          height: size * .58,
+                          fit: BoxFit.contain,
+                          cacheWidth: 200,
+                          excludeFromSemantics: true,
+                          opacity: AlwaysStoppedAnimation(
+                            widget.unlocked ? 1 : .58,
                           ),
-                  ),
-                ),
-              ),
-            ),
-            for (int socket = 0; socket < 3; socket++)
-              Positioned(
-                left:
-                    size / 2 +
-                    mapScoreStarOffset(socket, size).dx -
-                    mapScoreStarSize(socket, size) / 2,
-                top:
-                    size / 2 +
-                    mapScoreStarOffset(socket, size).dy -
-                    mapScoreStarSize(socket, size) / 2,
-                child: IgnorePointer(
-                  child: _ScoreStar(
-                    key: ValueKey('level-$level-score-${socket + 1}'),
-                    size: mapScoreStarSize(socket, size),
-                    earned: lights > socket,
-                    reduced: reduced,
-                  ),
-                ),
-              ),
-            SizedBox.square(
-              dimension: size,
-              child: Material(
-                color: Colors.transparent,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () {
-                    GameFeedbackScope.tap(context);
-                    onTap();
-                  },
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/level-number-$level.png',
-                      key: ValueKey('level-$level-label'),
-                      width: level == 10 ? size * .60 : size * .49,
-                      height: size * .58,
-                      fit: BoxFit.contain,
-                      cacheWidth: 200,
-                      excludeFromSemantics: true,
-                      opacity: AlwaysStoppedAnimation(unlocked ? 1 : .58),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (!unlocked)
-              Positioned(
-                right: -2,
-                bottom: 18,
-                child: IgnorePointer(
-                  child: SizedBox.square(
-                    dimension: size * .28,
-                    child: const Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        MapRoundSurface(),
-                        Padding(
-                          padding: EdgeInsets.all(4),
-                          child: MapIcon(MapGlyph.lock, size: 18),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-          ],
+              if (!widget.unlocked)
+                Positioned(
+                  right: -2,
+                  bottom: 18,
+                  child: IgnorePointer(
+                    child: SizedBox.square(
+                      dimension: size * .28,
+                      child: const Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          MapRoundSurface(),
+                          Padding(
+                            padding: EdgeInsets.all(4),
+                            child: MapIcon(MapGlyph.lock, size: 18),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     ),

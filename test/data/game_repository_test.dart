@@ -35,6 +35,115 @@ Future<void> solve(GameRepository repo, String session, String puzzle) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('dev rewind persists the board and selected game atomically', () async {
+    final store = FailingStore();
+    final repo = await GameRepository.open(store);
+    addTearDown(repo.close);
+    final session = await repo.startOrResumeLevel(
+      mapLevelId(1),
+      definitions: levelPuzzles(),
+    );
+    await solve(repo, session.id, session.puzzles.first.puzzleId);
+    await repo.saveModule('firstExperience', {'gameIndex': 1});
+    final before = repo.state;
+    store.failNext = true;
+    await expectLater(
+      repo.debugRestartPuzzle(
+        session.id,
+        0,
+        moduleKey: 'firstExperience',
+        moduleData: {'gameIndex': 0},
+      ),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(repo.state, same(before));
+    await repo.debugRestartPuzzle(
+      session.id,
+      0,
+      moduleKey: 'firstExperience',
+      moduleData: {'gameIndex': 0},
+    );
+    final restored = const SaveCodec().decode((await store.read())!);
+    expect(restored.modules['firstExperience'], {'gameIndex': 0});
+    expect(
+      restored.sessions[session.id]!.puzzles.first.cells.map((c) => c.value),
+      levelPuzzles().first.initial,
+    );
+    expect(restored.totalLights, 1);
+    await expectLater(
+      repo.debugRestartPuzzle(
+        session.id,
+        0,
+        moduleKey: 'firstExperience',
+        moduleData: {},
+      ),
+      throwsStateError,
+    );
+  });
+
+  test(
+    'dev fill saves one incomplete board atomically and preserves fixed cells',
+    () async {
+      final store = FailingStore();
+      final repo = await GameRepository.open(store);
+      addTearDown(repo.close);
+      final session = await repo.startOrResumeLevel(
+        mapLevelId(1),
+        definitions: levelPuzzles(),
+      );
+      final puzzle = session.nextPuzzleId!;
+      await repo.activatePuzzle(session.id, puzzle);
+      await repo.setCell(session.id, puzzle, 0, 4);
+      await repo.setNotes(session.id, puzzle, 1, [2, 3]);
+      final before = repo.state;
+      store.failNext = true;
+      await expectLater(
+        repo.debugFillExceptCell(session.id, puzzle, 1),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(repo.state, same(before));
+      var notifications = 0;
+      repo.addListener(() => notifications++);
+      await repo.debugFillExceptCell(session.id, puzzle, 1);
+      expect(notifications, 1);
+      final board = repo.state.sessions[session.id]!.puzzles.first;
+      expect(board.cells.map((c) => c.value), [
+        1,
+        null,
+        ...smallSolution.skip(2),
+      ]);
+      expect(
+        board.cells.every((c) => !c.errorRevealed && c.notes.isEmpty),
+        true,
+      );
+      expect(board.status, PlayStatus.active);
+      expect(board.mistakes, 1);
+      expect(repo.state.totalLights, 0);
+      for (var i = 2; i < 16; i++) {
+        expect(
+          board.cells[i],
+          same(before.sessions[session.id]!.puzzles.first.cells[i]),
+        );
+      }
+      await expectLater(
+        repo.debugFillExceptCell(session.id, puzzle, 2),
+        throwsStateError,
+      );
+      expect(notifications, 1);
+      final saved = await store.read();
+      expect(
+        const SaveCodec()
+            .decode(saved!)
+            .sessions[session.id]!
+            .puzzles
+            .first
+            .cells[1]
+            .value,
+        isNull,
+      );
+    },
+  );
+
   test('SQLite reopen preserves profile, settings, notes, mistakes, hints and time', () async {
     final directory = await Directory.systemTemp.createTemp('sundoku-save-');
     addTearDown(() => directory.delete(recursive: true));

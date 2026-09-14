@@ -16,6 +16,7 @@ import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/first_experience_screen.dart';
+import 'widgets/sundoku_cursor.dart';
 
 /// Root of the app. Wires the theme and the top-level route table.
 class SunDokuApp extends StatefulWidget {
@@ -35,6 +36,36 @@ class _SunDokuAppState extends State<SunDokuApp> {
   late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
 
   bool _openingPlay = false;
+  bool _welcomeChecked = false;
+
+  bool get _hasStarted {
+    final introduction =
+        _repository.state.modules[FirstExperienceController.moduleKey];
+    return (introduction is Map && introduction.isNotEmpty) ||
+        _repository.state.sessions.isNotEmpty ||
+        _progress.latestUnlocked > 1;
+  }
+
+  Future<void> _welcome(BuildContext context) async {
+    if (_welcomeChecked) return;
+    _welcomeChecked = true;
+    final welcome = _repository.state.modules['homeWelcome'];
+    if (welcome is Map && welcome['namePromptShown'] == true) return;
+    final shouldAsk = !_repository.state.player.nameChosen && !_hasStarted;
+    try {
+      await _repository.saveModule('homeWelcome', {'namePromptShown': true});
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No pudimos guardar esta visita.')),
+      );
+    }
+    if (shouldAsk &&
+        context.mounted &&
+        (ModalRoute.of(context)?.isCurrent ?? false)) {
+      await Navigator.of(context).pushNamed(AppRoutes.profile);
+    }
+  }
 
   Future<void> _play(BuildContext context) async {
     if (_openingPlay) return;
@@ -67,6 +98,18 @@ class _SunDokuAppState extends State<SunDokuApp> {
     }
   }
 
+  Future<void> _replayPractice(BuildContext context) async {
+    final flow = FirstExperienceController(_repository);
+    try {
+      await flow.restartGames();
+    } finally {
+      flow.dispose();
+    }
+    if (context.mounted) {
+      await Navigator.of(context).pushNamed(AppRoutes.firstExperience);
+    }
+  }
+
   @override
   void dispose() {
     _progress.dispose();
@@ -84,12 +127,15 @@ class _SunDokuAppState extends State<SunDokuApp> {
         debugShowCheckedModeBanner: false,
         theme: buildSunDokuTheme(),
         initialRoute: AppRoutes.splash,
+        builder: (context, child) => SunDokuCursor(child: child!),
         routes: {
           AppRoutes.splash: (_) => const SplashScreen(),
           AppRoutes.home: (_) => ListenableBuilder(
             listenable: _progress,
             builder: (context, _) => HomeScreen(
               onPlay: () => _play(context),
+              onReady: (homeContext) => unawaited(_welcome(homeContext)),
+              hasStarted: _hasStarted,
               availableLevel: _progress.latestUnlocked,
               unlockedLevels: _progress.unlockedCount,
               playerName: _repository.state.player.nameChosen
@@ -103,6 +149,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
                 Navigator.of(context).pushNamed(AppRoutes.tutorialReview),
             onOpenIntroduction: () =>
                 Navigator.of(context).pushNamed(AppRoutes.firstExperience),
+            onReplayIntroduction: () => _replayPractice(context),
           ),
           AppRoutes.tutorialReview: (_) =>
               FirstExperienceScreen(repository: _repository, reviewOnly: true),

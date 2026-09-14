@@ -71,6 +71,12 @@ class DeviceGameFeedback extends GameFeedback {
   }
 
   @override
+  Future<void> error({required bool vibration}) async {
+    if (_closed || !vibration) return;
+    await _safely(HapticFeedback.vibrate);
+  }
+
+  @override
   Future<void> close() async {
     _closed = true;
     await Future.wait([_musicTail, _effectTail]);

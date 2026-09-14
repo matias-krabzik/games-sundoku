@@ -9,17 +9,24 @@ class GameFeedbackScope extends InheritedWidget {
   const GameFeedbackScope({
     super.key,
     required this.onTap,
+    this.onError,
     required super.child,
   });
 
   final VoidCallback onTap;
+  final VoidCallback? onError;
 
   static void tap(BuildContext context) =>
       context.getInheritedWidgetOfExactType<GameFeedbackScope>()?.onTap();
 
+  static void error(BuildContext context) => context
+      .getInheritedWidgetOfExactType<GameFeedbackScope>()
+      ?.onError
+      ?.call();
+
   @override
   bool updateShouldNotify(GameFeedbackScope oldWidget) =>
-      onTap != oldWidget.onTap;
+      onTap != oldWidget.onTap || onError != oldWidget.onError;
 }
 
 class GameFeedbackHost extends StatefulWidget {
@@ -73,6 +80,15 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
     );
   }
 
+  void _error() {
+    if (!_foreground) return;
+    unawaited(
+      widget.output.error(
+        vibration: widget.repository.state.settings.vibration,
+      ),
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
@@ -90,6 +106,7 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
   @override
   Widget build(BuildContext context) => GameFeedbackScope(
     onTap: _tap,
+    onError: _error,
     child: Listener(onPointerDown: (_) => _engage(), child: widget.child),
   );
 }

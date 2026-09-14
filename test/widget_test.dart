@@ -12,6 +12,17 @@ Future<void> _bootToHome(WidgetTester tester) async {
   await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
   await tester.pump(const Duration(seconds: 3)); // wait out the splash
   await tester.pump(const Duration(seconds: 1));
+  await tester.pump(const Duration(seconds: 1));
+  for (var frame = 0; frame < 10; frame++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  final welcome = find.byKey(const ValueKey('profile-close'));
+  if (welcome.evaluate().isNotEmpty) {
+    await tester.tap(welcome);
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
 }
 
 Future<void> _openMap(WidgetTester tester) async {

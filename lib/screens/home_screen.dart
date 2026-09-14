@@ -1,9 +1,6 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 
 import '../routes.dart';
 import '../data/level_node.dart';
@@ -11,110 +8,124 @@ import '../widgets/game_feedback_scope.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
 import '../widgets/juicy_press.dart';
+import '../widgets/parallax_background.dart';
 import '../widgets/settings_art.dart';
 
 /// Sunny title screen with Doku, illustrated controls, and live game progress.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.availableLevel = 1,
     this.unlockedLevels = 1,
     this.playerName = 'Jugador',
     this.onPlay,
+    this.onReady,
+    this.hasStarted = false,
   });
 
   final int availableLevel;
   final int unlockedLevels;
   final String playerName;
   final VoidCallback? onPlay;
+  final ValueChanged<BuildContext>? onReady;
+  final bool hasStarted;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onReady?.call(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) => TickerMode(
     enabled: ModalRoute.of(context)?.isCurrent ?? true,
     child: Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const _ParallaxBackground(),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, viewport) {
-                final landscape = viewport.maxWidth > viewport.maxHeight * 1.2;
-                final height = math.max(300.0, viewport.maxHeight);
-                final content = Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: landscape ? 960 : 500,
+      body: ParallaxBackground(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, viewport) {
+              final landscape = viewport.maxWidth > viewport.maxHeight * 1.2;
+              final height = math.max(300.0, viewport.maxHeight);
+              final content = Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: landscape ? 960 : 500),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      8,
+                      16,
+                      landscape ? 14 : (height * .045).clamp(18, 38),
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        8,
-                        16,
-                        landscape ? 14 : (height * .045).clamp(18, 38),
-                      ),
-                      child: Column(
-                        children: [
-                          _HomeHeader(playerName: playerName),
-                          if (landscape)
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        const _AnimatedLogo(width: 240),
-                                        const Expanded(child: _Doku()),
-                                      ],
-                                    ),
+                    child: Column(
+                      children: [
+                        _HomeHeader(playerName: widget.playerName),
+                        if (landscape)
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      const _AnimatedLogo(width: 240),
+                                      const Expanded(child: _Doku()),
+                                    ],
                                   ),
-                                  const SizedBox(width: 18),
-                                  Expanded(
-                                    child: Center(
-                                      child: _HomeActions(
-                                        onPlay: onPlay,
-                                        availableLevel: availableLevel,
-                                        unlockedLevels: unlockedLevels,
-                                        compact: true,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else ...[
-                            SizedBox(height: height < 650 ? 2 : 8),
-                            LayoutBuilder(
-                              builder: (context, space) => _AnimatedLogo(
-                                width: math.min(
-                                  space.maxWidth * .94,
-                                  height * .46,
                                 ),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Center(
+                                    child: _HomeActions(
+                                      onPlay: widget.onPlay,
+                                      availableLevel: widget.availableLevel,
+                                      unlockedLevels: widget.unlockedLevels,
+                                      compact: true,
+                                      hasStarted: widget.hasStarted,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else ...[
+                          SizedBox(height: height < 650 ? 2 : 8),
+                          LayoutBuilder(
+                            builder: (context, space) => _AnimatedLogo(
+                              width: math.min(
+                                space.maxWidth * .94,
+                                height * .46,
                               ),
                             ),
-                            const Expanded(child: _Doku()),
-                            const SizedBox(height: 8),
-                            _HomeActions(
-                              onPlay: onPlay,
-                              availableLevel: availableLevel,
-                              unlockedLevels: unlockedLevels,
-                              compact: height < 650,
-                            ),
-                          ],
+                          ),
+                          const Expanded(child: _Doku()),
+                          const SizedBox(height: 8),
+                          _HomeActions(
+                            onPlay: widget.onPlay,
+                            availableLevel: widget.availableLevel,
+                            unlockedLevels: widget.unlockedLevels,
+                            compact: height < 650,
+                            hasStarted: widget.hasStarted,
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
-                );
-                return viewport.maxHeight < 300
-                    ? SingleChildScrollView(
-                        child: SizedBox(height: height, child: content),
-                      )
-                    : content;
-              },
-            ),
+                ),
+              );
+              return viewport.maxHeight < 300
+                  ? SingleChildScrollView(
+                      child: SizedBox(height: height, child: content),
+                    )
+                  : content;
+            },
           ),
-        ],
+        ),
       ),
     ),
   );
@@ -203,12 +214,14 @@ class _HomeActions extends StatelessWidget {
     required this.availableLevel,
     required this.unlockedLevels,
     required this.compact,
+    required this.hasStarted,
     this.onPlay,
   });
   final VoidCallback? onPlay;
   final int availableLevel;
   final int unlockedLevels;
   final bool compact;
+  final bool hasStarted;
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
@@ -223,11 +236,14 @@ class _HomeActions extends StatelessWidget {
           onPressed:
               onPlay ?? () => Navigator.of(context).pushNamed(AppRoutes.map),
         ),
-        SizedBox(height: compact ? 9 : 12),
-        _GameStatusCard(
-          availableLevel: availableLevel,
-          unlockedLevels: unlockedLevels,
-        ),
+        if (hasStarted) ...[
+          SizedBox(height: compact ? 9 : 12),
+          _GameStatusCard(
+            key: const ValueKey('home-game-status'),
+            availableLevel: availableLevel,
+            unlockedLevels: unlockedLevels,
+          ),
+        ],
       ],
     ),
   );
@@ -235,6 +251,7 @@ class _HomeActions extends StatelessWidget {
 
 class _GameStatusCard extends StatelessWidget {
   const _GameStatusCard({
+    super.key,
     required this.availableLevel,
     required this.unlockedLevels,
   });
@@ -486,161 +503,6 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _ParallaxBackground extends StatefulWidget {
-  const _ParallaxBackground();
-
-  @override
-  State<_ParallaxBackground> createState() => _ParallaxBackgroundState();
-}
-
-class _ParallaxBackgroundState extends State<_ParallaxBackground>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  static const double _maxX = 22;
-  static const double _maxY = 16;
-  static const double _sensorStrength = 280;
-  static const double _springStrength = 12;
-  static const double _friction = 5.5;
-
-  StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
-  late final Ticker _motionTicker;
-  Duration _lastFrame = Duration.zero;
-  DateTime? _lastSensorEvent;
-  Offset _sensorInput = Offset.zero;
-  Offset _position = Offset.zero;
-  Offset _velocity = Offset.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _motionTicker = createTicker(_advanceMotion);
-    _startListening();
-  }
-
-  void _startListening() {
-    _gyroscopeSubscription ??= gyroscopeEventStream(
-      samplingPeriod: SensorInterval.gameInterval,
-    ).listen(_handleGyroscope, onError: (_) {}, cancelOnError: true);
-  }
-
-  void _handleGyroscope(GyroscopeEvent event) {
-    if (!mounted) return;
-
-    final Offset rawReading = Offset(
-      (-event.y).clamp(-2.5, 2.5).toDouble(),
-      (-event.x).clamp(-2.5, 2.5).toDouble(),
-    );
-    final Offset reading = rawReading.distance < 0.025
-        ? Offset.zero
-        : rawReading;
-    _sensorInput = Offset.lerp(_sensorInput, reading, 0.35)!;
-    if (_sensorInput.distance < 0.01) _sensorInput = Offset.zero;
-    _lastSensorEvent = DateTime.now();
-
-    final bool needsMotion =
-        _sensorInput != Offset.zero ||
-        _position.distance >= 0.12 ||
-        _velocity.distance >= 0.12;
-    if (!_motionTicker.isActive && needsMotion) {
-      _lastFrame = Duration.zero;
-      _motionTicker.start();
-    }
-  }
-
-  void _advanceMotion(Duration elapsed) {
-    if (_lastFrame == Duration.zero) {
-      _lastFrame = elapsed;
-      return;
-    }
-
-    final double dt = ((elapsed - _lastFrame).inMicroseconds / 1000000)
-        .clamp(1 / 240, 1 / 30)
-        .toDouble();
-    _lastFrame = elapsed;
-
-    if (_lastSensorEvent == null ||
-        DateTime.now().difference(_lastSensorEvent!) >
-            const Duration(milliseconds: 120)) {
-      _sensorInput = Offset.zero;
-    }
-
-    final Offset acceleration = Offset(
-      _sensorInput.dx * _sensorStrength -
-          _position.dx * _springStrength -
-          _velocity.dx * _friction,
-      _sensorInput.dy * _sensorStrength -
-          _position.dy * _springStrength -
-          _velocity.dy * _friction,
-    );
-
-    _velocity += acceleration * dt;
-    Offset nextPosition = _position + _velocity * dt;
-
-    final double clampedX = nextPosition.dx.clamp(-_maxX, _maxX).toDouble();
-    final double clampedY = nextPosition.dy.clamp(-_maxY, _maxY).toDouble();
-    if (clampedX != nextPosition.dx) {
-      _velocity = Offset(-_velocity.dx * 0.18, _velocity.dy);
-    }
-    if (clampedY != nextPosition.dy) {
-      _velocity = Offset(_velocity.dx, -_velocity.dy * 0.18);
-    }
-    nextPosition = Offset(clampedX, clampedY);
-
-    final bool settled =
-        _sensorInput.distance < 0.01 &&
-        _velocity.distance < 0.12 &&
-        nextPosition.distance < 0.12;
-    if (settled) {
-      _position = Offset.zero;
-      _velocity = Offset.zero;
-      _motionTicker.stop();
-    } else {
-      _position = nextPosition;
-    }
-
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _startListening();
-    } else {
-      _motionTicker.stop();
-      _sensorInput = Offset.zero;
-      _gyroscopeSubscription?.cancel();
-      _gyroscopeSubscription = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _gyroscopeSubscription?.cancel();
-    _motionTicker.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: Transform.translate(
-        offset: _position,
-        child: Transform.scale(
-          scale: 1.1,
-          child: Image.asset(
-            'assets/images/home-background.png',
-            fit: BoxFit.cover,
-            alignment: MediaQuery.sizeOf(context).aspectRatio > 1.2
-                ? const Alignment(0, .5)
-                : Alignment.topCenter,
-          ),
-        ),
       ),
     );
   }

@@ -131,6 +131,11 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  Future<void> debugFillExceptCell(int emptyIndex) => _input(
+    (session, puzzle) =>
+        repository.debugFillExceptCell(session, puzzle, emptyIndex),
+  );
+
   Future<void> useHint(int index) =>
       _input((session, puzzle) => repository.useHint(session, puzzle, index));
 

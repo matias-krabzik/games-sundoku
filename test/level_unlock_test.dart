@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/app.dart';
 import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/widgets/map_level_button.dart';
+import 'package:sundoku/widgets/light_award_overlay.dart';
 import 'package:sundoku/screens/first_experience_screen.dart';
 
 Future<void> finishLight(WidgetTester tester) async {
@@ -19,6 +21,82 @@ Future<void> finishNavigation(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'saved rewards wait for return, scroll first and never award twice',
+    (tester) async {
+      final progress = LevelProgress();
+      addTearDown(progress.dispose);
+      await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
+      await tester.pump();
+      for (var i = 0; i < 2; i++) {
+        await tester.tap(find.byKey(const ValueKey('map-next')));
+        await finishNavigation(tester);
+      }
+      final scroll = tester
+          .widget<SingleChildScrollView>(
+            find.byKey(const ValueKey('world-scroll')),
+          )
+          .controller!;
+      final initialOffset = scroll.offset;
+      expect(initialOffset, greaterThan(0));
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Juego')),
+        ),
+      );
+      await finishNavigation(tester);
+      await progress.awardLight(1);
+      await tester.pump();
+      MapLevelButton marker(int level) => tester
+          .widgetList<MapLevelButton>(
+            find.byType(MapLevelButton, skipOffstage: false),
+          )
+          .singleWhere((button) => button.level == level);
+      expect(marker(1).lights, 0);
+      expect(progress.lightsFor(1), 1);
+      navigator.pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(scroll.offset, lessThan(initialOffset));
+      expect(marker(1).lights, 0);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(marker(1).lights, 0);
+      await finishLight(tester);
+      expect(marker(1).lights, 1);
+      expect(progress.lightsFor(1), 1);
+      expect(find.byType(LightAwardOverlay), findsNothing);
+      navigator.push(MaterialPageRoute<void>(builder: (_) => const Scaffold()));
+      await finishNavigation(tester);
+      navigator.pop();
+      await finishNavigation(tester);
+      expect(find.byType(LightAwardOverlay), findsNothing);
+      expect(marker(1).lights, 1);
+
+      navigator.push(MaterialPageRoute<void>(builder: (_) => const Scaffold()));
+      await finishNavigation(tester);
+      await progress.recordResult(1, 3);
+      await tester.pump();
+      expect(marker(1).lights, 1);
+      expect(marker(2).unlocked, isFalse);
+      navigator.pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 650));
+      await finishLight(tester);
+      expect(marker(1).lights, 2);
+      expect(marker(2).unlocked, isFalse);
+      await finishLight(tester);
+      await finishNavigation(tester);
+      expect(marker(1).lights, 3);
+      expect(marker(2).unlocked, isTrue);
+      expect(find.text('Nivel 2 de 10'), findsOneWidget);
+      expect(progress.lightsFor(1), 3);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'score stars stay separated and centered above the level number',
     (tester) async {
@@ -158,6 +236,16 @@ void main() {
       await tester.pumpWidget(const SunDokuApp());
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      for (var frame = 0; frame < 10; frame++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      final welcome = find.byKey(const ValueKey('profile-close'));
+      if (welcome.evaluate().isNotEmpty) {
+        await tester.tap(welcome);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }
       await tester.tap(find.text('Jugar'));
       await tester.pumpAndSettle();
       Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();

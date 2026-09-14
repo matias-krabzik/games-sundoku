@@ -33,6 +33,7 @@ class _JuicyPressState extends State<JuicyPress>
   );
   bool _busy = false;
   bool _focused = false;
+  bool _hovered = false;
   bool _feedbackSent = false;
   bool get _reduced => MediaQuery.disableAnimationsOf(context);
 
@@ -105,34 +106,48 @@ class _JuicyPressState extends State<JuicyPress>
           },
         ),
       },
-      child: Listener(
-        onPointerDown: widget.onPressed == null ? null : (_) => _down(),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapCancel: _cancel,
-          onTap: widget.onPressed == null ? null : _activate,
-          child: AnimatedBuilder(
-            animation: _press,
-            builder: (context, _) {
-              final amount = _reduced ? 0.0 : _press.value;
-              return Transform.translate(
-                offset: Offset(0, amount * 3.5),
-                child: Transform.scale(
-                  key: const ValueKey('juicy-press-transform'),
-                  scaleX: 1 - amount * .025,
-                  scaleY: 1 - amount * .075,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      border: _focused
-                          ? Border.all(color: const Color(0xFF2466A7), width: 3)
-                          : null,
+      child: MouseRegion(
+        onEnter: (_) {
+          if (widget.onPressed == null) return;
+          if (!_hovered) setState(() => _hovered = true);
+        },
+        onExit: (_) {
+          if (widget.onPressed == null) return;
+          if (_hovered) setState(() => _hovered = false);
+        },
+        child: Listener(
+          onPointerDown: widget.onPressed == null ? null : (_) => _down(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapCancel: _cancel,
+            onTap: widget.onPressed == null ? null : _activate,
+            child: AnimatedBuilder(
+              animation: _press,
+              builder: (context, _) {
+                final amount = _reduced ? 0.0 : _press.value;
+                final hoverScale =
+                    widget.onPressed == null || _reduced || !_hovered
+                        ? 0.0
+                        : .018;
+                return Transform.translate(
+                  offset: Offset(0, amount * 3.5),
+                  child: Transform.scale(
+                    key: const ValueKey('juicy-press-transform'),
+                    scaleX: (1 + hoverScale) - amount * .025,
+                    scaleY: (1 + hoverScale) - amount * .075,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        border: _focused
+                            ? Border.all(color: const Color(0xFF2466A7), width: 3)
+                            : null,
+                      ),
+                      child: widget.builder(context, amount),
                     ),
-                    child: widget.builder(context, amount),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),

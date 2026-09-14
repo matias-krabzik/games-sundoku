@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'home_art.dart';
+import 'game_layout.dart';
 import 'juicy_press.dart';
 import 'sudoku_digit.dart';
 import 'tutorial_block_art.dart';
@@ -24,14 +25,19 @@ class TutorialNumberTray extends StatelessWidget {
     builder: (context, bounds) {
       if (horizontal) {
         final gap = bounds.maxWidth < 340 ? 2.0 : 4.0;
-        final width = (bounds.maxWidth - gap * 8) / 9;
+        final width = math.min(
+          (bounds.maxWidth - gap * 8) / 9,
+          GameLayout.controlSize,
+        );
         return SizedBox(
           height: math.max(48, width),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               for (var number = 1; number <= 9; number++) ...[
                 if (number > 1) SizedBox(width: gap),
-                Expanded(
+                SizedBox(
+                  width: width,
                   child: _NumberButton(
                     number: number,
                     placed: !available.contains(number),
@@ -63,7 +69,9 @@ class TutorialNumberTray extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 192),
+                constraints: const BoxConstraints(
+                  maxWidth: GameLayout.controlSize * 3 + 12,
+                ),
                 child: GridView.count(
                   crossAxisCount: 3,
                   crossAxisSpacing: 6,
@@ -136,32 +144,29 @@ class TutorialEraseButton extends StatelessWidget {
   final UiSurface surface;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: 'Borrar número',
-    child: SizedBox.square(
-      dimension: 52,
-      child: JuicyPress(
-        key: const ValueKey('intro-clear'),
-        label: 'Borrar número seleccionado',
-        onPressed: onPressed,
-        builder: (_, _) => Stack(
-          fit: StackFit.expand,
-          children: [
-            UiSurfaceArt(surface),
-            Center(
-              child: Opacity(
-                opacity: onPressed == null ? .5 : 1,
-                child: Image.asset(
-                  'assets/images/tutorial/cleaning-brush.png',
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.contain,
-                  excludeFromSemantics: true,
-                ),
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 52,
+    child: JuicyPress(
+      key: const ValueKey('intro-clear'),
+      label: 'Borrar número seleccionado',
+      onPressed: onPressed,
+      builder: (_, _) => Stack(
+        fit: StackFit.expand,
+        children: [
+          UiSurfaceArt(surface),
+          Center(
+            child: Opacity(
+              opacity: onPressed == null ? .5 : 1,
+              child: Image.asset(
+                'assets/images/tutorial/cleaning-brush.png',
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
+                excludeFromSemantics: true,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
   );

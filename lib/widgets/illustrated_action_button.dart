@@ -16,6 +16,7 @@ class IllustratedActionButton extends StatelessWidget {
     this.compact = false,
     this.fontSize = 34,
     this.showPlayIcon = true,
+    this.leadingIcon,
   });
 
   final String label;
@@ -23,12 +24,14 @@ class IllustratedActionButton extends StatelessWidget {
   final bool compact;
   final double fontSize;
   final bool showPlayIcon;
+  final Widget? leadingIcon;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
       final referenceSize = compact ? const Size(224, 70) : const Size(244, 78);
       final textStyle = homeText(fontSize);
+      final hasIcon = leadingIcon != null || showPlayIcon;
       final textPainter = TextPainter(
         text: TextSpan(text: label, style: textStyle),
         textDirection: Directionality.of(context),
@@ -39,7 +42,7 @@ class IllustratedActionButton extends StatelessWidget {
       final width = bounds.constrainWidth(
         math.max(
           referenceSize.width,
-          (textPainter.width + 48 + (showPlayIcon ? 51 : 0)).ceilToDouble(),
+          (textPainter.width + 48 + (hasIcon ? 51 : 0)).ceilToDouble(),
         ),
       );
       final height = math.max(referenceSize.height, textPainter.height + 27);
@@ -62,8 +65,8 @@ class IllustratedActionButton extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (showPlayIcon) ...[
-                        const HomeIcon(HomeGlyph.play, size: 34),
+                      if (hasIcon) ...[
+                        leadingIcon ?? const HomeIcon(HomeGlyph.play, size: 34),
                         const SizedBox(width: 17),
                       ],
                       Text(

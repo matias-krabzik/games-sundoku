@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
 import 'game_feedback_scope.dart';
+import 'game_layout.dart';
 import 'home_art.dart';
 import 'juicy_press.dart';
 import 'map_art.dart';
 import 'settings_art.dart';
 
 class GameNavigationHeader extends StatelessWidget {
-  const GameNavigationHeader({super.key, this.onBack, this.onSettings});
+  const GameNavigationHeader({
+    super.key,
+    this.onBack,
+    this.onSettings,
+    this.center,
+  });
   final VoidCallback? onBack;
   final VoidCallback? onSettings;
+  final Widget? center;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -21,6 +28,7 @@ class GameNavigationHeader extends StatelessWidget {
         onPressed: onBack,
         icon: const MapIcon(MapGlyph.back, size: 29),
       ),
+      if (center != null) Expanded(child: Center(child: center)),
       _GameHeaderButton(
         key: const ValueKey('game-settings'),
         label: 'Configuración',
@@ -43,23 +51,20 @@ class _GameHeaderButton extends StatelessWidget {
   final Widget icon;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: label,
-    child: SizedBox.square(
-      dimension: 54,
-      child: JuicyPress(
-        label: label,
-        onFeedback: () => GameFeedbackScope.tap(context),
-        onPressed: onPressed,
-        builder: (_, _) => Opacity(
-          opacity: onPressed == null ? .5 : 1,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const HomeArt(HomeSurface.settings),
-              Center(child: icon),
-            ],
-          ),
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: GameLayout.controlSize,
+    child: JuicyPress(
+      label: label,
+      onFeedback: () => GameFeedbackScope.tap(context),
+      onPressed: onPressed,
+      builder: (_, _) => Opacity(
+        opacity: onPressed == null ? .5 : 1,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const HomeArt(HomeSurface.settings),
+            Center(child: icon),
+          ],
         ),
       ),
     ),

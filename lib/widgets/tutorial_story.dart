@@ -21,7 +21,7 @@ class TutorialStory extends StatefulWidget {
   final bool autoplay;
   final VoidCallback? onFinished;
   final List<String> lines;
-  final String tip;
+  final String? tip;
   final String skipHint;
   final bool interactive;
   final bool animate;
@@ -72,7 +72,7 @@ class _TutorialStoryState extends State<TutorialStory>
       if (letter == ',') time += 100;
     }
     _typingEnd = time;
-    _duration = time + 450;
+    _duration = time + (widget.tip == null ? 0 : 450);
     _reveal.duration = Duration(milliseconds: _duration);
   }
 
@@ -138,7 +138,7 @@ class _TutorialStoryState extends State<TutorialStory>
           ((time - _typingEnd) / 450).clamp(0.0, 1.0),
         );
         return Semantics(
-          label: '${widget.lines.join(' ')} ${widget.tip}',
+          label: '${widget.lines.join(' ')} ${widget.tip ?? ''}'.trim(),
           hint: _reveal.isCompleted || !widget.interactive
               ? null
               : widget.skipHint,
@@ -201,37 +201,39 @@ class _TutorialStoryState extends State<TutorialStory>
                           weight: FontWeight.w600,
                         ).copyWith(height: 1.25),
                       ),
-                      Opacity(
-                        opacity: conclusion,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: SizedBox(
-                            height: 2,
-                            child: HomeArt(HomeSurface.progressFill),
+                      if (widget.tip != null) ...[
+                        Opacity(
+                          opacity: conclusion,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                            child: SizedBox(
+                              height: 2,
+                              child: HomeArt(HomeSurface.progressFill),
+                            ),
                           ),
                         ),
-                      ),
-                      Opacity(
-                        key: const ValueKey('intro-story-conclusion'),
-                        opacity: conclusion,
-                        child: Transform.scale(
-                          scale: .96 + .04 * conclusion,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const HomeIcon(HomeGlyph.sun, size: 28),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  widget.tip,
-                                  textAlign: TextAlign.center,
-                                  style: homeText(narrow ? 18 : 20),
+                        Opacity(
+                          key: const ValueKey('intro-story-conclusion'),
+                          opacity: conclusion,
+                          child: Transform.scale(
+                            scale: .96 + .04 * conclusion,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const HomeIcon(HomeGlyph.sun, size: 28),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    widget.tip!,
+                                    textAlign: TextAlign.center,
+                                    style: homeText(narrow ? 18 : 20),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

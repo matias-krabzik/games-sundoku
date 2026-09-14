@@ -44,6 +44,17 @@ Future<void> _open(
   );
   await tester.pump(const Duration(seconds: 3));
   await tester.pump(const Duration(seconds: 1));
+  await tester.pump(const Duration(seconds: 1));
+  for (var frame = 0; frame < 10; frame++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  final welcome = find.byKey(const ValueKey('profile-close'));
+  if (welcome.evaluate().isNotEmpty) {
+    await tester.tap(welcome);
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
   await tester.tap(find.byKey(const ValueKey('home-settings')));
   await tester.pumpAndSettle();
 }

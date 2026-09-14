@@ -235,6 +235,131 @@ void main() {
     await flow.flush();
   });
 
+  test(
+    'replay starts fresh practice and preserves completion records',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      final flow = await at(repo, FirstExperienceStep.givensIntroduction);
+      await enterGame(flow);
+      for (var game = 0; game < 3; game++) {
+        await solve(flow);
+        if (game < 2) await flow.advance();
+      }
+      final completedId = flow.session!.id;
+      await flow.restartGames();
+      flow.dispose();
+      final replay = FirstExperienceController(repo);
+      addTearDown(replay.dispose);
+      await replay.resumeGame();
+      expect(replay.step, FirstExperienceStep.playing);
+      expect(replay.readyToPlay, isTrue);
+      expect(replay.gameIndex, 0);
+      expect(replay.remaining, 6);
+      expect(replay.session!.id, isNot(completedId));
+      expect(repo.state.sessions[completedId]!.status, PlayStatus.completed);
+      expect(repo.state.totalLights, 3);
+      expect(repo.state.isUnlocked(mapLevelId(2)), isTrue);
+      await solve(replay);
+      expect(repo.state.totalLights, 3);
+    },
+  );
+
+  test('dev fills each sudoku except the selected editable tile without finishing it', () async {
+    final repo = GameRepository.memory();
+    addTearDown(repo.close);
+    final flow = await at(repo, FirstExperienceStep.givensIntroduction);
+    addTearDown(flow.dispose);
+    await enterGame(flow);
+    for (var game = 0; game < 3; game++) {
+      final definition = flow.puzzleDefinition!;
+      final editable = [
+        for (var i = 0; i < 81; i++)
+          if (!definition.isFixed(i)) i,
+      ];
+      flow.selectGameCell(editable.first);
+      await flow.placeGameNumber(definition.solution[editable.first] % 9 + 1);
+      expect(flow.conflicts, isNotEmpty);
+      final mistakes = flow.puzzleProgress!.mistakes;
+      flow.selectGameCell(0);
+      final firstEmpty = flow.boardValues.indexOf(null);
+      await flow.debugFillExceptOne();
+      expect(flow.gameCell, firstEmpty);
+      expect(flow.remaining, 1);
+      expect(flow.conflicts, isEmpty);
+      expect(flow.puzzleProgress!.mistakes, mistakes);
+      expect(flow.puzzleProgress!.hintsUsed, 0);
+      expect(flow.completion, isNull);
+      expect(repo.state.totalLights, game);
+
+      // A filled, editable selection can also be left for the final move.
+      final last = editable.last;
+      flow.selectGameCell(last);
+      await flow.debugFillExceptOne();
+      expect(flow.boardValues, <int?>[...definition.solution]..[last] = null);
+      expect(flow.remaining, 1);
+      expect(flow.gameCell, last);
+      expect(flow.readyToPlay, true);
+      for (final index in flow.fixedIndices) {
+        expect(flow.boardValues[index], definition.initial[index]);
+      }
+      await flow.placeGameNumber(definition.solution[last]);
+      expect(flow.completion!.wholeBoard, true);
+      expect(flow.completion!.origin, last);
+      expect(repo.state.totalLights, game + 1);
+      if (game < 2) await flow.advance();
+    }
+  });
+
+  test(
+    'dev restart rewinds only the last completed sudoku and preserves records',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      final flow = await at(repo, FirstExperienceStep.givensIntroduction);
+      addTearDown(flow.dispose);
+      await enterGame(flow);
+      expect(flow.debugPreviousGameIndex, isNull);
+      await solve(flow);
+      await flow.advance();
+      final first = flow.boardValues.indexOf(null);
+      flow.selectGameCell(first);
+      await flow.placeGameNumber(flow.puzzleDefinition!.solution[first]);
+      final secondBoard = [...flow.boardValues];
+      for (var attempt = 0; attempt < 2; attempt++) {
+        expect(flow.debugPreviousGameIndex, 0);
+        await flow.debugRestartPrevious();
+        expect(flow.gameIndex, 0);
+        expect(flow.readyToPlay, true);
+        expect(flow.boardValues, flow.puzzleDefinition!.initial);
+        expect(flow.completion, isNull);
+        expect(flow.gameCell, isNull);
+        expect(repo.state.totalLights, 1);
+        repo.state.validate();
+        await solve(flow);
+        await flow.advance();
+        expect(flow.gameIndex, 1);
+        expect(flow.boardValues, secondBoard);
+        expect(repo.state.totalLights, 1);
+      }
+      await solve(flow);
+      await flow.advance();
+      await solve(flow);
+      expect(flow.debugPreviousGameIndex, 2);
+      await flow.debugRestartPrevious();
+      expect(flow.gameIndex, 2);
+      expect(flow.remaining, 18);
+      expect(flow.session!.completedAt, isNull);
+      expect(repo.state.totalLights, 3);
+      expect(repo.state.isUnlocked(mapLevelId(2)), true);
+      final restored = FirstExperienceController(repo);
+      expect(restored.gameIndex, 2);
+      expect(restored.boardValues, flow.boardValues);
+      restored.dispose();
+      repo.state.validate();
+    },
+  );
+
   test('three uninterrupted games save stars and unlock level 2', () async {
     final repo = GameRepository.memory();
     addTearDown(repo.close);
@@ -294,7 +419,43 @@ void main() {
     expect(repo.state.totalLights, 3);
   });
 
-  test('wrong numbers explain a visible duplicate; clues stay immutable; clearing works', () async {
+  test(
+    'sudoku 2 waves include incomplete lines and blocks by position',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      final flow = await at(repo, FirstExperienceStep.givensIntroduction);
+      addTearDown(flow.dispose);
+      await enterGame(flow);
+      await solve(flow);
+      await flow.advance();
+      expect(flow.gameIndex, 1);
+
+      for (final origin in [70, 75]) {
+        expect(flow.boardValues[origin], isNull);
+        flow.selectGameCell(origin);
+        await flow.placeGameNumber(flow.puzzleDefinition!.solution[origin]);
+        final wave = flow.completion!;
+        expect(wave.origin, origin);
+        expect(wave.wholeBoard, false);
+        expect(wave.cells.length, 21);
+        for (final group in SudokuGroup.values) {
+          expect(wave.cells, containsAll(groupCells(origin, group)));
+        }
+        expect(flow.boardValues[79], isNull);
+        expect(flow.boardValues[80], isNull);
+        expect(wave.cells, containsAll([79, 80]));
+
+        flow.selectGameCell(0);
+        expect(flow.completion, same(wave));
+        flow.selectGameCell(origin);
+        await flow.placeGameNumber(flow.puzzleDefinition!.solution[origin]);
+        expect(flow.completion, same(wave));
+      }
+    },
+  );
+
+  test('wrong entries stay on the board and only mark themselves; clues stay immutable', () async {
     final repo = GameRepository.memory();
     addTearDown(repo.close);
     final flow = await at(repo, FirstExperienceStep.givensIntroduction);
@@ -303,22 +464,75 @@ void main() {
     final board = flow.boardValues;
     final selected = TutorialSudokus.guidedOrder.first;
     flow.selectGameCell(selected);
-    await flow.placeGameNumber(7);
-    expect(flow.boardValues, board);
-    expect(flow.conflicts, contains(selected));
-    expect(flow.playMessage, contains('Ya hay un 7'));
-    expect(flow.puzzleProgress!.mistakes, 0);
+    await flow.placeGameNumber(1);
+    final withError = [...board]..[selected] = 1;
+    expect(flow.boardValues, withError);
+    expect(flow.conflicts, {selected});
+    expect(flow.playMessage, contains('Ya hay un 1'));
+    expect(flow.puzzleProgress!.mistakes, 1);
+    expect(flow.gameCell, selected);
+    expect(flow.availableGameNumbers, contains(1));
+    await flow.placeGameNumber(1);
+    expect(flow.puzzleProgress!.mistakes, 1);
     flow.selectGameCell(0);
     expect(flow.gameCell, 0);
-    expect(flow.conflicts, isEmpty);
+    expect(flow.conflicts, {selected});
     await flow.placeGameNumber(flow.puzzleDefinition!.solution[selected]);
     await flow.clearGameCell();
-    expect(flow.boardValues, board);
+    expect(flow.boardValues, withError);
     flow.selectGameCell(selected);
+    await flow.clearGameCell();
+    expect(flow.conflicts, isEmpty);
+    expect(flow.boardValues, board);
+    await flow.placeGameNumber(1);
     await flow.placeGameNumber(flow.puzzleDefinition!.solution[selected]);
+    expect(flow.conflicts, isEmpty);
+    expect(flow.playMessage, isEmpty);
     await flow.clearGameCell();
     expect(flow.boardValues[selected], isNull);
     expect(flow.remaining, 6);
+  });
+
+  test('a full incorrect board survives reopening and rewards only after correction', () async {
+    final store = MemorySaveStore();
+    var repo = await GameRepository.open(store);
+    var flow = await at(repo, FirstExperienceStep.givensIntroduction);
+    await enterGame(flow);
+    final target = TutorialSudokus.guidedOrder.first;
+    flow.selectGameCell(target);
+    await flow.placeGameNumber(1);
+    expect(flow.boardValues.where((n) => n == 1).length, 9);
+    expect(flow.availableGameNumbers, contains(1));
+    while (flow.remaining > 0) {
+      final index = flow.boardValues.indexOf(null);
+      flow.selectGameCell(index);
+      await flow.placeGameNumber(flow.puzzleDefinition!.solution[index]);
+      expect(flow.playMessage, isEmpty);
+    }
+    expect(flow.availableGameNumbers, isNot(contains(1)));
+    expect(
+      flow.availableGameNumbers,
+      contains(flow.puzzleDefinition!.solution[target]),
+    );
+    expect(flow.step, FirstExperienceStep.playing);
+    expect(repo.state.totalLights, 0);
+    final saved = flow.boardValues;
+    flow.dispose();
+    await flow.flush();
+    await repo.close();
+    repo = await GameRepository.open(store);
+    flow = FirstExperienceController(repo);
+    addTearDown(repo.close);
+    addTearDown(flow.dispose);
+    expect(flow.boardValues, saved);
+    expect(flow.conflicts, {target});
+    expect(flow.step, FirstExperienceStep.playing);
+    await flow.resumeGame();
+    flow.selectGameCell(target);
+    await flow.placeGameNumber(flow.puzzleDefinition!.solution[target]);
+    expect(flow.conflicts, isEmpty);
+    expect(flow.step, FirstExperienceStep.celebration);
+    expect(repo.state.totalLights, 1);
   });
 
   test('failed preparation is atomic, retries once and resumes moves after reopening', () async {
@@ -339,9 +553,11 @@ void main() {
     expect(flow.boardValues[target], isNull);
     expect(flow.gameCell, target);
     expect(flow.error, isNotNull);
+    expect(flow.completion, isNull);
     store.fail = false;
     await flow.placeGameNumber(flow.puzzleDefinition!.solution[target]);
     expect(flow.boardValues[target], isNotNull);
+    expect(flow.completion!.origin, target);
     final saved = flow.boardValues;
     final sessionId = flow.session!.id;
     flow.dispose();
@@ -357,6 +573,11 @@ void main() {
     expect(flow.boardValues, saved);
     expect(flow.session!.id, sessionId);
     expect(repo.state.sessions.length, 1);
+    expect(
+      flow.completion,
+      isNull,
+      reason: 'A saved group does not celebrate again',
+    );
   });
 
   test('failed final moves and transitions never award twice', () async {

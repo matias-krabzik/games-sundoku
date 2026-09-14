@@ -333,8 +333,85 @@ class GameRepository extends ChangeNotifier {
     List<int> notes,
   ) => _editCell(sessionId, puzzleId, index, notes: List.unmodifiable(notes));
 
+  Future<void> debugFillExceptCell(
+    String sessionId,
+    String puzzleId,
+    int emptyIndex,
+  ) => _update((save) {
+    if (!kDebugMode) throw StateError('Developer controls are unavailable');
+    final session = _playable(save, sessionId, puzzleId);
+    final definition = save.puzzles[puzzleId]!;
+    RangeError.checkValidIndex(emptyIndex, definition.initial);
+    if (definition.isFixed(emptyIndex)) {
+      throw StateError('The remaining cell must be editable');
+    }
+    final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+    final updated = board.copyWith(
+      cells: [
+        for (var i = 0; i < board.cells.length; i++)
+          if (definition.isFixed(i))
+            board.cells[i]
+          else
+            CellProgress(
+              value: i == emptyIndex ? null : definition.solution[i],
+              extra: board.cells[i].extra,
+            ),
+      ],
+    );
+    // Publish one incomplete board; no intermediate move can award a star.
+    return _replaceBoard(save, session, updated);
+  });
+
   Future<void> useHint(String sessionId, String puzzleId, int index) =>
       _editCell(sessionId, puzzleId, index, hint: true);
+
+  Future<void> debugRestartPuzzle(
+    String sessionId,
+    int index, {
+    required String moduleKey,
+    required Json moduleData,
+  }) {
+    final moduleSnapshot = immutableJson(moduleData);
+    return _update((save) {
+      if (!kDebugMode) throw StateError('Developer controls are unavailable');
+      final session = save.sessions[sessionId];
+      if (session == null || session.status == PlayStatus.abandoned) {
+        throw StateError('No session to restart');
+      }
+      final lastCompleted = session.puzzles.lastIndexWhere(
+        (p) => p.status == PlayStatus.completed,
+      );
+      if (index < 0 || index != lastCompleted) {
+        throw StateError('Only the most recently completed sudoku can restart');
+      }
+      final boards = [
+        for (var i = 0; i < session.puzzles.length; i++)
+          if (i == index)
+            PuzzleProgress.initial(save.puzzles[session.puzzles[i].puzzleId]!)
+          else if (session.puzzles[i].status == PlayStatus.active)
+            session.puzzles[i].copyWith(status: PlayStatus.paused)
+          else
+            session.puzzles[i],
+      ];
+      return save.copyWith(
+        activeSessionId: sessionId,
+        sessions: {
+          for (final entry in save.sessions.entries)
+            entry.key: _paused(entry.value),
+          sessionId: GameSession(
+            id: session.id,
+            playerId: session.playerId,
+            levelId: session.levelId,
+            puzzles: boards,
+            startedAt: session.startedAt,
+            updatedAt: _now(),
+            extra: session.extra,
+          ),
+        },
+        modules: {...save.modules, moduleKey: moduleSnapshot},
+      );
+    });
+  }
 
   /// Records an explanation-only hint without filling a cell for the player.
   Future<void> recordHint(String sessionId, String puzzleId) => _update((save) {
