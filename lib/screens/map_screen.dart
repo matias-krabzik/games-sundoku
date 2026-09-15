@@ -300,65 +300,22 @@ class _MapScreenState extends State<MapScreen>
       return;
     }
     if (select) {
-      if (target > 1 && _progress.isUnlocked(target)) {
-        if (_progress.lightsFor(target) >= 3) {
-          showToast(context, '¡Ya completaste el nivel $target!');
-          return;
-        }
-        if (widget.onOpenLevel != null) {
-          _openingLevel = true;
-          try {
-            await widget.onOpenLevel!(target);
-          } catch (_) {
-            if (mounted) {
-              showToast(
-                context,
-                'No pudimos abrir la partida. Intenta de nuevo.',
-              );
-            }
-          } finally {
-            _openingLevel = false;
-            if (mounted) _queueRewards();
-          }
-          return;
-        }
-      }
-      if (target == 1 &&
-          _lightsFor(target) == 3 &&
-          widget.onReplayIntroduction != null) {
-        final worldHeight = _worldWidth / 3;
-        final nodeSize = _viewport.height < 520
-            ? 68.0
-            : (_viewport.width * .24).clamp(82.0, 106.0);
-        final node = kMap1Nodes[target - 1];
-        final replay = await Navigator.of(context).push<bool>(
-          CompletedLevelRoute(
-            anchor: Offset(
-              node.x * _worldWidth - _scroll.offset,
-              node.y * worldHeight +
-                  (_viewport.height - worldHeight) / 2 -
-                  nodeSize * .9 -
-                  8,
-            ),
+      if (_progress.isUnlocked(target)) {
+        final replayPractice = target == 1 && _progress.lightsFor(target) >= 3;
+        final continueGame = await Navigator.of(context).push<bool>(
+          LevelSummaryRoute(
+            level: target,
+            lights: _progress.lightsFor(target),
+            session: _progress.sessionFor(target),
+            record: _progress.recordFor(target),
           ),
         );
-        if (!mounted || replay != true) return;
-        try {
-          await widget.onReplayIntroduction!();
-        } catch (_) {
-          if (mounted) {
-            showToast(
-              context,
-              'No pudimos iniciar la partida. Inténtalo de nuevo.',
-            );
-          }
+        if (!mounted || continueGame != true) return;
+        if (replayPractice && widget.onReplayIntroduction != null) {
+          await _replayPractice();
+          return;
         }
-        return;
-      }
-      if (target == 1 &&
-          _progress.isUnlocked(target) &&
-          widget.onOpenIntroduction != null) {
-        widget.onOpenIntroduction!();
+        await _openSelectedLevel(target);
         return;
       }
       showToast(
@@ -367,6 +324,38 @@ class _MapScreenState extends State<MapScreen>
             ? 'Nivel $target'
             : 'Consigue 3 puntos en el nivel ${target - 1}',
       );
+    }
+  }
+
+  Future<void> _openSelectedLevel(int level) async {
+    _openingLevel = true;
+    try {
+      if (level == 1) {
+        widget.onOpenIntroduction?.call();
+      } else if (widget.onOpenLevel != null) {
+        await widget.onOpenLevel!(level);
+      }
+    } catch (_) {
+      if (mounted) {
+        showToast(context, 'No pudimos abrir la partida. Intenta de nuevo.');
+      }
+    } finally {
+      _openingLevel = false;
+      if (mounted) _queueRewards();
+    }
+  }
+
+  Future<void> _replayPractice() async {
+    _openingLevel = true;
+    try {
+      await widget.onReplayIntroduction!();
+    } catch (_) {
+      if (mounted) {
+        showToast(context, 'No pudimos iniciar la práctica. Intenta de nuevo.');
+      }
+    } finally {
+      _openingLevel = false;
+      if (mounted) _queueRewards();
     }
   }
 

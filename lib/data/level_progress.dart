@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../domain/models/game_save.dart';
+import '../domain/models/game_session.dart';
 import 'level_catalog.dart';
 import 'level_node.dart';
 import 'repositories/game_repository.dart';
@@ -30,6 +32,27 @@ class LevelProgress extends ChangeNotifier {
       kMap1Nodes.where((node) => isUnlocked(node.level)).length;
   int get latestUnlocked =>
       kMap1Nodes.lastWhere((node) => isUnlocked(node.level)).level;
+
+  LevelRecord recordFor(int level) =>
+      _repository.state.progress[_id(level)] ?? LevelRecord();
+
+  /// The resumable attempt is the useful map summary. Otherwise show the most
+  /// recent finished attempt so every level, including level 1, uses one card.
+  GameSession? sessionFor(int level) {
+    final id = _id(level);
+    final sessions =
+        _repository.state.sessions.values
+            .where((session) => session.levelId == id)
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    for (final session in sessions) {
+      if (session.canResume) return session;
+    }
+    for (final session in sessions) {
+      if (session.status == PlayStatus.completed) return session;
+    }
+    return null;
+  }
 
   Future<void> awardLight(int level) =>
       recordResult(level, (lightsFor(level) + 1).clamp(0, requiredLights));

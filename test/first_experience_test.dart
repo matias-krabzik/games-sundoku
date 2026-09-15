@@ -85,6 +85,7 @@ Future<void> _openFromHome(
   await _tap(tester, find.byKey(const ValueKey('home-play')));
   if (find.byType(MapScreen).evaluate().isNotEmpty) {
     await _tap(tester, find.byKey(const ValueKey('level-1-label')));
+    await _tap(tester, find.byKey(const ValueKey('level-summary-continue')));
   }
   expect(find.byType(FirstExperienceScreen), findsOneWidget);
 }

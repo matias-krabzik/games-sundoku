@@ -208,13 +208,32 @@ void main() {
         ),
       );
       await scene.settle(tester);
-      for (final level in [2, 4, 3]) {
-        tester
-            .widgetList<MapLevelButton>(find.byType(MapLevelButton))
-            .singleWhere((button) => button.level == level)
-            .onTap();
-        await scene.settle(tester);
-      }
+      tester
+          .widgetList<MapLevelButton>(find.byType(MapLevelButton))
+          .singleWhere((button) => button.level == 2)
+          .onTap();
+      await scene.settle(tester);
+      expect(find.text('¡Completado!'), findsOneWidget);
+      await scene.tap(tester, find.byKey(const ValueKey('level-summary-ok')));
+
+      tester
+          .widgetList<MapLevelButton>(find.byType(MapLevelButton))
+          .singleWhere((button) => button.level == 4)
+          .onTap();
+      await scene.settle(tester);
+      expect(find.byKey(const ValueKey('level-summary')), findsNothing);
+
+      tester
+          .widgetList<MapLevelButton>(find.byType(MapLevelButton))
+          .singleWhere((button) => button.level == 3)
+          .onTap();
+      await scene.settle(tester);
+      expect(find.text('En progreso'), findsOneWidget);
+      expect(opened, isEmpty);
+      await scene.tap(
+        tester,
+        find.byKey(const ValueKey('level-summary-continue')),
+      );
       expect(opened, [3]);
       await tester.pumpWidget(const SizedBox());
       await scene.settle(tester);
