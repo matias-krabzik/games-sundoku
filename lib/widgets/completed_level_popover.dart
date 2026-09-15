@@ -132,7 +132,15 @@ class LevelSummaryCard extends StatelessWidget {
       builder: (context, bounds) {
         final wide = bounds.maxWidth > 680 && bounds.maxHeight < 580;
         final width = math.min(wide ? 720.0 : 540.0, bounds.maxWidth);
-        final height = math.min(wide ? 360.0 : 690.0, bounds.maxHeight);
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final practicePortraitHeight =
+            560.0 + (textScale - 1).clamp(0.0, 1.0) * 90;
+        final preferredHeight = wide
+            ? 360.0
+            : _isPracticeComplete
+            ? practicePortraitHeight
+            : 690.0;
+        final height = math.min(preferredHeight, bounds.maxHeight);
         final dense = height < (wide ? 340 : 610);
         final padding = dense ? 14.0 : 22.0;
         final card = UiSurfacePanel(
@@ -146,8 +154,8 @@ class LevelSummaryCard extends StatelessWidget {
                     Expanded(
                       flex: 6,
                       child: _isPracticeComplete
-                          ? _practiceDetails(dense: dense, wide: true)
-                          : _details(dense: dense, wide: true),
+                          ? _practiceDetails(dense: dense)
+                          : _details(dense: dense),
                     ),
                   ],
                 )
@@ -158,8 +166,8 @@ class LevelSummaryCard extends StatelessWidget {
                     Expanded(
                       flex: 58,
                       child: _isPracticeComplete
-                          ? _practiceDetails(dense: dense, wide: false)
-                          : _details(dense: dense, wide: false),
+                          ? _practiceDetails(dense: dense)
+                          : _details(dense: dense),
                     ),
                   ],
                 ),
@@ -219,7 +227,7 @@ class LevelSummaryCard extends StatelessWidget {
     ],
   );
 
-  Widget _practiceDetails({required bool dense, required bool wide}) => Column(
+  Widget _practiceDetails({required bool dense}) => Column(
     children: [
       Expanded(
         child: Center(
@@ -235,31 +243,18 @@ class LevelSummaryCard extends StatelessWidget {
         ),
       ),
       SizedBox(height: dense ? 7 : 12),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            flex: 7,
-            child: IllustratedActionButton(
-              key: const ValueKey('level-replay'),
-              label: 'Volver a jugar',
-              compact: true,
-              fontSize: dense ? 15 : 18,
-              showPlayIcon: true,
-              onPressed: onContinue,
-            ),
-          ),
-          SizedBox(width: dense ? 7 : 10),
-          SizedBox(
-            width: wide ? 104 : 82,
-            child: _SmallOkButton(dense: dense, onPressed: onOk),
-          ),
-        ],
+      _SummaryActions(
+        primaryKey: const ValueKey('level-replay'),
+        primaryLabel: 'Volver a jugar',
+        primaryFontSize: dense ? 15 : 18,
+        onPrimary: onContinue,
+        onOk: onOk,
+        dense: dense,
       ),
     ],
   );
 
-  Widget _details({required bool dense, required bool wide}) => Column(
+  Widget _details({required bool dense}) => Column(
     children: [
       Expanded(
         child: _ResultsTable(
@@ -279,29 +274,16 @@ class LevelSummaryCard extends StatelessWidget {
         textAlign: TextAlign.center,
       ),
       SizedBox(height: dense ? 5 : 10),
-      if (_isComplete)
-        Align(
-          alignment: Alignment.centerRight,
-          child: SizedBox(
-            width: wide ? 104 : 88,
-            child: _SmallOkButton(dense: dense, onPressed: onOk),
-          ),
-        )
-      else
-        Align(
-          alignment: Alignment.center,
-          child: FractionallySizedBox(
-            widthFactor: wide ? .58 : .76,
-            child: IllustratedActionButton(
-              key: const ValueKey('level-summary-continue'),
-              label: 'Continuar',
-              compact: true,
-              fontSize: dense ? 17 : 20,
-              showPlayIcon: true,
-              onPressed: onContinue,
-            ),
-          ),
-        ),
+      _SummaryActions(
+        primaryKey: _isComplete
+            ? null
+            : const ValueKey('level-summary-continue'),
+        primaryLabel: _isComplete ? null : 'Continuar',
+        primaryFontSize: dense ? 17 : 20,
+        onPrimary: onContinue,
+        onOk: onOk,
+        dense: dense,
+      ),
     ],
   );
 
@@ -319,6 +301,55 @@ class LevelSummaryCard extends StatelessWidget {
   );
 }
 
+class _SummaryActions extends StatelessWidget {
+  const _SummaryActions({
+    required this.primaryKey,
+    required this.primaryLabel,
+    required this.primaryFontSize,
+    required this.onPrimary,
+    required this.onOk,
+    required this.dense,
+  });
+
+  final Key? primaryKey;
+  final String? primaryLabel;
+  final double primaryFontSize;
+  final VoidCallback onPrimary;
+  final VoidCallback onOk;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: dense ? 70 : 74,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (primaryLabel != null)
+          Expanded(
+            child: Align(
+              alignment: Alignment.center,
+              child: IllustratedActionButton(
+                key: primaryKey,
+                label: primaryLabel!,
+                compact: true,
+                fontSize: primaryFontSize,
+                showPlayIcon: true,
+                onPressed: onPrimary,
+              ),
+            ),
+          )
+        else
+          const Spacer(),
+        SizedBox(width: dense ? 6 : 10),
+        SizedBox(
+          width: dense ? 84 : 92,
+          child: _SmallOkButton(dense: dense, onPressed: onOk),
+        ),
+      ],
+    ),
+  );
+}
+
 class _SmallOkButton extends StatelessWidget {
   const _SmallOkButton({required this.dense, required this.onPressed});
 
@@ -327,17 +358,21 @@ class _SmallOkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: dense ? 48 : 56,
-    child: JuicyPress(
-      key: const ValueKey('level-summary-ok'),
-      label: 'Ok',
-      onPressed: onPressed,
-      builder: (_, _) => Stack(
-        fit: StackFit.expand,
-        children: [
-          const UiSurfaceArt(UiSurface.creamPill),
-          Center(child: Text('Ok', style: homeText(dense ? 17 : 20))),
-        ],
+    key: const ValueKey('level-summary-ok-frame'),
+    height: dense ? 60 : 64,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: JuicyPress(
+        key: const ValueKey('level-summary-ok'),
+        label: 'Ok',
+        onPressed: onPressed,
+        builder: (_, _) => Stack(
+          fit: StackFit.expand,
+          children: [
+            const UiSurfaceArt(UiSurface.creamPill),
+            Center(child: Text('Ok', style: homeText(dense ? 17 : 20))),
+          ],
+        ),
       ),
     ),
   );

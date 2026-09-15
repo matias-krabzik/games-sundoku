@@ -113,10 +113,22 @@ void main() {
     expect(find.text('3  Pendiente'), findsOneWidget);
     expect(find.text('188'), findsOneWidget);
     expect(find.text('00:43'), findsOneWidget);
-    expect(find.byKey(const ValueKey('level-summary-ok')), findsNothing);
+    final ok = find.byKey(const ValueKey('level-summary-ok'));
+    expect(ok.hitTestable(), findsOneWidget);
     expect(find.byIcon(Icons.close), findsNothing);
     final continueButton = find.byKey(const ValueKey('level-summary-continue'));
     expect(continueButton.hitTestable(), findsOneWidget);
+    expect(tester.getRect(continueButton).width, lessThan(250));
+    expect(
+      tester.getRect(continueButton).center.dy,
+      closeTo(tester.getRect(ok).center.dy, 1),
+    );
+    expect(
+      tester
+          .getRect(find.byKey(const ValueKey('level-summary-ok-frame')))
+          .height,
+      greaterThan(tester.getRect(ok).height),
+    );
     await tester.tap(continueButton);
     await settle(tester);
     expect(continuations, 1);
@@ -188,6 +200,10 @@ void main() {
     expect(replay.hitTestable(), findsOneWidget);
     expect(ok.hitTestable(), findsOneWidget);
     expect(tester.getRect(replay).right, lessThan(tester.getRect(ok).left));
+    expect(
+      tester.getRect(replay).center.dy,
+      closeTo(tester.getRect(ok).center.dy, 1),
+    );
     await tester.tap(replay);
     await settle(tester);
     expect(replays, 1);
@@ -214,7 +230,44 @@ void main() {
       find.byKey(const ValueKey('level-summary-continue')).hitTestable(),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('level-summary-ok')).hitTestable(),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('practice summary responds to small screens and enlarged text', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    for (final size in [const Size(320, 568), const Size(844, 390)]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        summary(complete: true, practice: true, onContinue: () {}, onOk: () {}),
+      );
+      await settle(tester);
+
+      final card = tester.getRect(find.byKey(const ValueKey('level-summary')));
+      expect(card.left, greaterThanOrEqualTo(0));
+      expect(card.top, greaterThanOrEqualTo(0));
+      expect(card.right, lessThanOrEqualTo(size.width));
+      expect(card.bottom, lessThanOrEqualTo(size.height));
+      expect(
+        find.byKey(const ValueKey('level-replay')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('level-summary-ok')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('completed level 1 replays practice from its special summary', (
