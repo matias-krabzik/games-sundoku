@@ -1,3 +1,4 @@
+import 'dart:ui' show AppExitResponse;
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -9,6 +10,7 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   GameSessionController(
     this.repository, {
     Stopwatch? clock,
+    this.resumeOnForeground = true,
     Duration checkpointInterval = const Duration(seconds: 5),
   }) : _clock = clock ?? Stopwatch() {
     WidgetsBinding.instance.addObserver(this);
@@ -18,6 +20,7 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   final GameRepository repository;
+  final bool resumeOnForeground;
   final Stopwatch _clock;
   late final Timer _timer;
   String? _sessionId;
@@ -30,6 +33,12 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   Object? lastError;
 
   bool get isRunning => _clock.isRunning;
+  bool get isPaused => _sessionId != null && _puzzleId != null && !_wantsToPlay;
+  int get elapsedMs {
+    final boards = repository.state.sessions[_sessionId]?.puzzles;
+    final saved = boards?.where((p) => p.puzzleId == _puzzleId).firstOrNull;
+    return (saved?.elapsedMs ?? 0) + _clock.elapsedMilliseconds - _savedMs;
+  }
 
   Future<void> _enqueue(Future<void> Function() action) {
     if (_disposed) return Future.error(StateError('Controller is disposed'));
@@ -48,7 +57,7 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> start(String sessionId) {
-    _wantsToPlay = true;
+    _wantsToPlay = resumeOnForeground || _foreground;
     return _enqueue(() async {
       await _pause();
       final puzzleId = repository.state.sessions[sessionId]?.nextPuzzleId;
@@ -139,17 +148,31 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> useHint(int index) =>
       _input((session, puzzle) => repository.useHint(session, puzzle, index));
 
-  Future<void> recordHint() =>
-      _input((session, puzzle) => repository.recordHint(session, puzzle));
+  Future<void> recordHint({int? index}) => _input(
+    (session, puzzle) => repository.recordHint(session, puzzle, index: index),
+  );
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
     if (!_foreground) {
+      if (!resumeOnForeground) _wantsToPlay = false;
       _clock.stop();
+      if (!_disposed) notifyListeners();
       unawaited(_enqueue(_pause).catchError((Object _) {}));
     } else if (_wantsToPlay && _sessionId != null) {
       unawaited(start(_sessionId!).catchError((Object _) {}));
+    }
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    try {
+      await pause();
+      await repository.flush();
+      return AppExitResponse.exit;
+    } catch (_) {
+      return AppExitResponse.cancel;
     }
   }
 

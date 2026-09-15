@@ -27,6 +27,9 @@ class TutorialCelebration extends StatelessWidget {
     required this.action,
     required this.onAction,
     required this.finalGame,
+    this.summary,
+    this.nextLevelNumber,
+    this.onNextLevel,
     this.boardSlotKey,
     this.actionKey,
     this.previousBoards = const [],
@@ -38,6 +41,9 @@ class TutorialCelebration extends StatelessWidget {
   final Widget header;
   final int stars;
   final String message;
+  final Widget? summary;
+  final int? nextLevelNumber;
+  final VoidCallback? onNextLevel;
   final String action;
   final VoidCallback? onAction;
   final bool finalGame;
@@ -49,6 +55,7 @@ class TutorialCelebration extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
+      if (finalGame && summary != null) return _finalLayout(context, bounds);
       final compact = bounds.maxHeight < 650;
       final wide =
           bounds.maxWidth >= 700 && bounds.maxWidth > bounds.maxHeight * 1.2;
@@ -88,13 +95,15 @@ class TutorialCelebration extends StatelessWidget {
                   opacity: cardOpacity,
                   child: IgnorePointer(
                     ignoring: cardOpacity == 0,
-                    child: TutorialStory(
-                      key: ValueKey('reward-story-$stars'),
-                      lines: message.split('\n'),
-                      tip: null,
-                      autoplay: progress * 1700 >= 1500,
-                      skipHint: 'Toca para mostrar todo el mensaje',
-                    ),
+                    child:
+                        summary ??
+                        TutorialStory(
+                          key: ValueKey('reward-story-$stars'),
+                          lines: message.split('\n'),
+                          tip: null,
+                          autoplay: progress * 1700 >= 1500,
+                          skipHint: 'Toca para mostrar todo el mensaje',
+                        ),
                   ),
                 );
                 final leaving = Curves.easeIn.transform(departure.value);
@@ -189,6 +198,148 @@ class TutorialCelebration extends StatelessWidget {
       );
     },
   );
+
+  Widget _finalLayout(BuildContext context, BoxConstraints bounds) {
+    final wide = bounds.maxWidth >= 700 && bounds.maxHeight < 600;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: wide ? 950 : 560),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: AnimatedBuilder(
+            animation: animation,
+            builder: (context, _) {
+              final cardOpacity = Curves.easeOut.transform(
+                _interval(animation.value, 1150, 1500),
+              );
+              final actionOpacity = _interval(animation.value, 1500, 1700);
+              return Column(
+                children: [
+                  header,
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, body) {
+                        final summaryHeight = wide
+                            ? body.maxHeight
+                            : math.min(
+                                body.maxHeight,
+                                math.max(
+                                  230.0,
+                                  math.min(350.0, body.maxHeight * .64),
+                                ),
+                              );
+                        final heroHeight = wide
+                            ? body.maxHeight
+                            : math.max(0.0, body.maxHeight - summaryHeight - 8);
+                        // Doku is the first optional element removed when space runs out.
+                        final showDoku = heroHeight >= 340;
+                        final showFan = heroHeight >= 90;
+                        final hero = SizedBox(
+                          height: heroHeight,
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Visibility(
+                                    visible: showFan,
+                                    maintainState: true,
+                                    child: TutorialBoardFan(
+                                      animation: animation,
+                                      board: board,
+                                      previousBoards: previousBoards,
+                                      boardSlotKey: boardSlotKey,
+                                      size: showDoku ? 116 : 100,
+                                    ),
+                                  ),
+                                  if (heroHeight >= 45)
+                                    TutorialReward(
+                                      stars: stars,
+                                      animation: animation,
+                                      compact: true,
+                                      showDoku: showDoku,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                        final card = SizedBox(
+                          height: summaryHeight,
+                          child: Opacity(
+                            key: const ValueKey('reward-card-fade'),
+                            opacity: cardOpacity,
+                            child: summary,
+                          ),
+                        );
+                        return wide
+                            ? Row(
+                                children: [
+                                  Expanded(flex: 3, child: hero),
+                                  const SizedBox(width: 12),
+                                  Expanded(flex: 5, child: card),
+                                ],
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  hero,
+                                  if (heroHeight > 0) const SizedBox(height: 8),
+                                  card,
+                                ],
+                              );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Opacity(
+                    key: actionKey ?? const ValueKey('reward-action-fade'),
+                    opacity: actionOpacity,
+                    child: IgnorePointer(
+                      ignoring: actionOpacity < 1,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: IllustratedActionButton(
+                              key: const ValueKey('tutorial-next'),
+                              compact: true,
+                              showPlayIcon: false,
+                              fontSize: 21,
+                              label: 'Mapa!',
+                              onPressed: actionOpacity < 1 ? null : onAction,
+                            ),
+                          ),
+                          if (nextLevelNumber != null) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 6,
+                              child: IllustratedActionButton(
+                                key: const ValueKey('next-level'),
+                                compact: true,
+                                showPlayIcon: false,
+                                fontSize: 21,
+                                label: 'Siguiente nivel $nextLevelNumber',
+                                onPressed: actionOpacity < 1
+                                    ? null
+                                    : onNextLevel,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class TutorialBoardFan extends StatelessWidget {
@@ -302,11 +453,13 @@ class TutorialReward extends StatelessWidget {
     required this.stars,
     this.animation = const AlwaysStoppedAnimation(1),
     this.compact = false,
+    this.showDoku = true,
   });
 
   final int stars;
   final Animation<double> animation;
   final bool compact;
+  final bool showDoku;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -321,18 +474,19 @@ class TutorialReward extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Opacity(
-              key: const ValueKey('reward-doku-fade'),
-              opacity: entrance,
-              child: Transform.translate(
-                key: const ValueKey('reward-doku-motion'),
-                offset: Offset(0, 45 * (1 - entrance)),
-                child: SizedBox(
-                  height: compact ? 126 : 170,
-                  child: const TutorialBlockArt(TutorialGlyph.guide),
+            if (showDoku)
+              Opacity(
+                key: const ValueKey('reward-doku-fade'),
+                opacity: entrance,
+                child: Transform.translate(
+                  key: const ValueKey('reward-doku-motion'),
+                  offset: Offset(0, 45 * (1 - entrance)),
+                  child: SizedBox(
+                    height: compact ? 126 : 170,
+                    child: const TutorialBlockArt(TutorialGlyph.guide),
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

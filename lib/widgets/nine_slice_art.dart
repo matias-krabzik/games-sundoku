@@ -76,12 +76,20 @@ class NineSliceArt extends StatelessWidget {
                   height: fullHeight,
                   fit: BoxFit.fill,
                   filterQuality: FilterQuality.medium,
-                  centerSlice: Rect.fromLTRB(
-                    centerSlice.left * imageSize.width,
-                    centerSlice.top * imageSize.height,
-                    centerSlice.right * imageSize.width,
-                    centerSlice.bottom * imageSize.height,
-                  ),
+                  // With no stretching, use one texture draw instead of nine
+                  // adjoining patches (avoids GPU seams on compact squares).
+                  centerSlice:
+                      referenceSize.width == referenceSize.height &&
+                          (bounds.maxWidth - referenceSize.width).abs() <
+                              .001 &&
+                          (bounds.maxHeight - referenceSize.height).abs() < .001
+                      ? null
+                      : Rect.fromLTRB(
+                          centerSlice.left * imageSize.width,
+                          centerSlice.top * imageSize.height,
+                          centerSlice.right * imageSize.width,
+                          centerSlice.bottom * imageSize.height,
+                        ),
                 ),
               ),
             ),

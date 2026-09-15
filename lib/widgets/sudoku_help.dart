@@ -23,7 +23,7 @@ class SudokuHelpButton extends StatelessWidget {
     child: Semantics(
       selected: active,
       child: JuicyPress(
-        label: 'Ayuda para esta casilla',
+        label: active ? 'Cerrar ayuda' : 'Ayuda para esta casilla: −77 puntos',
         onPressed: onPressed,
         onFeedback: () => GameFeedbackScope.tap(context),
         builder: (_, _) => Stack(

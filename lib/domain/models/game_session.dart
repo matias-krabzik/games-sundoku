@@ -1,4 +1,5 @@
 import 'json_data.dart';
+import 'score_progress.dart';
 import 'sudoku_definition.dart';
 
 enum PlayStatus { pending, active, paused, completed, abandoned }
@@ -47,6 +48,7 @@ class PuzzleProgress {
     this.mistakes = 0,
     this.hintsUsed = 0,
     this.points = 0,
+    this.scoring = const ScoreProgress(),
     this.completedAt,
     Json extra = const {},
   }) : cells = List.unmodifiable(cells),
@@ -72,6 +74,7 @@ class PuzzleProgress {
   final int mistakes;
   final int hintsUsed;
   final int points;
+  final ScoreProgress scoring;
   final DateTime? completedAt;
   final Json extra;
 
@@ -79,6 +82,7 @@ class PuzzleProgress {
     if (cells.length != puzzle.initial.length || puzzleId != puzzle.id) {
       throw const FormatException('Wrong board size or puzzle');
     }
+    scoring.validate(puzzle);
     for (var i = 0; i < cells.length; i++) {
       final cell = cells[i];
       if ((cell.value != null &&
@@ -99,6 +103,8 @@ class PuzzleProgress {
     int? elapsedMs,
     int? mistakes,
     int? hintsUsed,
+    int? points,
+    ScoreProgress? scoring,
     DateTime? completedAt,
   }) => PuzzleProgress(
     puzzleId: puzzleId,
@@ -107,7 +113,8 @@ class PuzzleProgress {
     elapsedMs: elapsedMs ?? this.elapsedMs,
     mistakes: mistakes ?? this.mistakes,
     hintsUsed: hintsUsed ?? this.hintsUsed,
-    points: points,
+    points: points ?? this.points,
+    scoring: scoring ?? this.scoring,
     completedAt: completedAt ?? this.completedAt,
     extra: extra,
   );
@@ -122,6 +129,7 @@ class PuzzleProgress {
     mistakes: nonNegative(json['mistakes']),
     hintsUsed: nonNegative(json['hintsUsed']),
     points: nonNegative(json['points']),
+    scoring: ScoreProgress.fromJson(jsonObject(json['scoring'] ?? {})),
     completedAt: dateFromJson(json['completedAt']),
     extra: json,
   );
@@ -135,6 +143,7 @@ class PuzzleProgress {
     'mistakes': mistakes,
     'hintsUsed': hintsUsed,
     'points': points,
+    'scoring': scoring.toJson(),
     'completedAt': dateToJson(completedAt),
   };
 }

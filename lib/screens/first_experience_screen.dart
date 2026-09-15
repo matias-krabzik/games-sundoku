@@ -16,6 +16,8 @@ import '../widgets/illustrated_action_button.dart';
 import '../widgets/map_art.dart';
 import '../widgets/settings_art.dart';
 import '../widgets/sudoku_board.dart';
+import '../widgets/score_feedback.dart';
+import '../data/level_catalog.dart';
 import '../widgets/tutorial_story.dart';
 import '../widgets/tutorial_block_art.dart';
 import '../widgets/tutorial_block_controls.dart';
@@ -34,10 +36,12 @@ class FirstExperienceScreen extends StatefulWidget {
     required this.repository,
     this.showDeveloperControls = kDebugMode,
     this.reviewOnly = false,
+    this.levelNumber = 1,
   });
 
   final GameRepository repository;
   final bool reviewOnly;
+  final int levelNumber;
   final bool showDeveloperControls;
 
   @override
@@ -50,6 +54,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   late final _flow = FirstExperienceController(
     widget.repository,
     reviewOnly: widget.reviewOnly,
+    levelNumber: widget.levelNumber,
   );
   // Preserve the board and focus when the responsive layout changes parents.
   final _stageKey = GlobalKey();
@@ -96,6 +101,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               _nextPhase == _NextSudokuPhase.entering &&
               _nextEntrance.isCompleted) {
             setState(_clearNextTransition);
+            if (_flow.isGeneratedLevel) unawaited(_flow.resumeGame());
           }
         });
       });
@@ -127,6 +133,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       _flow.step == FirstExperienceStep.playing || _finishingBoard;
   bool get _navigationBlocked =>
       _settingsOpen ||
+      _openingNextLevel ||
       _flow.isBusy ||
       _boardAnimating ||
       _finishingBoard ||
@@ -242,12 +249,13 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     try {
       await _nextExit.forward().orCancel;
       if (!mounted) return;
-      await _flow.advance();
+      await _flow.advance(startClock: !_flow.isGeneratedLevel);
       if (!mounted) return;
       if (_flow.step != FirstExperienceStep.playing ||
           _flow.error != null ||
           _reduceAnimations) {
         setState(_clearNextTransition);
+        if (_flow.isGeneratedLevel) await _flow.resumeGame();
       } else {
         setState(() => _nextPhase = _NextSudokuPhase.entering);
       }
@@ -367,7 +375,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _flow.addListener(_changed);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        unawaited(_flow.resumeGame());
+        if (!_flow.isPaused) unawaited(_flow.resumeGame());
         if (_flow.step == FirstExperienceStep.playing && _needsBriefing) {
           _openGameBriefing();
         }
@@ -408,7 +416,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       }
     } finally {
       if (mounted) {
-        await _flow.resumeGame();
+        if (!_flow.isGeneratedLevel) await _flow.resumeGame();
         if (mounted) setState(() => _settingsOpen = false);
       }
     }
@@ -416,6 +424,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
   bool get _needsBriefing =>
       !widget.reviewOnly &&
+      widget.levelNumber == 1 &&
       _flow.gameIndex == 0 &&
       (widget.repository.state.modules[FirstExperienceController.moduleKey]
               as Map?)?['briefingAccepted'] !=
@@ -534,13 +543,25 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     super.dispose();
   }
 
-  void _back() {
+  Future<void> _back() async {
     if (_navigationBlocked) return;
     if (_flow.isBusy) return;
     if (_welcome ||
         _flow.session != null ||
         _flow.step.index > FirstExperienceStep.expansion.index) {
-      Navigator.of(context).maybePop();
+      try {
+        await _flow.pauseGame();
+        await _flow.flush();
+        if (mounted) Navigator.of(context).maybePop();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No pudimos guardar. Intenta salir otra vez.'),
+            ),
+          );
+        }
+      }
     } else if (_flow.step == FirstExperienceStep.expansion) {
       _flow.reviewBlock();
     } else {
@@ -601,6 +622,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       departure: _nextExit,
                       gameEntrance: _nextEntrance,
                       onNextGame: _advanceGame,
+                      nextLevelNumber: _nextLevelNumber,
+                      onNextLevel: _openNextLevel,
                       navigation: _showGame
                           ? GameNavigationHeader(
                               center: kDebugMode && widget.showDeveloperControls
@@ -624,7 +647,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                           _FlowHeader(
                             welcome: false,
                             title: _finishingBoard
-                                ? 'Sudoku ${_flow.gameIndex + 1} de 3'
+                                ? 'Ronda ${_flow.gameIndex + 1} de 3'
                                 : TutorialJourney.title(_flow),
                             showDeveloperControls:
                                 widget.showDeveloperControls && !_showGame,
@@ -703,6 +726,53 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
         ),
       ),
     );
+  }
+
+  int? get _nextLevelNumber {
+    final number = widget.levelNumber + 1;
+    if (number > 10 ||
+        !widget.repository.state.isUnlocked(mapLevelId(number)) ||
+        (widget.repository.state.progress[mapLevelId(number)]?.bestLights ??
+                0) >=
+            3) {
+      return null;
+    }
+    return number;
+  }
+
+  bool _openingNextLevel = false;
+  Future<void> _openNextLevel() async {
+    final number = _nextLevelNumber;
+    if (number == null || _navigationBlocked || _openingNextLevel) return;
+    setState(() => _openingNextLevel = true);
+    try {
+      await _flow.pauseGame();
+      await widget.repository.startGeneratedLevel(number);
+      if (!mounted) return;
+      unawaited(
+        Navigator.of(context).pushReplacement<void, void>(
+          MaterialPageRoute(
+            builder: (_) => FirstExperienceScreen(
+              repository: widget.repository,
+              levelNumber: number,
+              showDeveloperControls: widget.showDeveloperControls,
+            ),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No pudimos abrir el siguiente nivel. Intenta de nuevo.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _openingNextLevel = false);
+    }
   }
 
   Widget _developerFillButton() => UiSurfacePanel(
@@ -1071,6 +1141,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               ),
             ),
           ),
+          if (_showGame)
+            Positioned.fill(
+              child: BoardScoreFeedback(feedback: _flow.scoreFeedback),
+            ),
           IgnorePointer(
             child: ExcludeSemantics(
               excluding: !_explaining,

@@ -120,6 +120,15 @@ class UiSurfaceArt extends StatelessWidget {
       if (surface == UiSurface.creamRound || surface == UiSurface.goldRound) {
         // Square controls stay circular at every touch-target size.
         reference = Size.square(bounds.biggest.shortestSide);
+      } else if (referenceSize == null &&
+          (surface == UiSurface.goldTile || surface == UiSurface.creamTile)) {
+        // Compact controls shrink the entire corner set proportionally. Keeping
+        // 80px caps on a 40px button nearly collapses its middle stretch band.
+        final side = bounds.biggest.shortestSide.clamp(
+          0.0,
+          spec.referenceSize.shortestSide,
+        );
+        reference = Size.square(side);
       } else if (surface == UiSurface.progressTrack ||
           surface == UiSurface.progressFill) {
         reference = Size(

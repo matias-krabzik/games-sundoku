@@ -74,6 +74,9 @@ class GameSave {
 
   int get totalLights =>
       progress.values.fold(0, (sum, p) => sum + p.bestLights);
+  int get totalPoints =>
+      progress.values.fold(0, (sum, p) => sum + p.bestPoints);
+
   bool isUnlocked(String levelId) {
     final level = levels[levelId];
     if (level == null) return false;

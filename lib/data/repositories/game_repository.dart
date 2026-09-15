@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models/game_save.dart';
+import '../../domain/scoring/sudoku_scoring.dart';
+import '../../domain/generation/seeded_sudokus.dart';
 import '../../domain/models/game_session.dart';
 import '../../domain/models/json_data.dart';
 import '../../domain/models/player_profile.dart';
@@ -172,6 +174,32 @@ class GameRepository extends ChangeNotifier {
     });
   }
 
+  /// Materialize and save all three definitions before opening the game route.
+  Future<GameSession> startGeneratedLevel(int number) async {
+    RangeError.checkValueInInterval(number, 2, 10, 'number');
+    final id = mapLevelId(number);
+    final level = state.levels[id]!;
+    final key = 'generatedLevel/$number';
+    final savedModule = state.modules[key];
+    return startOrResumeLevel(
+      id,
+      definitions: [
+        for (final puzzleId in level.puzzleIds)
+          state.puzzles[puzzleId] ??
+              SeededSudokus.create(
+                id: puzzleId,
+                seed: '${state.player.id}/$puzzleId',
+              ),
+      ],
+      moduleKey: key,
+      moduleData:
+          savedModule is Map &&
+              state.sessions.containsKey(savedModule['sessionId'])
+          ? jsonObject(savedModule)
+          : {'step': 'playing', 'gameIndex': 0, 'started': false},
+    );
+  }
+
   Future<GameSession> startOrResumeLevel(
     String levelId, {
     bool restart = false,
@@ -192,6 +220,12 @@ class GameRepository extends ChangeNotifier {
     await _update((save) {
       if (!save.isUnlocked(levelId)) throw StateError('Level is locked');
       final level = save.levels[levelId]!;
+      if (levelId != mapLevelId(1) &&
+          level.worldId == 'world-1' &&
+          ((save.progress[levelId]?.bestLights ?? 0) >= level.requiredLights ||
+              restart)) {
+        throw StateError('This level cannot be replayed');
+      }
       final registered = {...save.puzzles};
       if (definitionSnapshot != null) {
         if (!listEquals(
@@ -414,15 +448,16 @@ class GameRepository extends ChangeNotifier {
   }
 
   /// Records an explanation-only hint without filling a cell for the player.
-  Future<void> recordHint(String sessionId, String puzzleId) => _update((save) {
-    final session = _playable(save, sessionId, puzzleId);
-    final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
-    return _replaceBoard(
-      save,
-      session,
-      board.copyWith(hintsUsed: board.hintsUsed + 1),
-    );
-  });
+  Future<void> recordHint(String sessionId, String puzzleId, {int? index}) =>
+      _update((save) {
+        final session = _playable(save, sessionId, puzzleId);
+        final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+        return _replaceBoard(
+          save,
+          session,
+          SudokuScoring.hint(board, save.puzzles[puzzleId]!, index: index),
+        );
+      });
 
   Future<void> _editCell(
     String sessionId,
@@ -452,10 +487,16 @@ class GameRepository extends ChangeNotifier {
       extra: old.extra,
     );
     final cells = [...board.cells]..[index] = cell;
-    final updated = board.copyWith(
-      cells: cells,
-      mistakes: board.mistakes + (isError && old.value != number ? 1 : 0),
-      hintsUsed: board.hintsUsed + (hint ? 1 : 0),
+    final updated = SudokuScoring.move(
+      puzzle: definition,
+      before: board,
+      index: index,
+      hintUsed: hint,
+      isError: isError,
+      after: board.copyWith(
+        cells: cells,
+        mistakes: board.mistakes + (isError && old.value != number ? 1 : 0),
+      ),
     );
     updated.validate(definition);
     final solved = List.generate(
@@ -500,7 +541,9 @@ class GameRepository extends ChangeNotifier {
         ...save.progress,
         session.levelId: LevelRecord(
           bestLights: math.max(record.bestLights, next.lights),
-          bestPoints: math.max(record.bestPoints, next.points),
+          bestPoints: done
+              ? math.max(record.bestPoints, next.points)
+              : record.bestPoints,
           bestElapsedMs: bestTime,
           firstCompletedAt: record.firstCompletedAt ?? (done ? _now() : null),
           extra: record.extra,

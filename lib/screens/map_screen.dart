@@ -26,6 +26,7 @@ class MapScreen extends StatefulWidget {
     this.onOpenIntroduction,
     this.onViewTutorial,
     this.onReplayIntroduction,
+    this.onOpenLevel,
   });
 
   final LevelProgress? progress;
@@ -33,6 +34,7 @@ class MapScreen extends StatefulWidget {
   final VoidCallback? onOpenIntroduction;
   final VoidCallback? onViewTutorial;
   final Future<void> Function()? onReplayIntroduction;
+  final Future<void> Function(int)? onOpenLevel;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -49,7 +51,18 @@ class _MapScreenState extends State<MapScreen>
     for (final node in kMap1Nodes) node.level: _progress.lightsFor(node.level),
   };
   bool _replaying = false;
+  bool _openingLevel = false;
   bool _checkQueued = false;
+  bool _wasCurrent = false;
+  bool _entryFocusPending = true;
+
+  int? get _entryLevel =>
+      kMap1Nodes.every(
+        (node) =>
+            _progress.lightsFor(node.level) >= LevelProgress.requiredLights,
+      )
+      ? null
+      : _progress.latestUnlocked;
   int _lightsFor(int level) => _visibleLights[level]!;
   bool _unlocked(int level) =>
       _progress.isUnlocked(level) && (level == 1 || _lightsFor(level - 1) >= 3);
@@ -63,6 +76,7 @@ class _MapScreenState extends State<MapScreen>
   void initState() {
     super.initState();
     _visibleLights;
+    _activeLevel = _entryLevel ?? _activeLevel;
     _progress.addListener(_progressChanged);
   }
 
@@ -70,7 +84,9 @@ class _MapScreenState extends State<MapScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Subscribe to route visibility: rewards must wait until the player returns.
-    ModalRoute.of(context);
+    final current = ModalRoute.of(context)?.isCurrent != false;
+    if (current && !_wasCurrent) _entryFocusPending = true;
+    _wasCurrent = current;
     _queueRewards();
   }
 
@@ -93,8 +109,22 @@ class _MapScreenState extends State<MapScreen>
     _checkQueued = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkQueued = false;
-      if (mounted) unawaited(_revealSavedRewards());
+      if (mounted) unawaited(_syncMapEntry());
     });
+  }
+
+  Future<void> _syncMapEntry() async {
+    await _revealSavedRewards();
+    if (!mounted ||
+        !_entryFocusPending ||
+        _awardingLevel != null ||
+        _openingLevel ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
+    _entryFocusPending = false;
+    final level = _entryLevel;
+    if (level != null) await _focusLevel(level);
   }
 
   Future<void> _revealSavedRewards() async {
@@ -243,7 +273,7 @@ class _MapScreenState extends State<MapScreen>
       );
 
   Future<void> _focusLevel(int level, {bool select = false}) async {
-    if (_awardingLevel != null) return;
+    if (_awardingLevel != null || _openingLevel) return;
     if (select && ModalRoute.of(context)?.isCurrent == false) return;
     final request = ++_focusRequest;
     final int target = level.clamp(1, kMap1Nodes.length);
@@ -270,6 +300,29 @@ class _MapScreenState extends State<MapScreen>
       return;
     }
     if (select) {
+      if (target > 1 && _progress.isUnlocked(target)) {
+        if (_progress.lightsFor(target) >= 3) {
+          showToast(context, '¡Ya completaste el nivel $target!');
+          return;
+        }
+        if (widget.onOpenLevel != null) {
+          _openingLevel = true;
+          try {
+            await widget.onOpenLevel!(target);
+          } catch (_) {
+            if (mounted) {
+              showToast(
+                context,
+                'No pudimos abrir la partida. Intenta de nuevo.',
+              );
+            }
+          } finally {
+            _openingLevel = false;
+            if (mounted) _queueRewards();
+          }
+          return;
+        }
+      }
       if (target == 1 &&
           _lightsFor(target) == 3 &&
           widget.onReplayIntroduction != null) {
@@ -359,21 +412,22 @@ class _MapScreenState extends State<MapScreen>
                     clipBehavior: Clip.none,
                     children: [
                       Positioned(
-                      left: 0,
-                      top: (viewport.height - worldHeight) / 2,
-                      width: _worldWidth,
-                      height: worldHeight,
-                      child: ParallaxBackground(
-                        backgroundAsset: 'assets/images/world-1-horizontal.png',
-                        maxX: 8.0,
-                        maxY: 6.0,
-                        backgroundFit: BoxFit.fill,
-                        backgroundAlignment: Alignment.topCenter,
-                        mobileSensorEnabled: false,
-                        scaleBase: 1.04,
-                        child: const SizedBox.expand(),
+                        left: 0,
+                        top: (viewport.height - worldHeight) / 2,
+                        width: _worldWidth,
+                        height: worldHeight,
+                        child: ParallaxBackground(
+                          backgroundAsset:
+                              'assets/images/world-1-horizontal.png',
+                          maxX: 8.0,
+                          maxY: 6.0,
+                          backgroundFit: BoxFit.fill,
+                          backgroundAlignment: Alignment.topCenter,
+                          mobileSensorEnabled: false,
+                          scaleBase: 1.04,
+                          child: const SizedBox.expand(),
+                        ),
                       ),
-                    ),
                       for (final node in kMap1Nodes)
                         Positioned(
                           left: node.x * _worldWidth - nodeSize / 2,

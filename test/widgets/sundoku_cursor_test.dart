@@ -193,6 +193,10 @@ void main() {
         });
       }
       await tester.tap(play);
+      // JuicyPress invokes onPlay after two sequential animation phases.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 160));
       await tester.pump(const Duration(milliseconds: 300));
       await mouse.moveTo(tester.getCenter(find.byType(AlertDialog)));
       await tester.pump();

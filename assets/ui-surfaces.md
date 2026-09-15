@@ -26,3 +26,5 @@ La extracción antigua `settings/done-button.png` se conserva como referencia, p
 ## Validación
 
 `test/widgets/ui_surface_art_test.dart` compara píxeles de las esquinas al variar el ancho y la altura, comprueba barras vacías y rellenos muy pequeños, y verifica transparencia y silueta de los botones circulares. Las pruebas de navegación, tutorial, perfil, ajustes y tablero cubren sus integraciones. También se revisan capturas renderizadas de home, mapa, bienvenida, perfil y ajustes.
+
+Los controles `goldTile` y `creamTile` menores de 80 px reducen proporcionalmente las esquinas y el bisel; mantienen nine-patch para el eje que necesite crecer. Cuando el tamaño coincide con la referencia se dibuja la textura sin subdividirla, evitando uniones visibles en controles pequeños. Las referencias explícitas del tablero se conservan.

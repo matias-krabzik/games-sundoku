@@ -274,8 +274,7 @@ void main() {
       expect(find.text('2 de 10'), findsOneWidget);
       await tester.tap(find.text('Jugar'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('map-next')));
-      await tester.pumpAndSettle();
+      expect(find.text('Nivel 2 de 10'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
     },
   );

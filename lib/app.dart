@@ -150,6 +150,18 @@ class _SunDokuAppState extends State<SunDokuApp> {
             onOpenIntroduction: () =>
                 Navigator.of(context).pushNamed(AppRoutes.firstExperience),
             onReplayIntroduction: () => _replayPractice(context),
+            onOpenLevel: (number) async {
+              await _repository.startGeneratedLevel(number);
+              if (!context.mounted) return;
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => FirstExperienceScreen(
+                    repository: _repository,
+                    levelNumber: number,
+                  ),
+                ),
+              );
+            },
           ),
           AppRoutes.tutorialReview: (_) =>
               FirstExperienceScreen(repository: _repository, reviewOnly: true),

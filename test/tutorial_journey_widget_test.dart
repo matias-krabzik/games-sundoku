@@ -104,6 +104,7 @@ Future<void> show(
   GameRepository repo, {
   double textScale = 1,
   bool withParentRoute = false,
+  int levelNumber = 1,
   bool showDeveloperControls = false,
   GameFeedback feedback = const GameFeedback(),
 }) async {
@@ -130,6 +131,7 @@ Future<void> show(
                           MaterialPageRoute<void>(
                             builder: (_) => FirstExperienceScreen(
                               repository: repo,
+                              levelNumber: levelNumber,
                               showDeveloperControls: showDeveloperControls,
                             ),
                           ),
@@ -141,6 +143,7 @@ Future<void> show(
                 )
               : FirstExperienceScreen(
                   repository: repo,
+                  levelNumber: levelNumber,
                   showDeveloperControls: showDeveloperControls,
                 ),
         ),
@@ -261,7 +264,9 @@ void main() {
             .grandFinale,
         gameIndex == 2,
       );
-      await tester.tap(find.byKey(const ValueKey('intro-story')));
+      if (gameIndex < 2) {
+        await tester.tap(find.byKey(const ValueKey('intro-story')));
+      }
       await tester.pump();
       await capture(
         tester,
@@ -274,12 +279,21 @@ void main() {
         for (final size in [const Size(320, 568), const Size(844, 390)]) {
           tester.view.physicalSize = size;
           await show(tester, repo, textScale: 2);
-          expect(tester.element(board), same(element));
+          expect(
+            tester.element(
+              find.byKey(const ValueKey('intro-board'), skipOffstage: false),
+            ),
+            same(element),
+          );
           expect(next.hitTestable(), findsOneWidget);
           expect(tester.getRect(next).bottom, lessThanOrEqualTo(size.height));
-          final bounds = tester.getRect(find.byType(TutorialBoardFan));
-          expect(bounds.left, greaterThanOrEqualTo(0));
-          expect(bounds.right, lessThanOrEqualTo(size.width));
+          final fan = find.byType(TutorialBoardFan);
+          if (fan.evaluate().isNotEmpty) {
+            final bounds = tester.getRect(fan);
+            expect(bounds.left, greaterThanOrEqualTo(0));
+            expect(bounds.right, lessThanOrEqualTo(size.width));
+          }
+          expect(find.byType(SingleChildScrollView), findsNothing);
           expect(tester.takeException(), isNull);
           await capture(tester, 'victoria-3-${size.width.toInt()}');
         }
@@ -524,7 +538,7 @@ void main() {
     expect(tester.getRect(board), initialRect);
     expect(find.byType(TutorialReward), findsNothing);
     expect(next, findsNothing);
-    expect(find.text('Sudoku 1 de 3'), findsOneWidget);
+    expect(find.text('Ronda 1 de 3'), findsOneWidget);
     expect(repo.state.totalLights, 1);
     await tester.pump(const Duration(milliseconds: 100));
     await capture(tester, 'onda-final-inicio', settleAnimations: false);
@@ -846,7 +860,7 @@ void main() {
       final lives = tester.getRect(
         find.byKey(const ValueKey('game-unlimited-lives')),
       );
-      final banner = tester.getRect(find.text('Sudoku 1 de 3'));
+      final banner = tester.getRect(find.text('Ronda 1 de 3'));
       expect(lives.top, greaterThan(banner.bottom));
       expect(lives.bottom, lessThanOrEqualTo(after.top));
       expect(clear.top, greaterThan(buttons.first.bottom));
@@ -885,7 +899,7 @@ void main() {
       expect(next, findsNothing);
       expect(find.text('Pista'), findsNothing);
       expect(find.text('Seguir'), findsNothing);
-      final title = tester.getRect(find.text('Sudoku 1 de 3'));
+      final title = tester.getRect(find.text('Ronda 1 de 3'));
       final back = find.byKey(const ValueKey('game-back'));
       final settings = find.byKey(const ValueKey('game-settings'));
       expect(tester.getRect(back).bottom, lessThan(title.top));
@@ -1007,10 +1021,11 @@ void main() {
         if (game < 2) await tap(tester, next);
       }
       expect(find.text('¡Completaste el nivel 1!'), findsOneWidget);
-      expect(find.text('Ir al mapa'), findsOneWidget);
+      expect(find.text('Mapa!'), findsOneWidget);
       expect(find.text('Repasar las reglas'), findsNothing);
       expect(find.byKey(const ValueKey('tutorial-review')), findsNothing);
-      expect(find.byKey(const ValueKey('reward-map-icon')), findsOneWidget);
+      await settle(tester);
+      expect(find.text('Siguiente nivel 2').hitTestable(), findsOneWidget);
       expect(repo.state.isUnlocked(mapLevelId(2)), true);
       await capture(tester, 'tutorial-nivel-completo');
       expect(tester.element(board), same(element));

@@ -49,6 +49,8 @@ void main() {
           ),
         );
         await tester.pump();
+        await settle(tester);
+        await tester.ensureVisible(find.byKey(const ValueKey('level-1-label')));
         await tester.tap(find.byKey(const ValueKey('level-1-label')));
         await settle(tester);
         expect(
@@ -100,7 +102,11 @@ void main() {
       );
       await tester.pump();
       final marker = find.byKey(const ValueKey('level-1-label'));
+      await settle(tester);
+      await tester.ensureVisible(marker);
       await tester.tap(marker);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pump();
@@ -167,6 +173,8 @@ void main() {
       await settle(tester);
       expect(find.byKey(const ValueKey('level-summary')), findsNothing);
       expect(replays, 0);
+      await settle(tester);
+      await tester.ensureVisible(marker);
       await tester.tap(marker);
       await settle(tester);
       await tester.tap(replay);

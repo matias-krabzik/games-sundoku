@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
@@ -15,15 +16,26 @@ import 'game_session_controller.dart';
 
 export '../domain/tutorial/tutorial_steps.dart';
 
+class ScoreFeedback {
+  const ScoreFeedback(this.id, this.origin, this.points);
+  final int id;
+  final int origin;
+  final int points;
+}
+
 /// Owns the wizard; real play and rewards stay in the session repository.
 class FirstExperienceController extends ChangeNotifier {
   FirstExperienceController(
     this.repository, {
     Random? random,
     this.reviewOnly = false,
+    this.levelNumber = 1,
     this.helpEngine = const SudokuHelpEngine(),
   }) : _random = random ?? Random() {
+    RangeError.checkValueInInterval(levelNumber, 1, 10, 'levelNumber');
     final saved = _module;
+    _paused = isGeneratedLevel && saved['started'] == true;
+    _gameCell = saved['selectedCell'] as int?;
     _cells = _readCells(saved['cells']);
     _savedStep = FirstExperienceStep.values.firstWhere(
       (step) => step.name == saved['step'],
@@ -38,6 +50,17 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   static const moduleKey = 'firstExperience';
+  final int levelNumber;
+  bool get isGeneratedLevel => levelNumber > 1;
+  String get storageKey =>
+      isGeneratedLevel ? 'generatedLevel/$levelNumber' : moduleKey;
+  bool _paused = false;
+  bool get isPaused =>
+      step == FirstExperienceStep.playing &&
+      (_paused || _play?.isPaused == true);
+  int get elapsedMs => puzzleProgress?.status == PlayStatus.completed
+      ? puzzleProgress!.elapsedMs
+      : _play?.elapsedMs ?? puzzleProgress?.elapsedMs ?? 0;
 
   final GameRepository repository;
   final bool reviewOnly;
@@ -56,6 +79,16 @@ class FirstExperienceController extends ChangeNotifier {
   String? _feedback;
   int _attention = 0;
   SudokuCompletion? _completion;
+  ScoreFeedback? scoreFeedback;
+  int _scoreSequence = 0;
+  int get points => puzzleProgress?.points ?? 0;
+
+  void _scoreChanged(int previous, int origin) {
+    final delta = points - previous;
+    if (delta != 0) {
+      scoreFeedback = ScoreFeedback(++_scoreSequence, origin, delta);
+    }
+  }
 
   FirstExperienceStep get step =>
       _step == FirstExperienceStep.playing &&
@@ -100,10 +133,17 @@ class FirstExperienceController extends ChangeNotifier {
           ),
         );
 
-  void showHelp() {
-    if (!canShowHelp) return;
+  Future<void> showHelp() async {
+    if (!canShowHelp || _helpVisible) return;
+    final index = _gameCell!;
+    final previous = points;
     _helpVisible = true;
-    notifyListeners();
+    await _run(() async {
+      await _player.recordHint(index: index);
+      _scoreChanged(previous, index);
+      if (_gameCell == index) _helpVisible = true;
+    });
+    if (!_disposed) notifyListeners();
   }
 
   void dismissHelp() {
@@ -195,7 +235,7 @@ class FirstExperienceController extends ChangeNotifier {
     await _save(tutorialStorySteps[storyIndex - 1], _cells);
   }
 
-  Future<void> advance() async {
+  Future<void> advance({bool startClock = true}) async {
     if (_disposed || _isBusy) return;
     if (reviewOnly) {
       if (storyIndex >= 0 && storyIndex < storyCount - 1) {
@@ -224,7 +264,7 @@ class FirstExperienceController extends ChangeNotifier {
         _cells,
         changes: {'gameIndex': gameIndex == 2 ? 2 : gameIndex + 1},
       );
-      if (_error == null && step == FirstExperienceStep.playing) {
+      if (startClock && _error == null && step == FirstExperienceStep.playing) {
         await resumeGame();
       }
     }
@@ -232,12 +272,13 @@ class FirstExperienceController extends ChangeNotifier {
 
   /// Starts another practice session while preserving earned stars and unlocks.
   Future<void> restartGames() async {
+    if (isGeneratedLevel) throw StateError('This level cannot be replayed');
     final center = exampleCenter;
     await repository.startOrResumeLevel(
       mapLevelId(1),
       restart: true,
       definitions: TutorialSudokus.create(center),
-      moduleKey: moduleKey,
+      moduleKey: storageKey,
       moduleData: {
         ..._module,
         'step': FirstExperienceStep.playing.name,
@@ -258,7 +299,7 @@ class FirstExperienceController extends ChangeNotifier {
       await repository.startOrResumeLevel(
         mapLevelId(1),
         definitions: TutorialSudokus.create(exampleCenter),
-        moduleKey: moduleKey,
+        moduleKey: storageKey,
         moduleData: {
           ..._module,
           'step': FirstExperienceStep.playing.name,
@@ -273,7 +314,11 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   GameSessionController get _player {
-    _play ??= GameSessionController(repository)..addListener(_sessionChanged);
+    _play ??= GameSessionController(
+      repository,
+      resumeOnForeground: !isGeneratedLevel,
+      checkpointInterval: Duration(seconds: isGeneratedLevel ? 1 : 5),
+    )..addListener(_sessionChanged);
     return _play!;
   }
 
@@ -289,13 +334,21 @@ class FirstExperienceController extends ChangeNotifier {
       return;
     }
     await _run(() async {
+      if (isGeneratedLevel) {
+        await repository.saveModule(storageKey, {..._module, 'started': true});
+      }
       await _player.start(session!.id);
+      _paused = false;
       _resetMoveFeedback();
     });
   }
 
+  Future<void> requestPause() => _run(pauseGame);
+
   Future<void> pauseGame() async {
+    if (isGeneratedLevel) _paused = true;
     if (_play != null) await _play!.pause();
+    if (!_disposed) notifyListeners();
   }
 
   void _resetMoveFeedback() {
@@ -306,6 +359,16 @@ class FirstExperienceController extends ChangeNotifier {
     RangeError.checkValueInInterval(index, 0, 80, 'index');
     if (!readyToPlay) return;
     _gameCell = index;
+    if (isGeneratedLevel) {
+      unawaited(
+        repository
+            .saveModule(storageKey, {..._module, 'selectedCell': index})
+            .catchError((Object _) {
+              _error = 'No pudimos guardar tu selección. Intenta de nuevo.';
+              if (!_disposed) notifyListeners();
+            }),
+      );
+    }
     _helpVisible = false;
     _feedback = null;
     notifyListeners();
@@ -343,7 +406,9 @@ class FirstExperienceController extends ChangeNotifier {
       feedback ??= 'Ese número no encaja aquí. Prueba otro.';
     }
     await _run(() async {
+      final previous = points;
       await _player.setCell(index, number);
+      _scoreChanged(previous, index);
       _feedback = feedback;
       if (incorrect) {
         _attention++;
@@ -419,7 +484,7 @@ class FirstExperienceController extends ChangeNotifier {
       await repository.debugRestartPuzzle(
         session!.id,
         index,
-        moduleKey: moduleKey,
+        moduleKey: storageKey,
         moduleData: {
           ..._module,
           'step': FirstExperienceStep.playing.name,
@@ -465,7 +530,7 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   Json get _module {
-    final value = repository.state.modules[moduleKey];
+    final value = repository.state.modules[storageKey];
     return value is Map ? jsonObject(value) : {};
   }
 
@@ -586,9 +651,10 @@ class FirstExperienceController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      await repository.saveModule(moduleKey, {
+      await repository.saveModule(storageKey, {
         ..._module,
         ...changes,
+        'selectedCell': null,
         'step': nextStep.name,
         'cells': snapshot,
       });

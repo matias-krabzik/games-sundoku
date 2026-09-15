@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'settings_art.dart';
+import 'score_feedback.dart';
 
 /// Unlimited lives in the introductory games.
 class GameplayStatusBar extends StatelessWidget {
-  const GameplayStatusBar({super.key});
+  const GameplayStatusBar({super.key, this.trailing, this.points = 0});
+  final int points;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -40,6 +43,19 @@ class GameplayStatusBar extends StatelessWidget {
             ],
           ),
         ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: GameScoreCounter(points: points),
+            ),
+          ),
+        ),
+        if (trailing != null)
+          Flexible(
+            child: FittedBox(fit: BoxFit.scaleDown, child: trailing!),
+          ),
       ],
     ),
   );
