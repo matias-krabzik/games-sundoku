@@ -188,9 +188,9 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.text('Nivel 1'), findsOneWidget);
     expect(find.text('¡Lo hiciste muy bien!'), findsOneWidget);
-    expect(find.text('Práctica completada'), findsOneWidget);
+    expect(find.text('Nivel 1'), findsNothing);
+    expect(find.text('Práctica completada'), findsNothing);
     expect(
       find.textContaining('Completaste las 3 rondas de práctica.'),
       findsOneWidget,
@@ -213,17 +213,8 @@ void main() {
     expect(replayText.style!.fontSize, okText.style!.fontSize);
     expect(replayText.style!.fontSize, 20);
     expect(
-      tester
-              .getRect(
-                find.textContaining('Completaste las 3 rondas de práctica.'),
-              )
-              .top -
-          tester.getRect(find.text('Práctica completada')).bottom,
-      lessThan(40),
-    );
-    expect(
       tester.getRect(find.byKey(const ValueKey('level-summary'))).height,
-      lessThanOrEqualTo(540),
+      lessThanOrEqualTo(340),
     );
     await tester.tap(replay);
     await settle(tester);

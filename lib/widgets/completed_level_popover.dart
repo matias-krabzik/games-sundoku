@@ -130,16 +130,29 @@ class LevelSummaryCard extends StatelessWidget {
     type: MaterialType.transparency,
     child: LayoutBuilder(
       builder: (context, bounds) {
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        if (_isPracticeComplete) {
+          final width = math.min(440.0, bounds.maxWidth);
+          final height = math.min(
+            340.0 + (textScale - 1).clamp(0.0, 1.0) * 100,
+            bounds.maxHeight,
+          );
+          final dense = bounds.maxWidth < 360 || bounds.maxHeight < 420;
+          return SizedBox(
+            key: const ValueKey('level-summary'),
+            width: width,
+            height: height,
+            child: UiSurfacePanel(
+              surface: UiSurface.goldCreamPanel,
+              padding: EdgeInsets.all(dense ? 14 : 18),
+              child: _practiceSummary(dense: dense),
+            ),
+          );
+        }
+
         final wide = bounds.maxWidth > 680 && bounds.maxHeight < 580;
         final width = math.min(wide ? 720.0 : 540.0, bounds.maxWidth);
-        final textScale = MediaQuery.textScalerOf(context).scale(1);
-        final practicePortraitHeight =
-            540.0 + (textScale - 1).clamp(0.0, 1.0) * 100;
-        final preferredHeight = wide
-            ? 360.0
-            : _isPracticeComplete
-            ? practicePortraitHeight
-            : 690.0;
+        final preferredHeight = wide ? 360.0 : 690.0;
         final height = math.min(preferredHeight, bounds.maxHeight);
         final dense = bounds.maxHeight < (wide ? 340 : 610);
         final padding = dense ? 14.0 : 22.0;
@@ -151,24 +164,14 @@ class LevelSummaryCard extends StatelessWidget {
                   children: [
                     Expanded(flex: 4, child: _heading(dense: dense)),
                     const SizedBox(width: 22),
-                    Expanded(
-                      flex: 6,
-                      child: _isPracticeComplete
-                          ? _practiceDetails(dense: dense)
-                          : _details(dense: dense),
-                    ),
+                    Expanded(flex: 6, child: _details(dense: dense)),
                   ],
                 )
               : Column(
                   children: [
                     Expanded(flex: 42, child: _heading(dense: dense)),
                     SizedBox(height: dense ? 7 : 12),
-                    Expanded(
-                      flex: 58,
-                      child: _isPracticeComplete
-                          ? _practiceDetails(dense: dense)
-                          : _details(dense: dense),
-                    ),
+                    Expanded(flex: 58, child: _details(dense: dense)),
                   ],
                 ),
         );
@@ -180,6 +183,57 @@ class LevelSummaryCard extends StatelessWidget {
         );
       },
     ),
+  );
+
+  Widget _practiceSummary({required bool dense}) => Column(
+    children: [
+      Flexible(
+        flex: 2,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '¡Lo hiciste muy bien!',
+            style: homeText(dense ? 22 : 25),
+          ),
+        ),
+      ),
+      SizedBox(height: dense ? 5 : 8),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(
+          3,
+          (_) => Padding(
+            padding: EdgeInsets.symmetric(horizontal: dense ? 3 : 5),
+            child: MapIcon(MapGlyph.goldStar, size: dense ? 31 : 38),
+          ),
+        ),
+      ),
+      SizedBox(height: dense ? 5 : 9),
+      Expanded(
+        flex: 4,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Completaste las 3 rondas de práctica.\n'
+              '¡Ya conoces las reglas básicas!\n'
+              'Puedes volver a jugar cuando quieras.',
+              style: homeText(dense ? 16 : 18, weight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+      SizedBox(height: dense ? 5 : 8),
+      _SummaryActions(
+        primaryKey: const ValueKey('level-replay'),
+        primaryLabel: 'Volver a jugar',
+        primaryFontSize: dense ? 17 : 20,
+        onPrimary: onContinue,
+        onOk: onOk,
+        dense: dense,
+      ),
+    ],
   );
 
   Widget _heading({required bool dense}) => Column(
@@ -223,37 +277,6 @@ class LevelSummaryCard extends StatelessWidget {
             ? 'Práctica completada'
             : '$_completedRounds de 3 rondas completadas',
         homeText(dense ? 13 : 16, weight: FontWeight.w600),
-      ),
-    ],
-  );
-
-  Widget _practiceDetails({required bool dense}) => Column(
-    children: [
-      Expanded(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: EdgeInsets.only(top: dense ? 2 : 8),
-            child: Text(
-              'Completaste las 3 rondas de práctica.\n'
-              '¡Ya conoces las reglas básicas!\n'
-              'Puedes volver a jugar cuando quieras.',
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-              style: homeText(dense ? 16 : 20, weight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ),
-      SizedBox(height: dense ? 7 : 12),
-      _SummaryActions(
-        primaryKey: const ValueKey('level-replay'),
-        primaryLabel: 'Volver a jugar',
-        primaryFontSize: dense ? 17 : 20,
-        onPrimary: onContinue,
-        onOk: onOk,
-        dense: dense,
       ),
     ],
   );
