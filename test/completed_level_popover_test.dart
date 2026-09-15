@@ -204,6 +204,27 @@ void main() {
       tester.getRect(replay).center.dy,
       closeTo(tester.getRect(ok).center.dy, 1),
     );
+    final replayText = tester.widget<Text>(
+      find.descendant(of: replay, matching: find.text('Volver a jugar')),
+    );
+    final okText = tester.widget<Text>(
+      find.descendant(of: ok, matching: find.text('Ok')),
+    );
+    expect(replayText.style!.fontSize, okText.style!.fontSize);
+    expect(replayText.style!.fontSize, 20);
+    expect(
+      tester
+              .getRect(
+                find.textContaining('Completaste las 3 rondas de práctica.'),
+              )
+              .top -
+          tester.getRect(find.text('Práctica completada')).bottom,
+      lessThan(40),
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('level-summary'))).height,
+      lessThanOrEqualTo(540),
+    );
     await tester.tap(replay);
     await settle(tester);
     expect(replays, 1);

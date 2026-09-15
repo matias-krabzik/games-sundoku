@@ -134,14 +134,14 @@ class LevelSummaryCard extends StatelessWidget {
         final width = math.min(wide ? 720.0 : 540.0, bounds.maxWidth);
         final textScale = MediaQuery.textScalerOf(context).scale(1);
         final practicePortraitHeight =
-            560.0 + (textScale - 1).clamp(0.0, 1.0) * 90;
+            540.0 + (textScale - 1).clamp(0.0, 1.0) * 100;
         final preferredHeight = wide
             ? 360.0
             : _isPracticeComplete
             ? practicePortraitHeight
             : 690.0;
         final height = math.min(preferredHeight, bounds.maxHeight);
-        final dense = height < (wide ? 340 : 610);
+        final dense = bounds.maxHeight < (wide ? 340 : 610);
         final padding = dense ? 14.0 : 22.0;
         final card = UiSurfacePanel(
           surface: UiSurface.goldCreamPanel,
@@ -230,15 +230,19 @@ class LevelSummaryCard extends StatelessWidget {
   Widget _practiceDetails({required bool dense}) => Column(
     children: [
       Expanded(
-        child: Center(
-          child: Text(
-            'Completaste las 3 rondas de práctica.\n'
-            '¡Ya conoces las reglas básicas!\n'
-            'Puedes volver a jugar cuando quieras.',
-            maxLines: 5,
-            overflow: TextOverflow.ellipsis,
-            style: homeText(dense ? 16 : 20, weight: FontWeight.w600),
-            textAlign: TextAlign.center,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: EdgeInsets.only(top: dense ? 2 : 8),
+            child: Text(
+              'Completaste las 3 rondas de práctica.\n'
+              '¡Ya conoces las reglas básicas!\n'
+              'Puedes volver a jugar cuando quieras.',
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              style: homeText(dense ? 16 : 20, weight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),
@@ -246,7 +250,7 @@ class LevelSummaryCard extends StatelessWidget {
       _SummaryActions(
         primaryKey: const ValueKey('level-replay'),
         primaryLabel: 'Volver a jugar',
-        primaryFontSize: dense ? 15 : 18,
+        primaryFontSize: dense ? 17 : 20,
         onPrimary: onContinue,
         onOk: onOk,
         dense: dense,
