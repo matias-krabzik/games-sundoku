@@ -396,7 +396,7 @@ class _SmallOkButton extends StatelessWidget {
         builder: (_, _) => Stack(
           fit: StackFit.expand,
           children: [
-            const UiSurfaceArt(UiSurface.creamPill),
+            const UiSurfaceArt(UiSurface.creamCapsule),
             Center(child: Text('Ok', style: homeText(dense ? 17 : 20))),
           ],
         ),

@@ -10,6 +10,7 @@ enum UiSurface {
   goldTile,
   creamTile,
   creamPill,
+  creamCapsule,
   creamRound,
   goldRound,
   progressTrack,
@@ -80,6 +81,15 @@ extension UiSurfaceCatalog on UiSurface {
       Size(1254, 1254),
       Rect.fromLTRB(.322, .137, .673, .487),
       Rect.fromLTRB(.49, .30, .505, .32),
+      Size(54, 54),
+    ),
+    // Stretch only the center of the circular cream artwork, preserving its
+    // rounded ends and continuous upper/lower bevel on short action buttons.
+    UiSurface.creamCapsule => const UiSurfaceSpec(
+      'assets/images/home/header-surfaces.png',
+      Size(1254, 1254),
+      Rect.fromLTRB(.322, .137, .673, .487),
+      Rect.fromLTRB(.49, .305, .505, .32),
       Size(54, 54),
     ),
     UiSurface.goldRound => const UiSurfaceSpec(

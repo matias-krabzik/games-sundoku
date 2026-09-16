@@ -1,6 +1,6 @@
 # Superficies compartidas de la UI
 
-`lib/widgets/ui_surface_art.dart` centraliza diez superficies obtenidas de siete PNG reutilizables. `NineSliceArt` aplica `Image.centerSlice` al recorte del atlas: crecen el centro y los tramos rectos, conservando esquinas y biseles. Los PNG originales y su transparencia real permanecen intactos; no se generan archivos por botón ni por tamaño.
+`lib/widgets/ui_surface_art.dart` centraliza once superficies obtenidas de siete PNG reutilizables. `NineSliceArt` aplica `Image.centerSlice` al recorte del atlas: crecen el centro y los tramos rectos, conservando esquinas y biseles. Los PNG originales y su transparencia real permanecen intactos; no se generan archivos por botón ni por tamaño.
 
 | Superficie | PNG existente | Usos |
 | --- | --- | --- |
@@ -10,6 +10,7 @@
 | `goldTile` | `tutorial/block-tiles.png` | Marco del tablero, casilla seleccionada y botones numéricos |
 | `creamTile` | `tutorial/block-tiles.png` | Casillas del tablero real, tanto en el bloque inicial como al expandirse |
 | `creamPill` | `home/header-surfaces.png` | Perfil de la home |
+| `creamCapsule` | `home/header-surfaces.png` | Botón Ok de los resúmenes; reutiliza el arte circular con centro extensible para conservar extremos redondeados y bisel continuo |
 | `creamRound` | `home/header-surfaces.png` | Configuración, regresar, navegación del mapa y controles del tutorial |
 | `goldRound` | `map/icons.png` | Cerrar modales y navegación resaltada del mapa |
 | `progressTrack` | `home/progress.png` | Base del progreso en home, mapa y bloque del tutorial |

@@ -329,8 +329,13 @@ class FirstExperienceController extends ChangeNotifier {
   Future<void> resumeGame() async {
     if (_disposed ||
         _isBusy ||
-        step != FirstExperienceStep.playing ||
-        session == null) {
+        step != FirstExperienceStep.playing) {
+      return;
+    }
+    // A developer reset can remove the session while retaining the tutorial's
+    // playing step and chosen center. Rebuild the practice before starting it.
+    if (session == null) {
+      if (!isGeneratedLevel) await _prepareGames();
       return;
     }
     await _run(() async {

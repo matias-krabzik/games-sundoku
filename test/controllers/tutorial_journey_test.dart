@@ -265,6 +265,27 @@ void main() {
     },
   );
 
+  test('practice recovers a session removed by a developer reset', () async {
+    final repo = GameRepository.memory();
+    addTearDown(repo.close);
+    final original = await at(repo, FirstExperienceStep.givensIntroduction);
+    await enterGame(original);
+    final oldId = original.session!.id;
+    original.dispose();
+    await original.flush();
+    await repo.resetDebugLevels({mapLevelId(1)});
+
+    final resumed = FirstExperienceController(repo);
+    addTearDown(resumed.dispose);
+    await resumed.resumeGame();
+
+    expect(resumed.readyToPlay, isTrue);
+    expect(resumed.session!.id, isNot(oldId));
+    expect(resumed.gameIndex, 0);
+    expect(resumed.remaining, 6);
+    expect(resumed.fixedIndices.length, 75);
+  });
+
   test('dev fills each sudoku except the selected editable tile without finishing it', () async {
     final repo = GameRepository.memory();
     addTearDown(repo.close);
