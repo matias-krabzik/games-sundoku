@@ -18,8 +18,7 @@ import 'package:sundoku/widgets/tutorial_story.dart';
 import 'package:sundoku/widgets/tutorial_story_navigation.dart';
 
 final _continue = find.byKey(const ValueKey('intro-continue'));
-final _startBlock = find.byKey(const ValueKey('tutorial-choose-order'));
-final _back = find.byKey(const ValueKey('intro-back'));
+final _startBlock = find.byKey(const ValueKey('tutorial-next'));
 final _board = find.byKey(const ValueKey('intro-board'));
 final _center = find.byKey(const ValueKey('sudoku-cell-40'));
 
@@ -67,6 +66,11 @@ Future<void> _beginBlock(WidgetTester tester) async {
   }
 }
 
+Future<void> _exitWithDeveloperMenu(WidgetTester tester) async {
+  await _tap(tester, find.byKey(const ValueKey('dev-floating-button')));
+  await _tap(tester, find.byKey(const ValueKey('dev-exit-tutorial')));
+}
+
 Future<void> _openFromHome(
   WidgetTester tester,
   GameRepository repository,
@@ -85,7 +89,13 @@ Future<void> _openFromHome(
   await _tap(tester, find.byKey(const ValueKey('home-play')));
   if (find.byType(MapScreen).evaluate().isNotEmpty) {
     await _tap(tester, find.byKey(const ValueKey('level-1-label')));
-    await _tap(tester, find.byKey(const ValueKey('level-summary-continue')));
+    final continueAction = find.byKey(const ValueKey('level-summary-continue'));
+    await _tap(
+      tester,
+      continueAction.evaluate().isNotEmpty
+          ? continueAction
+          : find.byKey(const ValueKey('level-summary-play')),
+    );
   }
   expect(find.byType(FirstExperienceScreen), findsOneWidget);
 }
@@ -101,6 +111,42 @@ Future<void> _showFlow(WidgetTester tester, GameRepository repository) async {
 }
 
 void main() {
+  testWidgets('tutorial DEV menu exits to the previous screen', (tester) async {
+    final repository = GameRepository.memory();
+    addTearDown(repository.dispose);
+    _configure(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildSunDokuTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => FirstExperienceScreen(
+                      repository: repository,
+                      showDeveloperControls: true,
+                    ),
+                  ),
+                ),
+                child: const Text('Abrir'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Abrir'));
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey('dev-floating-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('dev-exit-tutorial')));
+    await tester.pumpAndSettle();
+    expect(find.text('Abrir'), findsOneWidget);
+    expect(find.byType(FirstExperienceScreen), findsNothing);
+  });
+
   testWidgets('first Play opens tutorial once; map review preserves progress', (
     tester,
   ) async {
@@ -135,7 +181,7 @@ void main() {
       true,
     );
     await _tap(tester, _continue);
-    expect(_startBlock, findsNothing);
+    expect(find.byKey(const ValueKey('tutorial-choose-order')), findsNothing);
     for (var i = 0; i < 4; i++) {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await _settle(tester);
@@ -374,7 +420,7 @@ void main() {
           repository.state.modules[FirstExperienceController.moduleKey] as Map;
       expect((draft['cells'] as List).whereType<int>(), [9]);
       await _tap(tester, find.byKey(const ValueKey('tutorial-next')));
-      expect(find.text('El tablero completo'), findsOneWidget);
+      expect(find.text('Empecemos con 9 casillas'), findsOneWidget);
       expect(tester.widget<SudokuBoard>(_board).cells[40], 9);
       expect(repository.state.sessions, isEmpty);
     },
@@ -414,7 +460,7 @@ void main() {
   );
 
   testWidgets(
-    'player layout has no back control; development exposes a labeled helper',
+    'player layout hides DEV controls and development exposes the floating menu',
     (tester) async {
       final repository = GameRepository.memory();
       addTearDown(repository.dispose);
@@ -429,15 +475,16 @@ void main() {
         ),
       );
       await _settle(tester);
-      expect(_back, findsNothing);
       expect(find.text('DEV · Volver'), findsNothing);
+      expect(find.byKey(const ValueKey('dev-floating-button')), findsNothing);
       expect(find.text('Tu primer sudoku'), findsOneWidget);
       await _beginBlock(tester);
-      expect(_back, findsNothing);
       expect(find.text('Empecemos con 9 casillas'), findsOneWidget);
       await _showFlow(tester, repository);
-      expect(_back, findsOneWidget);
-      expect(find.text('DEV · Volver'), findsOneWidget);
+      expect(find.byKey(const ValueKey('dev-floating-button')), findsOneWidget);
+      await _tap(tester, find.byKey(const ValueKey('dev-floating-button')));
+      expect(find.byKey(const ValueKey('dev-exit-tutorial')), findsOneWidget);
+      expect(find.text('DEV · Volver'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -478,18 +525,7 @@ void main() {
           find.byKey(const ValueKey('intro-number-1')).hitTestable(),
           findsOneWidget,
         );
-        await _tap(tester, _back);
-        expect(
-          tester.state(find.byType(FirstExperienceScreen)),
-          same(originalState),
-        );
-        expect(tester.element(_board), same(originalBoard));
-        expect(find.semantics.byLabel('Siguiente'), findsOne);
-        expect(
-          find.semantics.byLabel('Fila 5, columna 5, vacía'),
-          findsNothing,
-        );
-        await _tap(tester, _back);
+        await _exitWithDeveloperMenu(tester);
         expect(find.byType(FirstExperienceScreen), findsNothing);
         expect(find.byType(MapScreen), findsOneWidget);
         expect(repository.state.sessions, isEmpty);
@@ -518,8 +554,7 @@ void main() {
               as Map<String, Object?>;
       expect((draft['cells'] as List)[4], 1);
 
-      await _tap(tester, _back);
-      await _tap(tester, _back);
+      await _exitWithDeveloperMenu(tester);
       await tester.pumpWidget(const SizedBox());
       await repository.close();
       repository = await GameRepository.open(store);
@@ -780,25 +815,21 @@ void main() {
       await _showFlow(tester, repository);
       final originalState = tester.state(find.byType(FirstExperienceScreen));
       final originalBoard = tester.element(_board);
+      await _beginBlock(tester);
       for (final size in [const Size(320, 568), const Size(844, 390)]) {
         tester.view.physicalSize = size;
         await _settle(tester);
         expect(tester.takeException(), isNull);
-        await _beginBlock(tester);
         await _tap(tester, _center);
         await _tap(tester, find.byKey(const ValueKey('intro-number-1')));
         expect(tester.widget<SudokuBoard>(_board).cells[40], 1);
         await _tap(tester, _center);
         await _tap(tester, find.byKey(const ValueKey('intro-clear')));
-        await _tap(tester, _back);
         expect(
           tester.state(find.byType(FirstExperienceScreen)),
           same(originalState),
         );
         expect(tester.element(_board), same(originalBoard));
-        await tester.ensureVisible(_continue);
-        await _settle(tester);
-        expect(_continue.hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
     },

@@ -30,7 +30,7 @@ class MapWorldHeader extends StatelessWidget {
         key: const ValueKey('map-back'),
         label: 'Volver',
         glyph: MapGlyph.back,
-        size: compact ? 50 : 58,
+        size: compact ? 50 : 54,
         onPressed: onBack,
       ),
       if (onViewTutorial != null) ...[
@@ -39,7 +39,7 @@ class MapWorldHeader extends StatelessWidget {
           key: const ValueKey('map-tutorial'),
           label: 'Ver el tutorial',
           icon: Icons.menu_book_rounded,
-          size: compact ? 50 : 58,
+          size: compact ? 50 : 54,
           onPressed: onViewTutorial,
         ),
       ],
@@ -47,8 +47,8 @@ class MapWorldHeader extends StatelessWidget {
       _MapRoundButton(
         key: const ValueKey('map-settings'),
         label: 'Ajustes',
-        artwork: SettingsIcon(SettingsGlyph.gear, size: compact ? 30 : 35),
-        size: compact ? 50 : 58,
+        artwork: SettingsIcon(SettingsGlyph.gear, size: compact ? 30 : 33),
+        size: compact ? 50 : 54,
         onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
       ),
     ],

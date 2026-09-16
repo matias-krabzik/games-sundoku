@@ -247,6 +247,9 @@ class FirstExperienceController extends ChangeNotifier {
     if (isStory) {
       if (current == FirstExperienceStep.welcome) {
         await begin();
+      } else if (current == FirstExperienceStep.blockIntroduction &&
+          !reviewOnly) {
+        await startBlock();
       } else if (current == FirstExperienceStep.givensIntroduction) {
         if (session?.status == PlayStatus.completed) {
           await _save(FirstExperienceStep.complete, _cells);
@@ -327,9 +330,7 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   Future<void> resumeGame() async {
-    if (_disposed ||
-        _isBusy ||
-        step != FirstExperienceStep.playing) {
+    if (_disposed || _isBusy || step != FirstExperienceStep.playing) {
       return;
     }
     // A developer reset can remove the session while retaining the tutorial's

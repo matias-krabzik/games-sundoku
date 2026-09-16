@@ -18,6 +18,7 @@ import 'package:sundoku/widgets/sudoku_board.dart';
 import 'package:sundoku/widgets/sudoku_digit.dart';
 import 'package:sundoku/widgets/home_art.dart';
 import 'package:sundoku/widgets/game_feedback_scope.dart';
+import 'package:sundoku/widgets/game_layout.dart';
 import 'package:sundoku/widgets/illustrated_action_button.dart';
 import 'package:sundoku/widgets/tutorial_block_controls.dart';
 import 'package:sundoku/widgets/tutorial_story_navigation.dart';
@@ -106,6 +107,7 @@ Future<void> show(
   bool withParentRoute = false,
   int levelNumber = 1,
   bool showDeveloperControls = false,
+  bool reviewOnly = false,
   GameFeedback feedback = const GameFeedback(),
 }) async {
   await tester.pumpWidget(
@@ -133,6 +135,7 @@ Future<void> show(
                               repository: repo,
                               levelNumber: levelNumber,
                               showDeveloperControls: showDeveloperControls,
+                              reviewOnly: reviewOnly,
                             ),
                           ),
                         ),
@@ -145,6 +148,7 @@ Future<void> show(
                   repository: repo,
                   levelNumber: levelNumber,
                   showDeveloperControls: showDeveloperControls,
+                  reviewOnly: reviewOnly,
                 ),
         ),
       ),
@@ -378,7 +382,13 @@ void main() {
             .widget<Opacity>(find.byKey(const ValueKey('next-game-controls')))
             .opacity;
         await tester.pump(const Duration(milliseconds: 400));
-        expect(tester.getSize(board).width, inExclusiveRange(154, 358));
+        expect(
+          tester.getSize(board).width,
+          inExclusiveRange(
+            154,
+            GameLayout.mobileBoardSize(tester.view.physicalSize.width),
+          ),
+        );
         expect(tileOpacity(40), 0);
         expect(tileOpacity(0), 0);
         expect(controlsOpacity(), 0);
@@ -390,7 +400,13 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 400));
         final landed = tester.getRect(board);
-        expect(landed.width, closeTo(358, .001));
+        expect(
+          landed.width,
+          closeTo(
+            GameLayout.mobileBoardSize(tester.view.physicalSize.width),
+            .001,
+          ),
+        );
         expect(tileOpacity(40), 0);
         expect(controlsOpacity(), 0);
         await tester.pump(const Duration(milliseconds: 100));
@@ -413,28 +429,6 @@ void main() {
           definitions[completedGame + 1].initial,
         );
         await capture(tester, 'sudoku-${completedGame + 2}-listo');
-        await tap(tester, find.byKey(const ValueKey('dev-game-options')));
-        await tap(tester, find.byKey(const ValueKey('dev-restart-previous')));
-        expect(
-          (repo.state.modules[FirstExperienceController.moduleKey]
-              as Map)['gameIndex'],
-          completedGame,
-        );
-        expect(
-          tester.widget<SudokuBoard>(board).cells,
-          definitions[completedGame].initial,
-        );
-        expect(repo.state.totalLights, completedGame + 1);
-        expect(tester.widget<SudokuBoard>(board).completion, isNull);
-        await tap(tester, find.byKey(const ValueKey('dev-fill-except-one')));
-        expect(
-          tester
-              .widget<SudokuBoard>(board)
-              .cells
-              .where((c) => c == null)
-              .length,
-          1,
-        );
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
         await repo.flush();
@@ -443,52 +437,32 @@ void main() {
     );
   }
 
-  testWidgets(
-    'dev button leaves one selected tile and the final move celebrates normally',
-    (tester) async {
-      configure(tester, reduced: false);
-      final repo = GameRepository.memory();
-      final definitions = TutorialSudokus.create(center);
-      await repo.startOrResumeLevel(
-        mapLevelId(1),
-        definitions: definitions,
-        moduleKey: FirstExperienceController.moduleKey,
-        moduleData: {
-          'step': 'playing',
-          'gameIndex': 0,
-          'cells': center,
-          'briefingAccepted': true,
-        },
-      );
-      final fill = find.byKey(const ValueKey('dev-fill-except-one'));
-      await show(tester, repo);
-      expect(fill, findsNothing);
-      await show(tester, repo, showDeveloperControls: true);
-      expect(fill.hitTestable(), findsOneWidget);
-      await tap(tester, find.byKey(const ValueKey('sudoku-cell-67')));
-      await tap(tester, fill);
-      final widget = tester.widget<SudokuBoard>(board);
-      expect(widget.cells.where((n) => n == null).length, 1);
-      expect(widget.cells[67], isNull);
-      expect(widget.selectedIndex, 67);
-      expect(widget.completion, isNull);
-      expect(find.byType(TutorialReward), findsNothing);
-      expect(repo.state.totalLights, 0);
-      await capture(tester, 'dev-one-tile');
-      await tap(
-        tester,
-        find.byKey(ValueKey('intro-number-${definitions.first.solution[67]}')),
-      );
-      expect(tester.widget<SudokuBoard>(board).completion!.wholeBoard, true);
-      expect(repo.state.totalLights, 1);
-      expect(find.byType(TutorialReward), findsOneWidget);
-      expect(tester.widget<TextButton>(fill).onPressed, isNull);
-      expect(find.byKey(const ValueKey('dev-game-options')), findsOneWidget);
-      await tester.pumpWidget(const SizedBox());
-      await repo.flush();
-      await repo.close();
-    },
-  );
+  testWidgets('tutorial DEV menu only exposes the exit action', (tester) async {
+    configure(tester, reduced: false);
+    final repo = GameRepository.memory();
+    final definitions = TutorialSudokus.create(center);
+    await repo.startOrResumeLevel(
+      mapLevelId(1),
+      definitions: definitions,
+      moduleKey: FirstExperienceController.moduleKey,
+      moduleData: {
+        'step': 'playing',
+        'gameIndex': 0,
+        'cells': center,
+        'briefingAccepted': true,
+      },
+    );
+    await show(tester, repo);
+    expect(find.byKey(const ValueKey('dev-floating-button')), findsNothing);
+    await show(tester, repo, showDeveloperControls: true);
+    await tap(tester, find.byKey(const ValueKey('dev-floating-button')));
+    expect(find.byKey(const ValueKey('dev-exit-tutorial')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dev-fill-except-one')), findsNothing);
+    expect(find.byKey(const ValueKey('dev-game-options')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await repo.flush();
+    await repo.close();
+  });
 
   testWidgets('the final board wave stays visible before showing the reward', (
     tester,
@@ -764,7 +738,7 @@ void main() {
     final repo = GameRepository.memory();
     addTearDown(repo.dispose);
     await repo.saveModule(FirstExperienceController.moduleKey, {
-      'step': 'blockIntroduction',
+      'step': 'expansion',
       'cells': center,
     });
     await show(tester, repo);
@@ -773,7 +747,6 @@ void main() {
         (repo.state.modules[FirstExperienceController.moduleKey] as Map)['step']
             as String;
     for (final target in [
-      'expansion',
       'rowRule',
       'columnRule',
       'givensIntroduction',
@@ -857,6 +830,10 @@ void main() {
         expect(buttons[i].left, greaterThan(buttons[i - 1].right));
       }
       final clear = tester.getRect(find.byKey(const ValueKey('intro-clear')));
+      final help = tester.getRect(find.byKey(const ValueKey('game-help')));
+      final boardCellSize = GameLayout.boardCellSize(
+        tester.getRect(board).width,
+      );
       final lives = tester.getRect(
         find.byKey(const ValueKey('game-unlimited-lives')),
       );
@@ -864,8 +841,11 @@ void main() {
       expect(lives.top, greaterThan(banner.bottom));
       expect(lives.bottom, lessThanOrEqualTo(after.top));
       expect(clear.top, greaterThan(buttons.first.bottom));
-      expect(clear.left, closeTo(buttons.first.left + 12, 1));
-      expect(clear.width, clear.height);
+      expect(clear.left, closeTo(buttons.first.left, 1));
+      expect(help.right, closeTo(buttons.last.right, 1));
+      expect(clear.width, closeTo(clear.height, .001));
+      expect(buttons.first.width, closeTo(boardCellSize, 1));
+      expect(clear.width, closeTo(boardCellSize, 1));
       expect(
         (repo.state.modules[FirstExperienceController.moduleKey]
             as Map)['briefingAccepted'],
@@ -979,6 +959,9 @@ void main() {
           await capture(tester, 'tutorial-regla-columna');
         }
         await tap(tester, next);
+        if (step == 'blockIntroduction') {
+          await tap(tester, find.byKey(const ValueKey('intro-next')));
+        }
         expect(tester.element(board), same(element));
       }
       expect(find.byKey(const ValueKey('game-briefing')), findsOneWidget);
@@ -1171,23 +1154,33 @@ void main() {
         final backBounds = tester.getRect(
           find.byKey(const ValueKey('game-back')),
         );
-        expect(backBounds.left, closeTo(16, .01));
-        expect(settingsBounds.right, closeTo(size.width - 16, .01));
+        final navigationMargin = size.width >= 700 || size.height >= 900
+            ? 32
+            : 16;
+        expect(backBounds.left, closeTo(navigationMargin, .01));
+        expect(
+          settingsBounds.right,
+          closeTo(size.width - navigationMargin, .01),
+        );
         final boardBounds = tester.getRect(board);
-        expect(boardBounds.width, lessThanOrEqualTo(430));
+        expect(
+          boardBounds.width,
+          closeTo(GameLayout.mobileBoardSize(size.width), .01),
+        );
         expect(boardBounds.center.dx, closeTo(size.width / 2, .01));
+        final tileSize = GameLayout.boardCellSize(boardBounds.width);
         for (var number = 1; number <= 9; number++) {
           final numberSize = tester.getSize(
             find.byKey(ValueKey('intro-number-$number')),
           );
-          expect(numberSize.width, lessThanOrEqualTo(backBounds.width));
-          expect(numberSize.height, lessThanOrEqualTo(backBounds.height));
+          expect(numberSize.width, closeTo(tileSize, .01));
+          expect(numberSize.height, closeTo(tileSize, .01));
         }
         final clearSize = tester.getSize(
           find.byKey(const ValueKey('intro-clear')),
         );
-        expect(clearSize.width, lessThanOrEqualTo(backBounds.width));
-        expect(clearSize.height, lessThanOrEqualTo(backBounds.height));
+        expect(clearSize.width, closeTo(tileSize, .01));
+        expect(clearSize.height, closeTo(tileSize, .01));
         expect(settingsBounds.top, greaterThanOrEqualTo(0));
         expect(settingsBounds.bottom, lessThan(size.height));
         await tester.ensureVisible(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -34,6 +35,74 @@ Future<void> solve(GameRepository repo, String session, String puzzle) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('developer reset restores a completely fresh save', () async {
+    final repo = GameRepository.memory();
+    addTearDown(repo.close);
+    final previousPlayerId = repo.state.player.id;
+    await repo.setPlayerName('Doku');
+    await repo.startOrResumeLevel(mapLevelId(1), definitions: levelPuzzles());
+    await repo.recordDebugLights(mapLevelId(1), 3);
+    await repo.saveModule('test', {'value': 1});
+
+    await repo.resetDebugSave();
+
+    expect(repo.state.player.id, isNot(previousPlayerId));
+    expect(repo.state.player.name, 'Jugador');
+    expect(repo.state.progress, isEmpty);
+    expect(repo.state.sessions, isEmpty);
+    expect(repo.state.puzzles, isEmpty);
+    expect(repo.state.modules, isEmpty);
+    expect(repo.state.levels.keys, initialLevelCatalog.keys);
+  });
+
+  test(
+    'resetting world one clears the tutorial and generated level state',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      await repo.saveModule('firstExperience', {'step': 'playing'});
+      await repo.saveModule('generatedLevel/2', {'step': 'playing'});
+      await repo.recordDebugLights(mapLevelId(1), 3);
+
+      await repo.resetDebugLevels(initialLevelCatalog.keys.toSet());
+
+      expect(repo.state.modules['firstExperience'], isNull);
+      expect(repo.state.modules['generatedLevel/2'], isNull);
+      expect(repo.state.progress, isEmpty);
+      expect(repo.state.sessions, isEmpty);
+    },
+  );
+
+  test(
+    'developer completion creates realistic randomized level results',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+
+      await repo.completeDebugLevel(1, random: Random(7));
+
+      final record = repo.state.progress[mapLevelId(1)]!;
+      final session = repo.state.sessions.values.single;
+      expect(record.bestLights, 3);
+      expect(record.bestPoints, session.points);
+      expect(record.bestElapsedMs, session.elapsedMs);
+      expect(session.status, PlayStatus.completed);
+      expect(session.puzzles, hasLength(3));
+      for (final puzzle in session.puzzles) {
+        expect(puzzle.status, PlayStatus.completed);
+        expect(puzzle.elapsedMs, inInclusiveRange(30000, 180000));
+        expect(puzzle.mistakes, inInclusiveRange(0, 3));
+        expect(puzzle.hintsUsed, inInclusiveRange(0, 1));
+        expect(puzzle.points.isOdd, isTrue);
+      }
+      expect(
+        repo.state.modules['firstExperience'],
+        containsPair('step', 'complete'),
+      );
+      expect(repo.state.isUnlocked(mapLevelId(2)), isTrue);
+    },
+  );
 
   test('dev rewind persists the board and selected game atomically', () async {
     final store = FailingStore();

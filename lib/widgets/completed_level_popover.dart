@@ -82,6 +82,7 @@ class LevelSummaryCard extends StatelessWidget {
   bool get _isPracticeComplete => level == 1 && lights >= 3;
   bool get _isComplete =>
       _isPracticeComplete || (session?.canResume != true && lights >= 3);
+  bool get _isNewLevel => session == null && lights == 0;
 
   List<_RoundSummary> get _rounds {
     final puzzles = session?.puzzles;
@@ -146,6 +147,25 @@ class LevelSummaryCard extends StatelessWidget {
               surface: UiSurface.goldCreamPanel,
               padding: EdgeInsets.all(dense ? 14 : 18),
               child: _practiceSummary(dense: dense),
+            ),
+          );
+        }
+
+        if (_isNewLevel) {
+          final width = math.min(440.0, bounds.maxWidth);
+          final height = math.min(
+            360.0 + (textScale - 1).clamp(0.0, 1.0) * 80,
+            bounds.maxHeight,
+          );
+          final dense = bounds.maxWidth < 360 || bounds.maxHeight < 420;
+          return SizedBox(
+            key: const ValueKey('level-summary'),
+            width: width,
+            height: height,
+            child: UiSurfacePanel(
+              surface: UiSurface.goldCreamPanel,
+              padding: EdgeInsets.all(dense ? 14 : 18),
+              child: _newLevelSummary(dense: dense),
             ),
           );
         }
@@ -236,6 +256,21 @@ class LevelSummaryCard extends StatelessWidget {
     ],
   );
 
+  Widget _newLevelSummary({required bool dense}) => Column(
+    children: [
+      Expanded(child: _heading(dense: dense)),
+      SizedBox(height: dense ? 5 : 10),
+      _SummaryActions(
+        primaryKey: const ValueKey('level-summary-play'),
+        primaryLabel: 'Jugar',
+        primaryFontSize: dense ? 17 : 20,
+        onPrimary: onContinue,
+        onOk: onOk,
+        dense: dense,
+      ),
+    ],
+  );
+
   Widget _heading({required bool dense}) => Column(
     children: [
       _fitText(
@@ -272,12 +307,13 @@ class LevelSummaryCard extends StatelessWidget {
         }),
       ),
       SizedBox(height: dense ? 2 : 6),
-      _fitText(
-        _isPracticeComplete
-            ? 'Práctica completada'
-            : '$_completedRounds de 3 rondas completadas',
-        homeText(dense ? 13 : 16, weight: FontWeight.w600),
-      ),
+      if (!_isNewLevel)
+        _fitText(
+          _isPracticeComplete
+              ? 'Práctica completada'
+              : '$_completedRounds de 3 rondas completadas',
+          homeText(dense ? 13 : 16, weight: FontWeight.w600),
+        ),
     ],
   );
 

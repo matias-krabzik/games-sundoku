@@ -69,6 +69,11 @@ class LevelProgress extends ChangeNotifier {
     });
   }
 
+  Future<void> completeRandomLevel(int level) {
+    _id(level);
+    return _repository.completeDebugLevel(level);
+  }
+
   @override
   void dispose() {
     _repository.removeListener(notifyListeners);

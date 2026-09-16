@@ -16,9 +16,11 @@ class TutorialNumberTray extends StatelessWidget {
     required this.onSelected,
     this.horizontal = false,
     this.showGuide = true,
+    this.buttonExtent,
   });
   final bool horizontal;
   final bool showGuide;
+  final double? buttonExtent;
   final List<int> available;
   final ValueChanged<int>? onSelected;
 
@@ -27,12 +29,13 @@ class TutorialNumberTray extends StatelessWidget {
     builder: (context, bounds) {
       if (horizontal) {
         final gap = bounds.maxWidth < 340 ? 2.0 : 4.0;
+        final availableWidth = (bounds.maxWidth - gap * 8) / 9;
         final width = math.min(
-          (bounds.maxWidth - gap * 8) / 9,
-          GameLayout.controlSize,
+          buttonExtent ?? math.min(availableWidth, GameLayout.controlSize),
+          availableWidth,
         );
         return SizedBox(
-          height: math.max(48, width),
+          height: width,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -54,7 +57,12 @@ class TutorialNumberTray extends StatelessWidget {
       if (!showGuide) {
         return Center(
           child: SizedBox(
-            width: math.min(bounds.maxWidth, GameLayout.numberGridWidth),
+            width: math.min(
+              bounds.maxWidth,
+              buttonExtent == null
+                  ? GameLayout.numberGridWidth
+                  : buttonExtent! * 3 + 12,
+            ),
             child: _grid(),
           ),
         );
@@ -150,14 +158,16 @@ class TutorialEraseButton extends StatelessWidget {
     required this.onPressed,
     this.iconSize = 40,
     this.surface = UiSurface.creamRound,
+    this.dimension = 52,
   });
   final VoidCallback? onPressed;
   final double iconSize;
   final UiSurface surface;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
-    dimension: 52,
+    dimension: dimension,
     child: JuicyPress(
       key: const ValueKey('intro-clear'),
       label: 'Borrar número seleccionado',
@@ -211,7 +221,7 @@ class TutorialBlockCard extends StatelessWidget {
         Text(
           expanded
               ? 'El tablero tiene 9 bloques de 9 casillas.'
-              : 'Elige el orden que quieras.',
+              : 'Coloca los números del 1 al 9.',
           textAlign: TextAlign.center,
           style: homeText(19, weight: FontWeight.w700),
         ),

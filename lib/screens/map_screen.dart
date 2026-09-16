@@ -14,8 +14,7 @@ import '../widgets/parallax_background.dart';
 import '../data/level_node.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/map_selection_light.dart';
-
-const _navy = Color(0xFF082A62);
+import '../widgets/developer_floating_menu.dart';
 
 /// A horizontally scrollable world with ten touch targets on the painted path.
 class MapScreen extends StatefulWidget {
@@ -199,55 +198,67 @@ class _MapScreenState extends State<MapScreen>
     }
   }
 
-  Future<void> _giveLights({required bool complete}) async {
-    if (_awardingLevel != null ||
-        !_progress.isUnlocked(_activeLevel) ||
-        _progress.lightsFor(_activeLevel) == 3) {
-      return;
-    }
-    final level = _activeLevel;
-    setState(() => _awardingLevel = level);
-    int? nextLevel;
-    final count = complete ? 3 - _progress.lightsFor(level) : 1;
+  final ScrollController _scroll = ScrollController();
+
+  Future<void> _resetWorld() async {
     try {
-      for (int i = 0; i < count; i++) {
-        if (!mounted) return;
-        setState(() {
-          _socket = _progress.lightsFor(level);
-          _awardVariant = _awardRandom.nextInt(1 << 31);
-        });
-        if (!MediaQuery.disableAnimationsOf(context)) {
-          await _award.forward(from: 0).orCancel;
-        }
-        if (!mounted) return;
-        await _progress.awardLight(level);
-        if (!mounted) return;
-        if (_progress.lightsFor(level) == 3 && level < kMap1Nodes.length) {
-          nextLevel = level + 1;
-        }
-      }
-    } on TickerCanceled {
-      // Leaving the map cancels the pending light without awarding it.
+      await _progress.resetLevel(1);
     } catch (_) {
       if (mounted) {
-        showToast(context, 'No se pudo guardar el progreso. Intentá de nuevo.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _awardingLevel = null);
-        if (nextLevel != null) _focusLevel(nextLevel);
+        showToast(context, 'No se pudo resetear el mundo. Intentá de nuevo.');
       }
     }
   }
 
-  final ScrollController _scroll = ScrollController();
-
-  Future<void> _resetLevel() async {
+  Future<void> _chooseLevelToReset() async {
+    if (!mounted) return;
+    final level = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('dev-level-picker'),
+        title: const Text('Resetear nivel'),
+        content: SizedBox(
+          width: 260,
+          height: 360,
+          child: ListView(
+            children: [
+              for (final node in kMap1Nodes)
+                ListTile(
+                  key: ValueKey('dev-reset-level-${node.level}'),
+                  title: Text('Nivel ${node.level}'),
+                  onTap: () => Navigator.of(dialogContext).pop(node.level),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+    if (level == null) return;
     try {
-      await _progress.resetLevel(_activeLevel);
+      await _progress.resetLevel(level);
     } catch (_) {
       if (mounted) {
-        showToast(context, 'No se pudo guardar el progreso. Intentá de nuevo.');
+        showToast(context, 'No se pudo resetear el nivel. Intentá de nuevo.');
+      }
+    }
+  }
+
+  Future<void> _completeActiveLevel() async {
+    try {
+      await _progress.completeRandomLevel(_activeLevel);
+    } on StateError {
+      if (mounted) {
+        showToast(context, 'Completá primero el nivel anterior.');
+      }
+    } catch (_) {
+      if (mounted) {
+        showToast(context, 'No se pudo completar el nivel. Intentá de nuevo.');
       }
     }
   }
@@ -367,6 +378,8 @@ class _MapScreenState extends State<MapScreen>
         builder: (context, constraints) {
           final Size viewport = constraints.biggest;
           final bool compact = viewport.height < 520;
+          final bool largeWindow =
+              viewport.width >= 700 || viewport.height >= 900;
           final double worldHeight = math.max(
             viewport.height,
             viewport.width / 3,
@@ -468,7 +481,12 @@ class _MapScreenState extends State<MapScreen>
                 ),
               SafeArea(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, compact ? 8 : 16, 16, 12),
+                  padding: EdgeInsets.fromLTRB(
+                    largeWindow ? 32 : 16,
+                    compact ? 8 : (largeWindow ? 24 : 16),
+                    largeWindow ? 32 : 16,
+                    12,
+                  ),
                   child: Column(
                     children: [
                       MapWorldHeader(
@@ -476,69 +494,6 @@ class _MapScreenState extends State<MapScreen>
                         compact: compact,
                         onBack: () => Navigator.of(context).pop(),
                       ),
-                      if (kDebugMode && widget.showDeveloperControls) ...[
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: _RaisedPanel(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 12),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    'DEV',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                      color: _navy,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Simular 1 punto',
-                                    icon: const Icon(
-                                      Icons.add_circle_outline_rounded,
-                                    ),
-                                    onPressed:
-                                        _awardingLevel == null &&
-                                            _progress.isUnlocked(
-                                              _activeLevel,
-                                            ) &&
-                                            _progress.lightsFor(_activeLevel) <
-                                                3
-                                        ? () => _giveLights(complete: false)
-                                        : null,
-                                  ),
-                                  IconButton(
-                                    tooltip:
-                                        'Simular 3 puntos y abrir siguiente',
-                                    icon: const Icon(Icons.lock_open_rounded),
-                                    onPressed:
-                                        _awardingLevel == null &&
-                                            _progress.isUnlocked(
-                                              _activeLevel,
-                                            ) &&
-                                            _progress.lightsFor(_activeLevel) <
-                                                3
-                                        ? () => _giveLights(complete: true)
-                                        : null,
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Reiniciar nivel',
-                                    icon: const Icon(Icons.replay_rounded),
-                                    onPressed:
-                                        _awardingLevel == null &&
-                                            _progress.lightsFor(_activeLevel) >
-                                                0
-                                        ? _resetLevel
-                                        : null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                       const Spacer(),
                       MapStatusCard(
                         compact: viewport.height < 650,
@@ -559,37 +514,33 @@ class _MapScreenState extends State<MapScreen>
                   ),
                 ),
               ),
+              if (kDebugMode && widget.showDeveloperControls)
+                DeveloperFloatingMenu(
+                  actions: [
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-reset-world'),
+                      label: 'Resetear mundo',
+                      icon: Icons.public_outlined,
+                      onPressed: _resetWorld,
+                    ),
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-reset-specific-level'),
+                      label: 'Resetear nivel específico',
+                      icon: Icons.restart_alt_rounded,
+                      onPressed: _chooseLevelToReset,
+                    ),
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-complete-random-level'),
+                      label: 'Completar nivel $_activeLevel al azar',
+                      icon: Icons.casino_outlined,
+                      onPressed: _completeActiveLevel,
+                    ),
+                  ],
+                ),
             ],
           );
         },
       ),
     );
   }
-}
-
-class _RaisedPanel extends StatelessWidget {
-  const _RaisedPanel({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(26),
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFFFFBE9), Color(0xFFFFE0A0)],
-      ),
-      border: Border.all(color: const Color(0xFFFFF3BB), width: 2),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x40513F13),
-          blurRadius: 12,
-          offset: Offset(0, 8),
-        ),
-        BoxShadow(color: Color(0xFFD99A32), offset: Offset(0, 4)),
-      ],
-    ),
-    child: child,
-  );
 }

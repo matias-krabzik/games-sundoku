@@ -12,14 +12,16 @@ class SudokuHelpButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     this.active = false,
+    this.dimension = GameLayout.controlSize - 2,
   });
 
   final VoidCallback? onPressed;
   final bool active;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
-    dimension: GameLayout.controlSize - 2,
+    dimension: dimension,
     child: Semantics(
       selected: active,
       child: JuicyPress(

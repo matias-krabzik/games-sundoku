@@ -77,7 +77,7 @@ void main() {
 
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('six stories advance without exercises and can be reviewed without changing the board', () async {
+  test('the tutorial enters the block directly and preserves it through later stories', () async {
     final repo = GameRepository.memory();
     addTearDown(repo.close);
     final flow = FirstExperienceController(repo);
@@ -90,6 +90,22 @@ void main() {
       FirstExperienceStep.columnRule,
       FirstExperienceStep.givensIntroduction,
     ];
+    Future<void> advanceStory() async {
+      if (flow.step != FirstExperienceStep.blockIntroduction) {
+        await flow.advance();
+        return;
+      }
+      await flow.advance();
+      expect(flow.step, FirstExperienceStep.block);
+      final completed = flow.exampleCenter;
+      for (var index = 0; index < completed.length; index++) {
+        if (flow.cells[index] != null) continue;
+        flow.selectCell(index);
+        await flow.placeNumber(completed[index]);
+      }
+      await flow.expandBoard();
+    }
+
     for (var index = 0; index < stories.length; index++) {
       expect(flow.step, stories[index]);
       expect(flow.isStory, true);
@@ -97,7 +113,7 @@ void main() {
       expect(flow.storyCount, stories.length);
       expect(repo.state.sessions, isEmpty);
       expect(repo.state.puzzles, isEmpty);
-      if (index < stories.length - 1) await flow.advance();
+      if (index < stories.length - 1) await advanceStory();
     }
     expect(flow.remaining, 6);
     final chosenCenter = [...flow.cells];
@@ -118,7 +134,7 @@ void main() {
     await flow.previousStory();
     expect(flow.step, FirstExperienceStep.welcome);
     for (var index = 0; index < stories.length - 1; index++) {
-      await flow.advance();
+      await advanceStory();
     }
     expect(flow.boardValues, preview);
     expect(repo.state.sessions, isEmpty);
@@ -149,15 +165,17 @@ void main() {
       expect(flow.error, isNotNull);
       store.fail = false;
       await flow.advance();
+      expect(flow.step, FirstExperienceStep.block);
+      expect(flow.cells, draft);
+      final completed = flow.exampleCenter;
+      for (var index = 0; index < draft.length; index++) {
+        if (flow.cells[index] != null) continue;
+        flow.selectCell(index);
+        await flow.placeNumber(completed[index]);
+      }
+      await flow.expandBoard();
       expect(flow.step, FirstExperienceStep.expansion);
       expect(flow.cells, unorderedEquals(List.generate(9, (i) => i + 1)));
-      for (var index = 0; index < draft.length; index++) {
-        if (draft[index] != null) expect(flow.cells[index], draft[index]);
-      }
-      final filled = [...flow.cells];
-      await flow.previousStory();
-      await flow.advance();
-      expect(flow.cells, filled);
       expect(repo.state.sessions, isEmpty);
     },
   );
@@ -265,26 +283,28 @@ void main() {
     },
   );
 
-  test('practice recovers a session removed by a developer reset', () async {
-    final repo = GameRepository.memory();
-    addTearDown(repo.close);
-    final original = await at(repo, FirstExperienceStep.givensIntroduction);
-    await enterGame(original);
-    final oldId = original.session!.id;
-    original.dispose();
-    await original.flush();
-    await repo.resetDebugLevels({mapLevelId(1)});
+  test(
+    'resetting level one returns practice to the tutorial welcome',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      final original = await at(repo, FirstExperienceStep.givensIntroduction);
+      await enterGame(original);
+      final oldId = original.session!.id;
+      original.dispose();
+      await original.flush();
+      await repo.resetDebugLevels({mapLevelId(1)});
 
-    final resumed = FirstExperienceController(repo);
-    addTearDown(resumed.dispose);
-    await resumed.resumeGame();
-
-    expect(resumed.readyToPlay, isTrue);
-    expect(resumed.session!.id, isNot(oldId));
-    expect(resumed.gameIndex, 0);
-    expect(resumed.remaining, 6);
-    expect(resumed.fixedIndices.length, 75);
-  });
+      final resumed = FirstExperienceController(repo);
+      addTearDown(resumed.dispose);
+      expect(resumed.step, FirstExperienceStep.welcome);
+      expect(resumed.readyToPlay, isFalse);
+      expect(resumed.session, isNull);
+      expect(repo.state.sessions.containsKey(oldId), isFalse);
+      expect(resumed.gameIndex, 0);
+      expect(resumed.cells, List<int?>.filled(9, null));
+    },
+  );
 
   test('dev fills each sudoku except the selected editable tile without finishing it', () async {
     final repo = GameRepository.memory();

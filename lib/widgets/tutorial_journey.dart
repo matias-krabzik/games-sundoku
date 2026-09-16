@@ -225,11 +225,17 @@ class TutorialJourney extends StatelessWidget {
             (!_playing &&
                 bounds.maxWidth >= 700 &&
                 bounds.maxWidth > bounds.maxHeight * 1.2);
+        final largeWindow = bounds.maxWidth >= 700 || bounds.maxHeight >= 900;
         return Column(
           children: [
             if (navigation != null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                padding: EdgeInsets.fromLTRB(
+                  largeWindow ? 32 : 16,
+                  largeWindow ? 16 : 10,
+                  largeWindow ? 32 : 16,
+                  0,
+                ),
                 child: _gameUi(navigation!, 'navigation', .60),
               ),
             Expanded(
@@ -240,7 +246,7 @@ class TutorialJourney extends StatelessWidget {
                         ? GameLayout.desktopPlayWidth + 32
                         : wide
                         ? 950
-                        : (_playing ? _maxBoardWidth + 32 : 502),
+                        : (_playing ? double.infinity : 502),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -276,14 +282,25 @@ class TutorialJourney extends StatelessWidget {
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, body) {
-                              final boardWidth = math.min(
-                                desktopPlay
-                                    ? _maxBoardWidth
-                                    : wide
-                                    ? body.maxWidth * .47
-                                    : body.maxWidth,
-                                _maxBoardWidth,
+                              final boardWidth = desktopPlay
+                                  ? _maxBoardWidth
+                                  : _playing
+                                  ? GameLayout.mobileBoardSize(
+                                      MediaQuery.sizeOf(context).width,
+                                    )
+                                  : math.min(
+                                      wide
+                                          ? body.maxWidth * .47
+                                          : body.maxWidth,
+                                      _maxBoardWidth,
+                                    );
+                              final boardCellSize = GameLayout.boardCellSize(
+                                boardWidth,
                               );
+                              final keypadGap = body.maxWidth < 340 ? 2.0 : 4.0;
+                              final controlsWidth = desktopPlay
+                                  ? GameLayout.numberGridWidth
+                                  : boardCellSize * 9 + keypadGap * 8;
                               final boardArea = SizedBox.square(
                                 key: gameBoardSlotKey,
                                 dimension: boardWidth,
@@ -301,6 +318,7 @@ class TutorialJourney extends StatelessWidget {
                                     TutorialNumberTray(
                                       horizontal: !desktopPlay,
                                       showGuide: !desktopPlay,
+                                      buttonExtent: boardCellSize,
                                       available: flow.availableGameNumbers,
                                       onSelected:
                                           !navigationBlocked &&
@@ -314,42 +332,51 @@ class TutorialJourney extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 8),
                                     Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: desktopPlay ? 0 : 12,
+                                      padding: const EdgeInsets.symmetric(
                                         vertical: 4,
                                       ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          TutorialEraseButton(
-                                            iconSize: 28,
-                                            surface: UiSurface.creamTile,
-                                            onPressed:
-                                                !navigationBlocked &&
-                                                    flow.readyToPlay &&
-                                                    flow.gameCell != null &&
-                                                    !flow.fixedIndices.contains(
-                                                      flow.gameCell,
-                                                    ) &&
-                                                    flow.boardValues[flow
-                                                            .gameCell!] !=
-                                                        null
-                                                ? flow.clearGameCell
-                                                : null,
+                                      child: Center(
+                                        child: SizedBox(
+                                          width: controlsWidth,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              TutorialEraseButton(
+                                                dimension: boardCellSize,
+                                                iconSize: boardCellSize * .55,
+                                                surface: UiSurface.creamTile,
+                                                onPressed:
+                                                    !navigationBlocked &&
+                                                        flow.readyToPlay &&
+                                                        flow.gameCell != null &&
+                                                        !flow.fixedIndices
+                                                            .contains(
+                                                              flow.gameCell,
+                                                            ) &&
+                                                        flow.boardValues[flow
+                                                                .gameCell!] !=
+                                                            null
+                                                    ? flow.clearGameCell
+                                                    : null,
+                                              ),
+                                              SudokuHelpButton(
+                                                key: const ValueKey(
+                                                  'game-help',
+                                                ),
+                                                active: help != null,
+                                                dimension: boardCellSize,
+                                                onPressed:
+                                                    !navigationBlocked &&
+                                                        flow.canShowHelp
+                                                    ? (help == null
+                                                          ? flow.showHelp
+                                                          : flow.dismissHelp)
+                                                    : null,
+                                              ),
+                                            ],
                                           ),
-                                          SudokuHelpButton(
-                                            key: const ValueKey('game-help'),
-                                            active: help != null,
-                                            onPressed:
-                                                !navigationBlocked &&
-                                                    flow.canShowHelp
-                                                ? (help == null
-                                                      ? flow.showHelp
-                                                      : flow.dismissHelp)
-                                                : null,
-                                          ),
-                                        ],
+                                        ),
                                       ),
                                     ),
                                   ] else if (!_celebrating && wide == false)
@@ -379,23 +406,6 @@ class TutorialJourney extends StatelessWidget {
                                       ),
                                     ],
                                   ],
-                                  if (flow.step ==
-                                          FirstExperienceStep
-                                              .blockIntroduction &&
-                                      flow.session == null &&
-                                      !flow.reviewOnly)
-                                    TextButton(
-                                      key: const ValueKey(
-                                        'tutorial-choose-order',
-                                      ),
-                                      onPressed: flow.isBusy
-                                          ? null
-                                          : flow.startBlock,
-                                      child: Text(
-                                        'Elegir el orden',
-                                        style: homeText(16),
-                                      ),
-                                    ),
                                   if (flow.error != null)
                                     Padding(
                                       padding: const EdgeInsets.all(8),

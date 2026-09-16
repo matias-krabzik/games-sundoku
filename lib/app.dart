@@ -43,8 +43,13 @@ class _SunDokuAppState extends State<SunDokuApp> {
         _repository.state.modules[FirstExperienceController.moduleKey];
     return (introduction is Map && introduction.isNotEmpty) ||
         _repository.state.sessions.isNotEmpty ||
-        _progress.latestUnlocked > 1;
+        _levelOneComplete;
   }
+
+  bool get _levelOneComplete =>
+      _progress.lightsFor(1) >= LevelProgress.requiredLights;
+
+  bool get _quickPlayUnlocked => _levelOneComplete;
 
   Future<void> _welcome(BuildContext context) async {
     if (_welcomeChecked) return;
@@ -135,7 +140,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
             builder: (context, _) => HomeScreen(
               onPlay: () => _play(context),
               onReady: (homeContext) => unawaited(_welcome(homeContext)),
+              onResetAll: _repository.resetDebugSave,
               hasStarted: _hasStarted,
+              quickPlayUnlocked: _quickPlayUnlocked,
               availableLevel: _progress.latestUnlocked,
               unlockedLevels: _progress.unlockedCount,
               playerName: _repository.state.player.nameChosen

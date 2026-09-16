@@ -39,12 +39,11 @@ class IllustratedActionButton extends StatelessWidget {
         locale: Localizations.maybeLocaleOf(context),
         maxLines: 1,
       )..layout();
-      final width = bounds.constrainWidth(
-        math.max(
-          referenceSize.width,
-          (textPainter.width + 48 + (hasIcon ? 51 : 0)).ceilToDouble(),
-        ),
+      final naturalWidth = math.max(
+        referenceSize.width,
+        (textPainter.width + 48 + (hasIcon ? 51 : 0)).ceilToDouble(),
       );
+      final width = bounds.constrainWidth(naturalWidth);
       final height = math.max(referenceSize.height, textPainter.height + 27);
       textPainter.dispose();
       return SizedBox(

@@ -48,8 +48,12 @@ void main() {
           final fourth = find.byKey(const ValueKey('intro-number-4'));
           final ninth = find.byKey(const ValueKey('intro-number-9'));
           final boardRect = tester.getRect(scene.board);
+          final firstRect = tester.getRect(first);
+          expect(
+            firstRect.width,
+            closeTo(GameLayout.boardCellSize(boardRect.width), .1),
+          );
           if (desktop) {
-            final firstRect = tester.getRect(first);
             final ninthRect = tester.getRect(ninth);
             expect(
               firstRect.left - boardRect.right,
@@ -59,9 +63,34 @@ void main() {
             expect(firstRect.left, closeTo(tester.getTopLeft(fourth).dx, .1));
             expect((boardRect.left + ninthRect.right) / 2, closeTo(512, 1));
             expect(firstRect.width, lessThanOrEqualTo(GameLayout.controlSize));
-            expect(boardRect.width, lessThanOrEqualTo(GameLayout.maxBoardSize));
+            expect(
+              boardRect.width,
+              lessThanOrEqualTo(GameLayout.maxBoardSize + .1),
+            );
+            final header = tester.getRect(
+              find.byKey(const ValueKey('intro-header')),
+            );
+            final back = tester.getRect(
+              find.byKey(const ValueKey('game-back')),
+            );
+            final settings = tester.getRect(
+              find.byKey(const ValueKey('game-settings')),
+            );
+            expect(back.left, closeTo(32, .1));
+            expect(back.top, closeTo(24, .1));
+            expect(settings.right, closeTo(1024 - 32, .1));
+            expect(header.center.dx, closeTo(512, 1));
+            expect(header.left, greaterThan(back.right));
+            expect(header.right, lessThan(settings.left));
             await scene.capture(tester, 'desktop-game-1024x768');
           } else {
+            expect(
+              boardRect.width,
+              closeTo(
+                GameLayout.mobileBoardSize(tester.view.physicalSize.width),
+                .1,
+              ),
+            );
             expect(tester.getTopLeft(first).dy, greaterThan(boardRect.bottom));
             expect(tester.getTopLeft(ninth).dy, tester.getTopLeft(first).dy);
             expect(

@@ -11,6 +11,7 @@ import '../../domain/models/game_session.dart';
 import '../../domain/models/json_data.dart';
 import '../../domain/models/player_profile.dart';
 import '../../domain/models/sudoku_definition.dart';
+import '../../domain/tutorial/tutorial_sudokus.dart';
 import '../level_catalog.dart';
 import '../services/save_codec.dart';
 import '../services/save_store.dart';
@@ -583,15 +584,144 @@ class GameRepository extends ChangeNotifier {
     );
   });
 
+  /// Creates a complete, internally consistent attempt with randomized stats.
+  Future<void> completeDebugLevel(int number, {math.Random? random}) {
+    RangeError.checkValueInInterval(number, 1, 10, 'number');
+    final generator = random ?? math.Random();
+    return _update((save) {
+      if (!kDebugMode) throw StateError('Developer controls are unavailable');
+      final levelId = mapLevelId(number);
+      final level = save.levels[levelId]!;
+      if (!save.isUnlocked(levelId)) {
+        throw StateError('Complete the previous level first');
+      }
+      const tutorialCenter = [8, 3, 5, 4, 1, 6, 9, 2, 7];
+      final definitions = number == 1
+          ? (level.puzzleIds.every(save.puzzles.containsKey)
+                ? [for (final id in level.puzzleIds) save.puzzles[id]!]
+                : TutorialSudokus.create(tutorialCenter))
+          : [
+              for (final puzzleId in level.puzzleIds)
+                save.puzzles[puzzleId] ??
+                    SeededSudokus.create(
+                      id: puzzleId,
+                      seed: '${save.player.id}/$puzzleId',
+                    ),
+            ];
+      final completedAt = _now();
+      final puzzles = [
+        for (final definition in definitions)
+          PuzzleProgress(
+            puzzleId: definition.id,
+            cells: [
+              for (final value in definition.solution)
+                CellProgress(value: value),
+            ],
+            status: PlayStatus.completed,
+            elapsedMs: 30000 + generator.nextInt(150001),
+            mistakes: generator.nextInt(4),
+            hintsUsed: generator.nextInt(2),
+            points: 501 + generator.nextInt(2000) * 2,
+            completedAt: completedAt,
+          ),
+      ];
+      final sessionId = const Uuid().v4();
+      final session = GameSession(
+        id: sessionId,
+        playerId: save.player.id,
+        levelId: levelId,
+        puzzles: puzzles,
+        status: PlayStatus.completed,
+        startedAt: completedAt.subtract(
+          Duration(
+            milliseconds: puzzles.fold(0, (sum, p) => sum + p.elapsedMs),
+          ),
+        ),
+        updatedAt: completedAt,
+        completedAt: completedAt,
+      );
+      final previous = save.progress[levelId] ?? LevelRecord();
+      final sessions = {
+        for (final entry in save.sessions.entries)
+          entry.key: entry.value.levelId == levelId && entry.value.canResume
+              ? entry.value.copyWith(
+                  status: PlayStatus.abandoned,
+                  updatedAt: completedAt,
+                )
+              : entry.value,
+        sessionId: session,
+      };
+      final moduleKey = number == 1
+          ? 'firstExperience'
+          : 'generatedLevel/$number';
+      return save.copyWith(
+        puzzles: {
+          ...save.puzzles,
+          for (final definition in definitions) definition.id: definition,
+        },
+        sessions: sessions,
+        progress: {
+          ...save.progress,
+          levelId: LevelRecord(
+            bestLights: level.requiredLights,
+            bestPoints: math.max(previous.bestPoints, session.points),
+            bestElapsedMs: math.min(
+              previous.bestElapsedMs ?? session.elapsedMs,
+              session.elapsedMs,
+            ),
+            firstCompletedAt: previous.firstCompletedAt ?? completedAt,
+            extra: previous.extra,
+          ),
+        },
+        clearActiveSession:
+            save.activeSessionId == null ||
+            sessions[save.activeSessionId]?.canResume != true,
+        modules: {
+          ...save.modules,
+          moduleKey: {
+            'step': 'complete',
+            'gameIndex': 2,
+            'started': true,
+            'sessionId': sessionId,
+            if (number == 1) ...{
+              'cells': tutorialCenter,
+              'briefingAccepted': true,
+              'homeIntroductionShown': true,
+            },
+          },
+        },
+      );
+    });
+  }
+
   Future<void> resetDebugLevels(Set<String> levelIds) => _update((save) {
     final sessions = {...save.sessions}
       ..removeWhere((id, s) => levelIds.contains(s.levelId));
+    final resetNumbers = levelIds
+        .map((id) => int.tryParse(id.split('level-').last))
+        .whereType<int>();
+    final firstReset = resetNumbers.isEmpty
+        ? 11
+        : resetNumbers.reduce(math.min);
+    final modules = {...save.modules}
+      ..removeWhere(
+        (key, _) =>
+            (firstReset <= 1 && key == 'firstExperience') ||
+            (key.startsWith('generatedLevel/') &&
+                (int.tryParse(key.split('/').last) ?? 0) >= firstReset),
+      );
     return save.copyWith(
       progress: {...save.progress}
         ..removeWhere((id, _) => levelIds.contains(id)),
       sessions: sessions,
       clearActiveSession: !sessions.containsKey(save.activeSessionId),
+      modules: modules,
     );
+  });
+
+  Future<void> resetDebugSave() => _update((save) {
+    final fresh = _fresh(_now);
+    return fresh.copyWith(revision: save.revision);
   });
 }
 

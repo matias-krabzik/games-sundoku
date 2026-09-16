@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sundoku/app.dart';
 import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/map_level_button.dart';
 import 'package:sundoku/widgets/light_award_overlay.dart';
-import 'package:sundoku/screens/first_experience_screen.dart';
 
 Future<void> finishLight(WidgetTester tester) async {
   await tester.pump();
@@ -191,22 +189,15 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
       await tester.pump();
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
-      await tester.tap(find.byTooltip('Simular 1 punto'));
+      await progress.recordResult(1, 1);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(progress.lightsFor(1), 0);
-      final awardButton = find.byWidgetPredicate(
-        (widget) => widget is IconButton && widget.tooltip == 'Simular 1 punto',
-      );
-      expect(tester.widget<IconButton>(awardButton).onPressed, isNull);
-      await tester.pump(const Duration(milliseconds: 500));
       expect(progress.lightsFor(1), 1);
+      await tester.pump(const Duration(milliseconds: 500));
       expect(progress.isUnlocked(2), isFalse);
 
-      await tester.tap(find.byTooltip('Simular 3 puntos y abrir siguiente'));
+      await progress.recordResult(1, 3);
       await finishLight(tester);
-      expect(progress.lightsFor(1), 2);
-      expect(progress.isUnlocked(2), isFalse);
       await finishLight(tester);
       expect(progress.lightsFor(1), 3);
       expect(progress.lightsFor(2), 0);
@@ -216,28 +207,14 @@ void main() {
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('map-previous')));
       await finishNavigation(tester);
-      await tester.tap(find.byTooltip('Reiniciar nivel'));
-      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('dev-floating-button')));
+      await finishNavigation(tester);
+      await tester.tap(find.byKey(const ValueKey('dev-reset-world')));
+      await finishNavigation(tester);
       expect(progress.lightsFor(1), 0);
       expect(progress.isUnlocked(2), isFalse);
     },
   );
-
-  _desktopTestWidgets('leaving during delivery cancels unearned score', (
-    tester,
-  ) async {
-    final progress = LevelProgress();
-    addTearDown(progress.dispose);
-    await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
-    await tester.pump();
-    await tester.tap(find.byTooltip('Simular 3 puntos y abrir siguiente'));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump(const Duration(seconds: 3));
-    expect(progress.lightsFor(1), 0);
-    expect(progress.isUnlocked(2), isFalse);
-    expect(tester.takeException(), isNull);
-  });
 
   _desktopTestWidgets(
     'reduced motion unlocks immediately and progress survives map reentry',
@@ -247,33 +224,18 @@ void main() {
       addTearDown(
         tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
       );
-      await tester.pumpWidget(const SunDokuApp());
-      await tester.pump(const Duration(seconds: 3));
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pump(const Duration(seconds: 1));
-      for (var frame = 0; frame < 10; frame++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      final welcome = find.byKey(const ValueKey('profile-close'));
-      if (welcome.evaluate().isNotEmpty) {
-        await tester.tap(welcome);
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 1));
-      }
-      await tester.tap(find.text('Jugar'));
-      await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Simular 3 puntos y abrir siguiente'));
-      await tester.pumpAndSettle();
+      final progress = LevelProgress();
+      addTearDown(progress.dispose);
+      await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
+      await tester.pump();
+      await progress.recordResult(1, 3);
+      await finishNavigation(tester);
       expect(find.text('Nivel 2 de 10'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0);
-      await tester.tap(find.byKey(const ValueKey('map-back')));
-      await tester.pumpAndSettle();
-      expect(find.text('2 de 10'), findsOneWidget);
-      await tester.tap(find.text('Jugar'));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
+      await finishNavigation(tester);
       expect(find.text('Nivel 2 de 10'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsOneWidget);
     },

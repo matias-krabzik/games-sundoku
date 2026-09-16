@@ -82,6 +82,28 @@ Widget summary({
   ),
 );
 
+Widget newLevelSummary({
+  required VoidCallback onPlay,
+  required VoidCallback onOk,
+}) => MaterialApp(
+  home: Scaffold(
+    backgroundColor: const Color(0xFF55B8F3),
+    body: SafeArea(
+      minimum: const EdgeInsets.all(12),
+      child: Center(
+        child: LevelSummaryCard(
+          level: 2,
+          lights: 0,
+          session: null,
+          record: LevelRecord(),
+          onContinue: onPlay,
+          onOk: onOk,
+        ),
+      ),
+    ),
+  ),
+);
+
 void main() {
   setUpAll(() async {
     final font = FontLoader('Baloo2')
@@ -132,6 +154,42 @@ void main() {
     await tester.tap(continueButton);
     await settle(tester);
     expect(continuations, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('new level summary only offers play and Ok', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var plays = 0;
+    var closes = 0;
+
+    await tester.pumpWidget(
+      newLevelSummary(onPlay: () => plays++, onOk: () => closes++),
+    );
+    await settle(tester);
+
+    expect(find.text('En progreso'), findsOneWidget);
+    expect(find.text('0 de 3 rondas completadas'), findsNothing);
+    expect(find.text('Tiempo'), findsNothing);
+    expect(find.text('Todo está listo para comenzar.'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('level-summary-play')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text('Jugar'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('level-summary-ok')).hitTestable(),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('level-summary-play')));
+    await settle(tester);
+    expect(plays, 1);
+    await tester.tap(find.byKey(const ValueKey('level-summary-ok')));
+    await settle(tester);
+    expect(closes, 1);
     expect(tester.takeException(), isNull);
   });
 

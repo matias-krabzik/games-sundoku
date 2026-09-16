@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sundoku/app.dart';
+import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/data/services/game_feedback.dart';
 import 'package:sundoku/screens/home_screen.dart';
 import 'package:sundoku/screens/first_experience_screen.dart';
@@ -29,7 +30,7 @@ Future<void> _bootToHome(WidgetTester tester) async {
 
 Future<void> _openMap(WidgetTester tester) async {
   await _bootToHome(tester);
-  await tester.tap(find.text('Jugar'));
+  await tester.tap(find.byKey(const ValueKey('home-play')));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump(const Duration(milliseconds: 200));
@@ -67,6 +68,50 @@ void _desktopTestWidgets(String description, WidgetTesterCallback body) {
 }
 
 void main() {
+  testWidgets('quick play appears only after level one is complete', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    expect(find.text('Aventura'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: HomeScreen(hasStarted: true, quickPlayUnlocked: true),
+      ),
+    );
+    final quickPlay = find.byKey(const ValueKey('home-quick-play'));
+    expect(quickPlay.hitTestable(), findsOneWidget);
+    await tester.tap(quickPlay);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  _desktopTestWidgets(
+    'large home places adventure and quick play side by side',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(768, 1024);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: HomeScreen(hasStarted: true, quickPlayUnlocked: true),
+        ),
+      );
+      await tester.pump();
+
+      final adventure = tester.getRect(find.byKey(const ValueKey('home-play')));
+      final quickPlay = tester.getRect(
+        find.byKey(const ValueKey('home-quick-play')),
+      );
+      expect(adventure.top, closeTo(quickPlay.top, .1));
+      expect(adventure.right, lessThan(quickPlay.left));
+      expect(adventure.width, lessThan(quickPlay.width));
+      expect(adventure.width + quickPlay.width, lessThan(620));
+    },
+  );
+
   _desktopTestWidgets(
     'home controls stay reachable with long names and rotation',
     (tester) async {
@@ -79,6 +124,7 @@ void main() {
         const Size(320, 568),
         const Size(568, 320),
         const Size(844, 390),
+        const Size(768, 1024),
       ]) {
         tester.view.physicalSize = size;
         await tester.pumpWidget(
@@ -101,6 +147,18 @@ void main() {
         );
         expect(profile.dy, settings.dy);
         expect(profile.dx, lessThan(settings.dx));
+        final largeWindow = size.width >= 700 || size.height >= 900;
+        expect(profile.dx, closeTo(largeWindow ? 32 : 16, .1));
+        expect(
+          settings.dx + 54,
+          closeTo(size.width - (largeWindow ? 32 : 16), .1),
+        );
+        expect(profile.dy, closeTo(largeWindow ? 24 : 8, .1));
+        final logo = tester.getRect(find.byKey(const ValueKey('home-logo')));
+        if (largeWindow) expect(logo.width, greaterThan(360));
+        if (size.width <= size.height * 1.2 && largeWindow) {
+          expect(logo.width, closeTo(size.width * .9, .1));
+        }
       }
     },
   );
@@ -141,6 +199,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nivel 5 de 10'), findsOneWidget);
     expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('map DEV menu offers world and specific level resets', (
+    tester,
+  ) async {
+    final progress = LevelProgress();
+    addTearDown(progress.dispose);
+    await progress.recordResult(1, 3);
+    await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
+    await _finishMapTransition(tester);
+
+    await tester.tap(find.byKey(const ValueKey('dev-floating-button')));
+    await _finishMapTransition(tester);
+    expect(find.byKey(const ValueKey('dev-reset-world')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('dev-complete-random-level')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('dev-reset-specific-level')));
+    await _finishMapTransition(tester);
+    expect(find.byKey(const ValueKey('dev-level-picker')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('dev-reset-level-1')));
+    await _finishMapTransition(tester);
+    expect(progress.lightsFor(1), 0);
   });
 
   _desktopTestWidgets(
@@ -184,13 +266,37 @@ void main() {
     },
   );
 
+  _desktopTestWidgets(
+    'map navigation matches the home margins on large screens',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(768, 1024);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const MaterialApp(home: MapScreen(showDeveloperControls: false)),
+      );
+      await _finishMapTransition(tester);
+
+      final back = tester.getRect(find.byKey(const ValueKey('map-back')));
+      final settings = tester.getRect(
+        find.byKey(const ValueKey('map-settings')),
+      );
+      expect(back.left, closeTo(32, .1));
+      expect(back.top, closeTo(24, .1));
+      expect(settings.right, closeTo(768 - 32, .1));
+      expect(settings.top, closeTo(24, .1));
+    },
+  );
+
   _desktopTestWidgets('splash advances to the home screen', (tester) async {
     await tester.pumpWidget(const SunDokuApp(feedback: GameFeedback()));
     expect(find.byType(HomeScreen), findsNothing);
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('Jugar'), findsOneWidget);
+    expect(find.text('Aventura'), findsOneWidget);
     expect(find.byKey(const ValueKey('home-settings')), findsOneWidget);
   });
 
@@ -247,6 +353,11 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await _openMap(tester);
+      await tester.drag(
+        find.byKey(const ValueKey('dev-floating-button')),
+        const Offset(-100, -200),
+      );
+      await tester.pump();
 
       // At level 1 the back arrow is disabled, forward is enabled.
       expect(_mapArrow(tester, 'map-previous').onPressed, isNull);

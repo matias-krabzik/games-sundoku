@@ -13,7 +13,6 @@ import '../widgets/game_feedback_scope.dart';
 import '../domain/models/sudoku_completion.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
-import '../widgets/map_art.dart';
 import '../widgets/settings_art.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/score_feedback.dart';
@@ -26,6 +25,7 @@ import '../widgets/tutorial_celebration.dart';
 import '../widgets/tutorial_story_navigation.dart';
 import '../widgets/ui_surface_art.dart';
 import '../widgets/victory_particles.dart';
+import '../widgets/developer_floating_menu.dart';
 
 enum _NextSudokuPhase { leaving, entering }
 
@@ -569,6 +569,22 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     }
   }
 
+  Future<void> _developerExit() async {
+    try {
+      await _flow.pauseGame();
+      await _flow.flush();
+    } finally {
+      if (mounted) {
+        setState(() => _developerExiting = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).maybePop();
+        });
+      }
+    }
+  }
+
+  bool _developerExiting = false;
+
   @override
   Widget build(BuildContext context) {
     final motion = MediaQuery.disableAnimationsOf(context)
@@ -578,7 +594,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
     return PopScope(
       canPop:
-          (_welcome ||
+          (_developerExiting ||
+              _welcome ||
               _flow.session != null ||
               _flow.step.index > FirstExperienceStep.expansion.index) &&
           !_navigationBlocked,
@@ -598,6 +615,14 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                   final wide =
                       bounds.maxWidth >= 700 &&
                       bounds.maxWidth > bounds.maxHeight * 1.2;
+                  final titleInGameAppBar = _showGame && bounds.maxWidth >= 700;
+                  final flowHeader = _FlowHeader(
+                    welcome: false,
+                    compact: titleInGameAppBar,
+                    title: _finishingBoard
+                        ? 'Ronda ${_flow.gameIndex + 1} de 3'
+                        : TutorialJourney.title(_flow),
+                  );
                   final Widget content;
                   if (_welcome) {
                     content = _explanationLayout(
@@ -626,9 +651,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       onNextLevel: _openNextLevel,
                       navigation: _showGame
                           ? GameNavigationHeader(
-                              center: kDebugMode && widget.showDeveloperControls
-                                  ? _developerFillButton()
-                                  : null,
+                              center: titleInGameAppBar ? flowHeader : null,
                               onBack: _navigationBlocked ? null : _back,
                               onSettings: _navigationBlocked
                                   ? null
@@ -644,20 +667,13 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             ),
                             const SizedBox(height: 8),
                           ],
-                          _FlowHeader(
-                            welcome: false,
-                            title: _finishingBoard
-                                ? 'Ronda ${_flow.gameIndex + 1} de 3'
-                                : TutorialJourney.title(_flow),
-                            showDeveloperControls:
-                                widget.showDeveloperControls && !_showGame,
-                            onBack: _navigationBlocked ? null : _back,
-                          ),
-                          if (kDebugMode &&
-                              widget.showDeveloperControls &&
-                              !_showGame &&
-                              !_flow.isStory)
-                            _developerFillButton(),
+                          if (!titleInGameAppBar)
+                            _FlowHeader(
+                              welcome: false,
+                              title: _finishingBoard
+                                  ? 'Ronda ${_flow.gameIndex + 1} de 3'
+                                  : TutorialJourney.title(_flow),
+                            ),
                         ],
                       ),
                       onExit: () {
@@ -722,6 +738,17 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                   ),
                 ),
               ),
+            if (kDebugMode && widget.showDeveloperControls)
+              DeveloperFloatingMenu(
+                actions: [
+                  DeveloperMenuAction(
+                    key: const ValueKey('dev-exit-tutorial'),
+                    label: 'Salir',
+                    icon: Icons.exit_to_app_rounded,
+                    onPressed: _developerExit,
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -775,62 +802,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     }
   }
 
-  Widget _developerFillButton() => UiSurfacePanel(
-    surface: UiSurface.creamPill,
-    padding: EdgeInsets.zero,
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: TextButton(
-            key: const ValueKey('dev-fill-except-one'),
-            onPressed: !_navigationBlocked && _flow.readyToPlay
-                ? _flow.debugFillExceptOne
-                : null,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text('DEV · 1 ficha', style: homeText(12)),
-            ),
-          ),
-        ),
-        PopupMenuButton<int>(
-          key: const ValueKey('dev-game-options'),
-          enabled: !_navigationBlocked && _flow.debugPreviousGameIndex != null,
-          icon: SizedBox.square(
-            dimension: 19,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                for (var i = 0; i < 3; i++)
-                  const SizedBox.square(
-                    dimension: 3,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: homeNavy,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          onSelected: (_) => _flow.debugRestartPrevious(),
-          itemBuilder: (context) => [
-            if (_flow.debugPreviousGameIndex case final int index)
-              PopupMenuItem(
-                key: const ValueKey('dev-restart-previous'),
-                value: index,
-                child: Text(
-                  'Reiniciar sudoku ${index + 1}',
-                  style: homeText(16),
-                ),
-              ),
-          ],
-        ),
-      ],
-    ),
-  );
-
   Widget _explanationLayout(
     List<int?> cells,
     Duration motion, {
@@ -848,11 +819,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               count: _flow.storyCount,
             ),
             const SizedBox(height: 8),
-            _FlowHeader(
-              welcome: _welcome,
-              showDeveloperControls: widget.showDeveloperControls,
-              onBack: _navigationBlocked ? null : _back,
-            ),
+            _FlowHeader(welcome: _welcome),
             const SizedBox(height: 12),
             Expanded(
               child: LayoutBuilder(
@@ -941,12 +908,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
-              _FlowHeader(
-                welcome: false,
-                expanded: expanded,
-                showDeveloperControls: widget.showDeveloperControls,
-                onBack: _navigationBlocked ? null : _back,
-              ),
+              _FlowHeader(welcome: false, expanded: expanded),
               const SizedBox(height: 12),
               Expanded(
                 child: LayoutBuilder(
@@ -1266,16 +1228,14 @@ class _WorldBackdrop extends StatelessWidget {
 class _FlowHeader extends StatelessWidget {
   const _FlowHeader({
     required this.welcome,
-    required this.showDeveloperControls,
-    required this.onBack,
     this.expanded = false,
+    this.compact = false,
     this.title,
   });
   final bool welcome;
   final bool expanded;
+  final bool compact;
   final String? title;
-  final bool showDeveloperControls;
-  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -1288,7 +1248,9 @@ class _FlowHeader extends StatelessWidget {
       style: homeText(largeText ? 18 : 22),
     );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: compact
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.stretch,
       children: [
         if (welcome)
           UiSurfacePanel(
@@ -1339,7 +1301,39 @@ class _FlowHeader extends StatelessWidget {
               ],
             ),
           ),
-        if (!welcome)
+        if (!welcome && compact)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                key: const ValueKey('intro-header-rays-left'),
+                width: 28,
+                height: 70,
+                child: Transform.flip(
+                  flipX: true,
+                  child: const TutorialBlockArt(TutorialGlyph.rays),
+                ),
+              ),
+              const SizedBox(width: 7),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: UiSurfacePanel(
+                  key: const ValueKey('intro-header'),
+                  surface: UiSurface.goldCreamPanel,
+                  padding: const EdgeInsets.fromLTRB(12, 19, 12, 22),
+                  child: blockTitle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              const SizedBox(
+                key: ValueKey('intro-header-rays-right'),
+                width: 28,
+                height: 70,
+                child: TutorialBlockArt(TutorialGlyph.rays),
+              ),
+            ],
+          ),
+        if (!welcome && !compact)
           Row(
             children: [
               SizedBox(
@@ -1373,19 +1367,6 @@ class _FlowHeader extends StatelessWidget {
                 child: TutorialBlockArt(TutorialGlyph.rays),
               ),
             ],
-          ),
-        if (kDebugMode && showDeveloperControls)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              height: 30,
-              child: TextButton.icon(
-                key: const ValueKey('intro-back'),
-                onPressed: onBack,
-                icon: const MapIcon(MapGlyph.back, size: 16),
-                label: Text('DEV · Volver', style: homeText(12)),
-              ),
-            ),
           ),
       ],
     );
