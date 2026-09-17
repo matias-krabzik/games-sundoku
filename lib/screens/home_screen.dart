@@ -136,7 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     widget.unlockedLevels,
                                                 compact: true,
                                                 horizontalActions:
-                                                    !landscape && largeWindow ||
+                                                    (!landscape &&
+                                                        viewport.maxWidth >=
+                                                            700) ||
                                                     (landscape &&
                                                         viewport.maxWidth >=
                                                             1100),
@@ -191,7 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       unlockedLevels: widget.unlockedLevels,
                                       compact: height < 650,
                                       horizontalActions:
-                                          !landscape && largeWindow ||
+                                          (!landscape &&
+                                              viewport.maxWidth >= 700) ||
                                           (landscape &&
                                               viewport.maxWidth >= 1100),
                                       hasStarted: widget.hasStarted,

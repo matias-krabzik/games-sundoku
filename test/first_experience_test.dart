@@ -16,6 +16,7 @@ import 'package:sundoku/widgets/juicy_press.dart';
 import 'package:sundoku/widgets/sudoku_board.dart';
 import 'package:sundoku/widgets/tutorial_story.dart';
 import 'package:sundoku/widgets/tutorial_story_navigation.dart';
+import 'package:sundoku/widgets/world_journey_route.dart';
 
 final _continue = find.byKey(const ValueKey('intro-continue'));
 final _startBlock = find.byKey(const ValueKey('tutorial-next'));
@@ -147,6 +148,50 @@ void main() {
     expect(find.byType(FirstExperienceScreen), findsNothing);
   });
 
+  testWidgets('first adventure keeps home status hidden during departure', (
+    tester,
+  ) async {
+    _configure(tester);
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: false);
+    final repository = GameRepository.memory();
+    addTearDown(repository.dispose);
+    await repository.saveModule('homeWelcome', {'namePromptShown': true});
+    await tester.pumpWidget(
+      SunDokuApp(repository: repository, feedback: const GameFeedback()),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await _settle(tester);
+    final homeRoute = ModalRoute.of(tester.element(find.byType(HomeScreen)));
+    expect(homeRoute, isA<WorldJourneyRoute>());
+    expect(homeRoute!.animation!.value, lessThan(1));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    final status = find.byKey(const ValueKey('home-game-status'));
+    expect(status, findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-play')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump();
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(FirstExperienceScreen), findsOneWidget);
+      final mapRoute =
+          ModalRoute.of(tester.element(find.byType(MapScreen)))!
+              as WorldJourneyRoute;
+      expect(mapRoute.showClouds, isFalse);
+      expect(status, findsNothing);
+      expect(
+        tester.widget<HomeScreen>(find.byType(HomeScreen)).hasStarted,
+        isFalse,
+      );
+    }
+    await tester.pump(const Duration(seconds: 2));
+    await _settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('first Play opens tutorial once; map review preserves progress', (
     tester,
   ) async {
@@ -158,10 +203,15 @@ void main() {
     expect(repository.state.modules[FirstExperienceController.moduleKey], {
       'homeIntroductionShown': true,
     });
+    expect(find.byKey(const ValueKey('tutorial-close')), findsNothing);
     Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
     await _settle(tester);
     expect(find.byType(MapScreen), findsOneWidget);
     final back = find.byKey(const ValueKey('map-back'));
+    expect(
+      find.descendant(of: back, matching: find.byIcon(Icons.home_rounded)),
+      findsOneWidget,
+    );
     final review = find.byKey(const ValueKey('map-tutorial'));
     expect(
       tester.getRect(review).left,
@@ -173,6 +223,13 @@ void main() {
     expect(find.byType(MapScreen), findsOneWidget);
     expect(find.byType(FirstExperienceScreen), findsNothing);
     final saved = repository.state.modules[FirstExperienceController.moduleKey];
+    await _tap(tester, review);
+    final close = find.byKey(const ValueKey('tutorial-close'));
+    expect(close, findsOneWidget);
+    expect(tester.getRect(close).right, closeTo(320 - 16, .01));
+    expect(tester.getRect(close).top, closeTo(8, .01));
+    await _tap(tester, close);
+    expect(find.byType(MapScreen), findsOneWidget);
     await _tap(tester, review);
     expect(
       tester

@@ -24,6 +24,41 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'))).load();
   });
 
+  testWidgets('mobile game distributes spare height below the status bar', (
+    tester,
+  ) async {
+    scene.configure(tester);
+    final repo = GameRepository.memory();
+    await repo.recordDebugLights(mapLevelId(1), 3);
+    await repo.startGeneratedLevel(2);
+    await scene.show(tester, repo, levelNumber: 2);
+    await scene.settle(tester);
+    final status = find.byKey(const ValueKey('game-timer'));
+    final board = find.byType(PausableGameBoard);
+    final number = find.byKey(const ValueKey('intro-number-1'));
+    final statusBefore = tester.getRect(status);
+    final boardBefore = tester.getRect(board);
+    final numberBefore = tester.getRect(number);
+
+    tester.view.physicalSize = const Size(390, 884);
+    await scene.settle(tester);
+    final boardAfter = tester.getRect(board);
+    final numberAfter = tester.getRect(number);
+    expect(tester.getRect(status).top, closeTo(statusBefore.top, .1));
+    expect(boardAfter.width, closeTo(boardBefore.width, .1));
+    expect(boardAfter.height, closeTo(boardBefore.height, .1));
+    expect(boardAfter.top, greaterThan(boardBefore.top));
+    expect(
+      numberAfter.top - boardAfter.bottom,
+      greaterThan(numberBefore.top - boardBefore.bottom),
+    );
+    expect(number.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await scene.settle(tester);
+    await repo.close();
+  });
+
   testWidgets(
     'a saved correct move updates score and launches the board popup',
     (tester) async {
@@ -85,6 +120,23 @@ void main() {
           await scene.show(tester, repo, levelNumber: 2, withParentRoute: true);
           await scene.tap(tester, find.text('Abrir tutorial'));
           expect(find.text('Ronda 1 de 3'), findsOneWidget);
+          final title = tester.getRect(find.text('Ronda 1 de 3'));
+          final back = tester.getRect(find.byKey(const ValueKey('game-back')));
+          final settings = tester.getRect(
+            find.byKey(const ValueKey('game-settings')),
+          );
+          expect(title.left, greaterThanOrEqualTo(back.right));
+          expect(title.right, lessThanOrEqualTo(settings.left));
+          expect(title.center.dy, closeTo(back.center.dy, 3));
+          expect(tester.widget<Text>(find.text('Ronda 1 de 3')).maxLines, 1);
+          expect(
+            find.byKey(const ValueKey('intro-header-rays-left')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('intro-header-rays-right')),
+            findsNothing,
+          );
           expect(find.byKey(const ValueKey('game-timer')), findsOneWidget);
           expect(
             find.byKey(const ValueKey('game-unlimited-lives')),
@@ -105,6 +157,7 @@ void main() {
           );
           await scene.tap(tester, find.byKey(const ValueKey('game-pause')));
           expect(find.text('En pausa'), findsOneWidget);
+          expect(find.byKey(const ValueKey('game-play-icon')), findsOneWidget);
           expect(
             tester
                 .widget<ImageFiltered>(
@@ -137,8 +190,9 @@ void main() {
             tester,
             desktop ? 'level-2-paused-desktop' : 'level-2-paused-mobile',
           );
-          await scene.tap(tester, find.byKey(const ValueKey('game-resume')));
+          await scene.tap(tester, find.byKey(const ValueKey('game-pause')));
           expect(flow.readyToPlay, true);
+          expect(find.byKey(const ValueKey('game-play-icon')), findsNothing);
           tester.binding.handleAppLifecycleStateChanged(
             AppLifecycleState.inactive,
           );
@@ -230,10 +284,7 @@ void main() {
       await scene.settle(tester);
       expect(find.text('En progreso'), findsOneWidget);
       expect(opened, isEmpty);
-      await scene.tap(
-        tester,
-        find.byKey(const ValueKey('level-summary-continue')),
-      );
+      await scene.tap(tester, find.byKey(const ValueKey('level-summary-play')));
       expect(opened, [3]);
       await tester.pumpWidget(const SizedBox());
       await scene.settle(tester);
@@ -338,6 +389,8 @@ void main() {
       expect(tester.takeException(), isNull);
       await scene.capture(tester, 'summary-small-large-text');
       await scene.tap(tester, find.text('Siguiente nivel 3'));
+      await tester.pump(const Duration(milliseconds: 1600));
+      await tester.pump();
       expect(find.text('Ronda 1 de 3'), findsOneWidget);
       expect(
         tester

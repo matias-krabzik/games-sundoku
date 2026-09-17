@@ -7,6 +7,19 @@ class LevelNode {
   final double y;
 }
 
+const kValleyLevelNames = [
+  'La entrada del valle',
+  'Los primeros pasos',
+  'La curva dorada',
+  'Junto a la cerca',
+  'A la sombra del roble',
+  'Las piedras del camino',
+  'La subida soleada',
+  'El recodo del valle',
+  'El último tramo',
+  'El mirador del sol',
+];
+
 /// Positions follow the path in world-1-horizontal.png from left to right.
 const List<LevelNode> kMap1Nodes = <LevelNode>[
   LevelNode(level: 1, x: 0.065, y: 0.640),

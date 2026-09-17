@@ -36,6 +36,17 @@ class LevelProgress extends ChangeNotifier {
   LevelRecord recordFor(int level) =>
       _repository.state.progress[_id(level)] ?? LevelRecord();
 
+  /// Sum each level's best saved score, including an unfinished attempt.
+  int get worldPoints => kMap1Nodes.fold(0, (total, node) {
+    var points = recordFor(node.level).bestPoints;
+    for (final session in _repository.state.sessions.values) {
+      if (session.levelId == _id(node.level) && session.points > points) {
+        points = session.points;
+      }
+    }
+    return total + points;
+  });
+
   /// The resumable attempt is the useful map summary. Otherwise show the most
   /// recent finished attempt so every level, including level 1, uses one card.
   GameSession? sessionFor(int level) {

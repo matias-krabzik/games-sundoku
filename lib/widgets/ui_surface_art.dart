@@ -1,9 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'nine_slice_art.dart';
 
 /// Reusable skins, never one image per button or screen.
 enum UiSurface {
+  worldFooter,
+  blueScoreCapsule,
   goldButton,
   creamPanel,
   goldCreamPanel,
@@ -34,6 +38,20 @@ class UiSurfaceSpec {
 
 extension UiSurfaceCatalog on UiSurface {
   UiSurfaceSpec get spec => switch (this) {
+    UiSurface.worldFooter => const UiSurfaceSpec(
+      'assets/images/home/status-panel.png',
+      Size(2181, 721),
+      Rect.fromLTRB(.20, .14, .80, .65),
+      Rect.fromLTRB(.30, .30, .70, .60),
+      Size(320, 110),
+    ),
+    UiSurface.blueScoreCapsule => const UiSurfaceSpec(
+      'assets/images/home/play-button.png',
+      Size(2172, 724),
+      Rect.fromLTRB(.115, .160, .88, .850),
+      Rect.fromLTRB(.27, .32, .73, .64),
+      Size(170, 48),
+    ),
     UiSurface.goldTile => const UiSurfaceSpec(
       'assets/images/tutorial/block-tiles.png',
       Size(1774, 887),
@@ -153,12 +171,201 @@ class UiSurfaceArt extends StatelessWidget {
         centerSlice: spec.centerSlice,
         referenceSize: reference,
       );
+      if (surface == UiSurface.worldFooter) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFFFF7DF),
+                    Color(0xFFFFF1CA),
+                    Color(0xFFF7DA92),
+                  ],
+                  stops: [0, .55, 1],
+                ),
+              ),
+            ),
+            Opacity(opacity: .22, child: art),
+            const _AnimatedFooterLight(),
+            const Positioned(
+              left: 0,
+              right: 0,
+              top: 9,
+              height: 15,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x45975D15), Color(0x00975D15)],
+                  ),
+                ),
+              ),
+            ),
+            const Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: 10,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFFFFF9D0),
+                      Color(0xFFFFEE90),
+                      Color(0xFFFFD140),
+                      Color(0xFFE9A117),
+                      Color(0xFFB67410),
+                      Color(0xFFFFDF73),
+                    ],
+                    stops: [0, .14, .36, .64, .86, 1],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+      if (surface == UiSurface.blueScoreCapsule) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            art,
+            Positioned.fill(
+              left: 4,
+              right: 4,
+              top: 4,
+              bottom: 6,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(bounds.maxHeight / 2),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF397BCD),
+                      Color(0xFF104888),
+                      Color(0xFF072958),
+                    ],
+                    stops: [0, .2, 1],
+                  ),
+                  border: Border.all(color: const Color(0xFF214F83), width: 1),
+                ),
+              ),
+            ),
+          ],
+        );
+      }
       return surface == UiSurface.progressTrack ||
               surface == UiSurface.progressFill
           ? ClipRRect(borderRadius: BorderRadius.circular(999), child: art)
           : art;
     },
   );
+}
+
+/// Low-contrast rays are painted at the available size, keeping the light's
+/// origin centered without stretching the artwork or its upper bevel.
+class _AnimatedFooterLight extends StatefulWidget {
+  const _AnimatedFooterLight();
+
+  @override
+  State<_AnimatedFooterLight> createState() => _AnimatedFooterLightState();
+}
+
+class _AnimatedFooterLightState extends State<_AnimatedFooterLight>
+    with SingleTickerProviderStateMixin {
+  late final _motion = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 12),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final media = MediaQuery.maybeOf(context);
+    final enabled =
+        !(media?.disableAnimations ?? false) &&
+        !(media?.accessibleNavigation ?? false) &&
+        TickerMode.valuesOf(context).enabled;
+    if (enabled) {
+      if (!_motion.isAnimating) _motion.repeat();
+    } else {
+      _motion.stop();
+      _motion.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _motion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: CustomPaint(
+      key: const ValueKey('map-footer-light'),
+      painter: _FooterSunrays(_motion),
+    ),
+  );
+}
+
+class _FooterSunrays extends CustomPainter {
+  _FooterSunrays(this.motion) : super(repaint: motion);
+  final Animation<double> motion;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    final origin = Offset(size.width / 2, size.height * .97);
+    final radius = size.longestSide * 1.5;
+    final wave = math.sin(motion.value * math.pi * 2);
+    final rayPaint = Paint()
+      ..color = const Color(0xFFFFFBE8).withValues(alpha: .30 + .06 * wave);
+    for (var i = 0; i < 18; i++) {
+      final angle = i * math.pi * 2 / 18 + wave * .055;
+      final edge = angle + math.pi / 18 * .86;
+      canvas.drawPath(
+        Path()
+          ..moveTo(origin.dx, origin.dy)
+          ..lineTo(
+            origin.dx + math.cos(angle) * radius,
+            origin.dy + math.sin(angle) * radius,
+          )
+          ..lineTo(
+            origin.dx + math.cos(edge) * radius,
+            origin.dy + math.sin(edge) * radius,
+          )
+          ..close(),
+        rayPaint,
+      );
+    }
+    final glow = Rect.fromCenter(
+      center: Offset(size.width * (.5 + wave * .06), size.height * .4),
+      width: size.width,
+      height: size.height * 2.4,
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Color(0x99FFFEF3), Color(0x00FFFEF3)],
+        ).createShader(glow),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_FooterSunrays oldDelegate) =>
+      motion != oldDelegate.motion;
 }
 
 /// A live layout over a shared skin. Content determines the panel's dimensions.

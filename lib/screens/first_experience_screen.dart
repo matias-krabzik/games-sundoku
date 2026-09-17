@@ -26,6 +26,7 @@ import '../widgets/tutorial_story_navigation.dart';
 import '../widgets/ui_surface_art.dart';
 import '../widgets/victory_particles.dart';
 import '../widgets/developer_floating_menu.dart';
+import '../widgets/world_journey_route.dart';
 
 enum _NextSudokuPhase { leaving, entering }
 
@@ -131,6 +132,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   bool get _finishingBoard => _pendingBoardCompletion != null;
   bool get _showGame =>
       _flow.step == FirstExperienceStep.playing || _finishingBoard;
+  bool get _showTutorialClose =>
+      !_showGame &&
+      (_flow.reviewOnly || _flow.session != null) &&
+      (_welcome || _flow.isStory);
   bool get _navigationBlocked =>
       _settingsOpen ||
       _openingNextLevel ||
@@ -585,6 +590,27 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
   bool _developerExiting = false;
 
+  Future<void> _closeTutorial() async {
+    if (_navigationBlocked) return;
+    try {
+      await _flow.pauseGame();
+      await _flow.flush();
+      if (!mounted) return;
+      setState(() => _developerExiting = true);
+      await WidgetsBinding.instance.endOfFrame;
+      if (mounted) await Navigator.of(context).maybePop();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _developerExiting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos guardar. Intenta salir otra vez.'),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final motion = MediaQuery.disableAnimationsOf(context)
@@ -610,103 +636,166 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
           children: [
             const _WorldBackdrop(),
             SafeArea(
-              child: LayoutBuilder(
-                builder: (context, bounds) {
-                  final wide =
-                      bounds.maxWidth >= 700 &&
-                      bounds.maxWidth > bounds.maxHeight * 1.2;
-                  final titleInGameAppBar = _showGame && bounds.maxWidth >= 700;
-                  final flowHeader = _FlowHeader(
-                    welcome: false,
-                    compact: titleInGameAppBar,
-                    title: _finishingBoard
-                        ? 'Ronda ${_flow.gameIndex + 1} de 3'
-                        : TutorialJourney.title(_flow),
-                  );
-                  final Widget content;
-                  if (_welcome) {
-                    content = _explanationLayout(
-                      cells,
-                      motion,
-                      wide: wide,
-                      compact: wide || bounds.maxHeight < 650,
-                    );
-                  } else if (_flow.isStory ||
-                      _flow.step.index >= FirstExperienceStep.expansion.index) {
-                    content = TutorialJourney(
-                      navigationBlocked: _navigationBlocked,
-                      finishingBoard: _finishingBoard,
-                      flow: _flow,
-                      board: _rewardFlightFrom == null && _nextPhase == null
-                          ? _stage(cells, motion)
-                          : const SizedBox.expand(),
-                      rewardAnimation: _rewardEntrance,
-                      rewardBoardSlotKey: _rewardBoardSlotKey,
-                      rewardActionKey: _rewardActionKey,
-                      gameBoardSlotKey: _nextBoardSlotKey,
-                      departure: _nextExit,
-                      gameEntrance: _nextEntrance,
-                      onNextGame: _advanceGame,
-                      nextLevelNumber: _nextLevelNumber,
-                      onNextLevel: _openNextLevel,
-                      navigation: _showGame
-                          ? GameNavigationHeader(
-                              center: titleInGameAppBar ? flowHeader : null,
-                              onBack: _navigationBlocked ? null : _back,
-                              onSettings: _navigationBlocked
-                                  ? null
-                                  : _openSettings,
-                            )
-                          : null,
-                      header: Column(
-                        children: [
-                          if (_flow.isStory) ...[
-                            TutorialStoryProgress(
-                              index: _flow.storyIndex,
-                              count: _flow.storyCount,
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                          if (!titleInGameAppBar)
-                            _FlowHeader(
-                              welcome: false,
-                              title: _finishingBoard
-                                  ? 'Ronda ${_flow.gameIndex + 1} de 3'
-                                  : TutorialJourney.title(_flow),
-                            ),
-                        ],
+              child: Flex(
+                direction: Axis.vertical,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_showTutorialClose &&
+                      !(MediaQuery.sizeOf(context).aspectRatio > 1.2 &&
+                          MediaQuery.sizeOf(context).height < 600))
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        MediaQuery.sizeOf(context).width >= 700 ||
+                                MediaQuery.sizeOf(context).height >= 900
+                            ? 24
+                            : 8,
+                        MediaQuery.sizeOf(context).width >= 700 ||
+                                MediaQuery.sizeOf(context).height >= 900
+                            ? 32
+                            : 16,
+                        0,
                       ),
-                      onExit: () {
-                        if (!_navigationBlocked) Navigator.of(context).pop();
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        heightFactor: 1,
+                        child: GameHeaderButton(
+                          key: const ValueKey('tutorial-close'),
+                          label: 'Cerrar tutorial y volver al mapa',
+                          onPressed: _navigationBlocked ? null : _closeTutorial,
+                          icon: const SettingsIcon(
+                            SettingsGlyph.close,
+                            size: 33,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, bounds) {
+                        final wide =
+                            bounds.maxWidth >= 700 &&
+                            bounds.maxWidth > bounds.maxHeight * 1.2;
+                        final titleInGameAppBar = _showGame;
+                        final flowHeader = _FlowHeader(
+                          welcome: false,
+                          compact: titleInGameAppBar,
+                          title: _finishingBoard
+                              ? 'Ronda ${_flow.gameIndex + 1} de 3'
+                              : TutorialJourney.title(_flow),
+                        );
+                        final Widget content;
+                        if (_welcome) {
+                          content = _explanationLayout(
+                            cells,
+                            motion,
+                            wide: wide,
+                            compact: wide || bounds.maxHeight < 650,
+                          );
+                        } else if (_flow.isStory ||
+                            _flow.step.index >=
+                                FirstExperienceStep.expansion.index) {
+                          content = TutorialJourney(
+                            navigationBlocked: _navigationBlocked,
+                            finishingBoard: _finishingBoard,
+                            flow: _flow,
+                            board:
+                                _rewardFlightFrom == null && _nextPhase == null
+                                ? _stage(cells, motion)
+                                : const SizedBox.expand(),
+                            rewardAnimation: _rewardEntrance,
+                            rewardBoardSlotKey: _rewardBoardSlotKey,
+                            rewardActionKey: _rewardActionKey,
+                            gameBoardSlotKey: _nextBoardSlotKey,
+                            departure: _nextExit,
+                            gameEntrance: _nextEntrance,
+                            onNextGame: _advanceGame,
+                            nextLevelNumber: _nextLevelNumber,
+                            onNextLevel: _openNextLevel,
+                            navigation: _showGame
+                                ? GameNavigationHeader(
+                                    center: titleInGameAppBar
+                                        ? flowHeader
+                                        : null,
+                                    onBack: _navigationBlocked ? null : _back,
+                                    onSettings: _navigationBlocked
+                                        ? null
+                                        : _openSettings,
+                                  )
+                                : null,
+                            header: Column(
+                              children: [
+                                if (_flow.isStory) ...[
+                                  TutorialStoryProgress(
+                                    index: _flow.storyIndex,
+                                    count: _flow.storyCount,
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                if (!titleInGameAppBar)
+                                  _FlowHeader(
+                                    welcome: false,
+                                    title: _finishingBoard
+                                        ? 'Ronda ${_flow.gameIndex + 1} de 3'
+                                        : TutorialJourney.title(_flow),
+                                  ),
+                              ],
+                            ),
+                            onExit: () {
+                              if (!_navigationBlocked) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                          );
+                        } else {
+                          content = _blockLayout(cells, motion);
+                        }
+                        if (!_flow.isStory) return content;
+                        return TutorialStoryGestures(
+                          key: const ValueKey('tutorial-story-gestures'),
+                          enabled: !_navigationBlocked,
+                          onNext: () {
+                            if (_navigationBlocked) return;
+                            if (_flow.reviewOnly &&
+                                _flow.storyIndex == _flow.storyCount - 1) {
+                              Navigator.of(context).pop();
+                            } else {
+                              _flow.advance();
+                            }
+                          },
+                          onPrevious: _flow.storyIndex > 0
+                              ? () {
+                                  if (!_navigationBlocked) {
+                                    _flow.previousStory();
+                                  }
+                                }
+                              : null,
+                          child: content,
+                        );
                       },
-                    );
-                  } else {
-                    content = _blockLayout(cells, motion);
-                  }
-                  if (!_flow.isStory) return content;
-                  return TutorialStoryGestures(
-                    key: const ValueKey('tutorial-story-gestures'),
-                    enabled: !_navigationBlocked,
-                    onNext: () {
-                      if (_navigationBlocked) return;
-                      if (_flow.reviewOnly &&
-                          _flow.storyIndex == _flow.storyCount - 1) {
-                        Navigator.of(context).pop();
-                      } else {
-                        _flow.advance();
-                      }
-                    },
-                    onPrevious: _flow.storyIndex > 0
-                        ? () {
-                            if (!_navigationBlocked) _flow.previousStory();
-                          }
-                        : null,
-                    child: content,
-                  );
-                },
+                    ),
+                  ),
+                ],
               ),
             ),
             if (_rewardFlightFrom != null) _rewardFlight(cells, motion),
+            if (_showTutorialClose &&
+                MediaQuery.sizeOf(context).aspectRatio > 1.2 &&
+                MediaQuery.sizeOf(context).height < 600)
+              Positioned(
+                right:
+                    MediaQuery.paddingOf(context).right +
+                    (MediaQuery.sizeOf(context).width >= 700 ? 32 : 16),
+                top:
+                    MediaQuery.paddingOf(context).top +
+                    (MediaQuery.sizeOf(context).width >= 700 ? 24 : 8),
+                child: GameHeaderButton(
+                  key: const ValueKey('tutorial-close'),
+                  label: 'Cerrar tutorial y volver al mapa',
+                  onPressed: _navigationBlocked ? null : _closeTutorial,
+                  icon: const SettingsIcon(SettingsGlyph.close, size: 33),
+                ),
+              ),
             if (_nextPhase != null) _nextBoardFlight(cells, motion),
             if (!_finishingBoard &&
                 (_flow.step == FirstExperienceStep.celebration ||
@@ -778,7 +867,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       if (!mounted) return;
       unawaited(
         Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(
+          WorldJourneyRoute(
+            reduceMotion: MediaQuery.disableAnimationsOf(context),
             builder: (_) => FirstExperienceScreen(
               repository: widget.repository,
               levelNumber: number,
@@ -1244,7 +1334,8 @@ class _FlowHeader extends StatelessWidget {
       title ?? (expanded ? 'Tu tablero de sudoku' : 'Empecemos con 9 casillas'),
       key: const ValueKey('intro-header-title'),
       textAlign: TextAlign.center,
-      maxLines: largeText ? null : 1,
+      maxLines: compact || !largeText ? 1 : null,
+      softWrap: !compact,
       style: homeText(largeText ? 18 : 22),
     );
     return Column(
@@ -1302,36 +1393,14 @@ class _FlowHeader extends StatelessWidget {
             ),
           ),
         if (!welcome && compact)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                key: const ValueKey('intro-header-rays-left'),
-                width: 28,
-                height: 70,
-                child: Transform.flip(
-                  flipX: true,
-                  child: const TutorialBlockArt(TutorialGlyph.rays),
-                ),
-              ),
-              const SizedBox(width: 7),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: UiSurfacePanel(
-                  key: const ValueKey('intro-header'),
-                  surface: UiSurface.goldCreamPanel,
-                  padding: const EdgeInsets.fromLTRB(12, 19, 12, 22),
-                  child: blockTitle,
-                ),
-              ),
-              const SizedBox(width: 7),
-              const SizedBox(
-                key: ValueKey('intro-header-rays-right'),
-                width: 28,
-                height: 70,
-                child: TutorialBlockArt(TutorialGlyph.rays),
-              ),
-            ],
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: UiSurfacePanel(
+              key: const ValueKey('intro-header'),
+              surface: UiSurface.goldCreamPanel,
+              padding: const EdgeInsets.fromLTRB(28, 19, 28, 22),
+              child: FittedBox(fit: BoxFit.scaleDown, child: blockTitle),
+            ),
           ),
         if (!welcome && !compact)
           Row(

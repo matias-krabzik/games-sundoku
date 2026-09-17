@@ -226,6 +226,10 @@ class TutorialJourney extends StatelessWidget {
                 bounds.maxWidth >= 700 &&
                 bounds.maxWidth > bounds.maxHeight * 1.2);
         final largeWindow = bounds.maxWidth >= 700 || bounds.maxHeight >= 900;
+        final statusWidth = desktopPlay
+            ? _maxBoardWidth
+            : GameLayout.mobileBoardSize(MediaQuery.sizeOf(context).width);
+        final statusScale = (statusWidth / 360).clamp(1.0, 1.8);
         return Column(
           children: [
             if (navigation != null)
@@ -267,11 +271,16 @@ class TutorialJourney extends StatelessWidget {
                         const SizedBox(height: 8),
                         if (_playing) ...[
                           _gameUi(
-                            GameplayStatusBar(
-                              points: flow.points,
-                              trailing: GameTimerControls(
-                                flow: flow,
-                                blocked: navigationBlocked,
+                            SizedBox(
+                              width: statusWidth,
+                              child: GameplayStatusBar(
+                                scale: statusScale,
+                                points: flow.points,
+                                trailing: GameTimerControls(
+                                  flow: flow,
+                                  scale: statusScale,
+                                  blocked: navigationBlocked,
+                                ),
                               ),
                             ),
                             'status',
@@ -524,7 +533,7 @@ class TutorialJourney extends StatelessWidget {
                                           )
                                         : Column(
                                             mainAxisAlignment: _playing
-                                                ? MainAxisAlignment.start
+                                                ? MainAxisAlignment.spaceEvenly
                                                 : MainAxisAlignment.center,
                                             children: [
                                               boardArea,

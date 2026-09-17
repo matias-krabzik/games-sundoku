@@ -17,6 +17,7 @@ import 'screens/splash_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/first_experience_screen.dart';
 import 'widgets/sundoku_cursor.dart';
+import 'widgets/world_journey_route.dart';
 
 /// Root of the app. Wires the theme and the top-level route table.
 class SunDokuApp extends StatefulWidget {
@@ -36,6 +37,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
   late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
 
   bool _openingPlay = false;
+  bool? _departingHomeHasStarted;
   bool _welcomeChecked = false;
 
   bool get _hasStarted {
@@ -52,6 +54,11 @@ class _SunDokuAppState extends State<SunDokuApp> {
   bool get _quickPlayUnlocked => _levelOneComplete;
 
   Future<void> _welcome(BuildContext context) async {
+    final route = ModalRoute.of(context);
+    if (route is WorldJourneyRoute) {
+      final arrived = await route.entered;
+      if (!arrived || !context.mounted) return;
+    }
     if (_welcomeChecked) return;
     _welcomeChecked = true;
     final welcome = _repository.state.modules['homeWelcome'];
@@ -74,6 +81,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
 
   Future<void> _play(BuildContext context) async {
     if (_openingPlay) return;
+    _departingHomeHasStarted = _hasStarted;
     _openingPlay = true;
     try {
       final saved =
@@ -86,9 +94,24 @@ class _SunDokuAppState extends State<SunDokuApp> {
       }
       if (!context.mounted) return;
       final navigator = Navigator.of(context);
-      unawaited(navigator.pushNamed(AppRoutes.map));
+      final route = _mapRoute(
+        context,
+        const RouteSettings(name: AppRoutes.map),
+        showClouds: !firstVisit,
+      );
+      unawaited(navigator.push(route));
       if (firstVisit) {
-        unawaited(navigator.pushNamed(AppRoutes.firstExperience));
+        // Install both routes in the same frame: the tutorial owns the visible
+        // journey, while the map is ready underneath for the return navigation.
+        final tutorial = WorldJourneyRoute(
+          settings: const RouteSettings(name: AppRoutes.firstExperience),
+          reduceMotion: MediaQuery.disableAnimationsOf(context),
+          builder: (_) => FirstExperienceScreen(repository: _repository),
+        );
+        unawaited(navigator.push(tutorial));
+        await tutorial.entered;
+      } else {
+        await route.entered;
       }
     } catch (_) {
       if (context.mounted) {
@@ -100,6 +123,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
       }
     } finally {
       _openingPlay = false;
+      if (mounted) {
+        setState(() => _departingHomeHasStarted = null);
+      }
     }
   }
 
@@ -114,6 +140,43 @@ class _SunDokuAppState extends State<SunDokuApp> {
       await Navigator.of(context).pushNamed(AppRoutes.firstExperience);
     }
   }
+
+  WorldJourneyRoute _mapRoute(
+    BuildContext context,
+    RouteSettings settings, {
+    bool showClouds = true,
+  }) => WorldJourneyRoute(
+    settings: settings,
+    showClouds: showClouds,
+    reduceMotion:
+        MediaQuery.maybeOf(context)?.disableAnimations ??
+        WidgetsBinding
+            .instance
+            .platformDispatcher
+            .accessibilityFeatures
+            .disableAnimations,
+    builder: (context) => MapScreen(
+      progress: _progress,
+      onViewTutorial: () =>
+          Navigator.of(context).pushNamed(AppRoutes.tutorialReview),
+      onOpenIntroduction: () =>
+          Navigator.of(context).pushNamed(AppRoutes.firstExperience),
+      onReplayIntroduction: () => _replayPractice(context),
+      onOpenLevel: (number) async {
+        await _repository.startGeneratedLevel(number);
+        if (!context.mounted) return;
+        await Navigator.of(context).push(
+          WorldJourneyRoute(
+            reduceMotion: MediaQuery.disableAnimationsOf(context),
+            builder: (_) => FirstExperienceScreen(
+              repository: _repository,
+              levelNumber: number,
+            ),
+          ),
+        );
+      },
+    ),
+  );
 
   @override
   void dispose() {
@@ -133,49 +196,53 @@ class _SunDokuAppState extends State<SunDokuApp> {
         theme: buildSunDokuTheme(),
         initialRoute: AppRoutes.splash,
         builder: (context, child) => SunDokuCursor(child: child!),
-        routes: {
-          AppRoutes.splash: (_) => const SplashScreen(),
-          AppRoutes.home: (_) => ListenableBuilder(
-            listenable: _progress,
-            builder: (context, _) => HomeScreen(
-              onPlay: () => _play(context),
-              onReady: (homeContext) => unawaited(_welcome(homeContext)),
-              onResetAll: _repository.resetDebugSave,
-              hasStarted: _hasStarted,
-              quickPlayUnlocked: _quickPlayUnlocked,
-              availableLevel: _progress.latestUnlocked,
-              unlockedLevels: _progress.unlockedCount,
-              playerName: _repository.state.player.nameChosen
-                  ? _repository.state.player.name
-                  : 'Jugador',
+        routes: {AppRoutes.splash: (_) => const SplashScreen()},
+        onGenerateRoute: (settings) => switch (settings.name) {
+          AppRoutes.tutorialReview => WorldJourneyRoute(
+            settings: settings,
+            reduceMotion: WidgetsBinding
+                .instance
+                .platformDispatcher
+                .accessibilityFeatures
+                .disableAnimations,
+            builder: (_) => FirstExperienceScreen(
+              repository: _repository,
+              reviewOnly: true,
             ),
           ),
-          AppRoutes.map: (context) => MapScreen(
-            progress: _progress,
-            onViewTutorial: () =>
-                Navigator.of(context).pushNamed(AppRoutes.tutorialReview),
-            onOpenIntroduction: () =>
-                Navigator.of(context).pushNamed(AppRoutes.firstExperience),
-            onReplayIntroduction: () => _replayPractice(context),
-            onOpenLevel: (number) async {
-              await _repository.startGeneratedLevel(number);
-              if (!context.mounted) return;
-              await Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => FirstExperienceScreen(
-                    repository: _repository,
-                    levelNumber: number,
-                  ),
-                ),
-              );
-            },
+          AppRoutes.home => WorldJourneyRoute(
+            settings: settings,
+            reduceMotion: WidgetsBinding
+                .instance
+                .platformDispatcher
+                .accessibilityFeatures
+                .disableAnimations,
+            builder: (_) => ListenableBuilder(
+              listenable: _progress,
+              builder: (context, _) => HomeScreen(
+                onPlay: () => _play(context),
+                onReady: (homeContext) => unawaited(_welcome(homeContext)),
+                onResetAll: _repository.resetDebugSave,
+                hasStarted: _departingHomeHasStarted ?? _hasStarted,
+                quickPlayUnlocked: _quickPlayUnlocked,
+                availableLevel: _progress.latestUnlocked,
+                unlockedLevels: _progress.unlockedCount,
+                playerName: _repository.state.player.nameChosen
+                    ? _repository.state.player.name
+                    : 'Jugador',
+              ),
+            ),
           ),
-          AppRoutes.tutorialReview: (_) =>
-              FirstExperienceScreen(repository: _repository, reviewOnly: true),
-          AppRoutes.firstExperience: (_) =>
-              FirstExperienceScreen(repository: _repository),
-        },
-        onGenerateRoute: (settings) => switch (settings.name) {
+          AppRoutes.map => _mapRoute(context, settings),
+          AppRoutes.firstExperience => WorldJourneyRoute(
+            settings: settings,
+            reduceMotion: WidgetsBinding
+                .instance
+                .platformDispatcher
+                .accessibilityFeatures
+                .disableAnimations,
+            builder: (_) => FirstExperienceScreen(repository: _repository),
+          ),
           AppRoutes.settings => SettingsRoute(
             repository: _repository,
             settings: settings,

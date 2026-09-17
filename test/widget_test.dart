@@ -1,3 +1,4 @@
+import 'package:sundoku/data/level_node.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +17,7 @@ Future<void> _bootToHome(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 3)); // wait out the splash
   await tester.pump(const Duration(seconds: 1));
   await tester.pump(const Duration(seconds: 1));
-  for (var frame = 0; frame < 10; frame++) {
+  for (var frame = 0; frame < 20; frame++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
   final welcome = find.byKey(const ValueKey('profile-close'));
@@ -43,7 +44,7 @@ Future<void> _openMap(WidgetTester tester) async {
 // The selected level now keeps a light shimmering while the map is visible.
 Future<void> _finishMapTransition(WidgetTester tester) async {
   await tester.pump();
-  for (var frame = 0; frame < 10; frame++) {
+  for (var frame = 0; frame < 20; frame++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
 }
@@ -68,6 +69,48 @@ void _desktopTestWidgets(String description, WidgetTesterCallback body) {
 }
 
 void main() {
+  testWidgets('tall phones stack home actions on Android and iOS', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    try {
+      for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+        debugDefaultTargetPlatformOverride = platform;
+        for (final size in [const Size(412, 915), const Size(430, 956)]) {
+          tester.view.physicalSize = size;
+          await tester.pumpWidget(
+            MaterialApp(
+              key: ValueKey('$platform-$size'),
+              home: const HomeScreen(hasStarted: true, quickPlayUnlocked: true),
+            ),
+          );
+          await tester.pump();
+          final adventure = tester.getRect(
+            find.byKey(const ValueKey('home-play')),
+          );
+          final quickPlay = tester.getRect(
+            find.byKey(const ValueKey('home-quick-play')),
+          );
+          expect(adventure.bottom, lessThan(quickPlay.top));
+          expect(adventure.center.dx, closeTo(quickPlay.center.dx, .1));
+          expect(
+            find.byKey(const ValueKey('home-play')).hitTestable(),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('home-quick-play')).hitTestable(),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        }
+      }
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   testWidgets('quick play appears only after level one is complete', (
     tester,
   ) async {
@@ -189,7 +232,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     }
     await _finishMapTransition(tester);
-    expect(find.text('Nivel 4 de 10'), findsOneWidget);
+    expect(find.text(kValleyLevelNames[3]), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     reduceMotion.value = true;
@@ -197,7 +240,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
     await tester.tap(find.byKey(const ValueKey('map-next')));
     await tester.pumpAndSettle();
-    expect(find.text('Nivel 5 de 10'), findsOneWidget);
+    expect(find.text(kValleyLevelNames[4]), findsOneWidget);
     expect(tester.binding.transientCallbackCount, 0);
   });
 
@@ -254,13 +297,13 @@ void main() {
           expect(bounds.width, greaterThanOrEqualTo(48));
           expect(bounds.height, greaterThanOrEqualTo(48));
         }
-        expect(find.text('Valle del Sol'), findsOneWidget);
-        expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
+        expect(find.text('MUNDO 1 · VALLE DEL SOL'), findsOneWidget);
+        expect(find.text(kValleyLevelNames[expectedLevel - 1]), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.tap(find.byKey(const ValueKey('map-next')));
         await _finishMapTransition(tester);
         expectedLevel++;
-        expect(find.text('Nivel $expectedLevel de 10'), findsOneWidget);
+        expect(find.text(kValleyLevelNames[expectedLevel - 1]), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
     },
@@ -316,7 +359,7 @@ void main() {
         expect(light.level, 2);
         expect(light.enabled, isTrue);
         expect(light.scoreLevels, isNot(contains(2)));
-        expect(find.text('Consigue 3 puntos en el nivel 1'), findsWidgets);
+        expect(find.text(kValleyLevelNames[1]), findsOneWidget);
         await tester.pump(const Duration(seconds: 3));
       },
     );
@@ -366,7 +409,7 @@ void main() {
       for (int level = 2; level <= 10; level++) {
         await tester.tap(find.byKey(const ValueKey('map-next')));
         await _finishMapTransition(tester);
-        expect(find.text('Nivel $level de 10'), findsOneWidget);
+        expect(find.text(kValleyLevelNames[level - 1]), findsOneWidget);
         expect(
           find.byKey(ValueKey('level-$level-label')).hitTestable(),
           findsOneWidget,
@@ -384,14 +427,14 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('level-10-label')));
       await _finishMapTransition(tester);
-      expect(find.text('Consigue 3 puntos en el nivel 9'), findsWidgets);
+      expect(find.text(kValleyLevelNames[9]), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
 
       // Now the back arrow is usable again.
       expect(_mapArrow(tester, 'map-previous').onPressed, isNotNull);
       await tester.tap(find.byKey(const ValueKey('map-previous')));
       await _finishMapTransition(tester);
-      expect(find.text('Nivel 9 de 10'), findsOneWidget);
+      expect(find.text(kValleyLevelNames[8]), findsOneWidget);
     },
   );
 }

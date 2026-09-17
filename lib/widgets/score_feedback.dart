@@ -11,8 +11,9 @@ String formatScore(int points) => points.toString().replaceAllMapped(
 );
 
 class GameScoreCounter extends StatelessWidget {
-  const GameScoreCounter({super.key, required this.points});
+  const GameScoreCounter({super.key, required this.points, this.fontSize = 20});
   final int points;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -31,7 +32,7 @@ class GameScoreCounter extends StatelessWidget {
         '${formatScore(points)} pts',
         key: const ValueKey('game-score'),
         maxLines: 1,
-        style: homeText(20),
+        style: homeText(fontSize),
       ),
     ),
   );

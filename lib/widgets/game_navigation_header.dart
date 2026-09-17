@@ -22,14 +22,14 @@ class GameNavigationHeader extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      _GameHeaderButton(
+      GameHeaderButton(
         key: const ValueKey('game-back'),
         label: 'Volver al mapa',
         onPressed: onBack,
         icon: const MapIcon(MapGlyph.back, size: 29),
       ),
       if (center != null) Expanded(child: Center(child: center)),
-      _GameHeaderButton(
+      GameHeaderButton(
         key: const ValueKey('game-settings'),
         label: 'Configuración',
         onPressed: onSettings,
@@ -39,8 +39,8 @@ class GameNavigationHeader extends StatelessWidget {
   );
 }
 
-class _GameHeaderButton extends StatelessWidget {
-  const _GameHeaderButton({
+class GameHeaderButton extends StatelessWidget {
+  const GameHeaderButton({
     super.key,
     required this.label,
     required this.onPressed,

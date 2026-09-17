@@ -26,6 +26,10 @@ La extracción antigua `settings/done-button.png` se conserva como referencia, p
 
 ## Validación
 
+El acabado del footer añade un degradado crema y miel, rayos vectoriales de bajo contraste y un bisel dorado superior de 10 px con sombra. La luz oscila en ciclos de 12 segundos y repinta solo su capa; se detiene con movimiento reducido, navegación accesible o `TickerMode` desactivado.
+
+El footer del mapa usa `UiSurface.worldFooter`: recorte central del panel crema existente, sin laterales ni borde inferior, con bisel dorado superior dibujado en Flutter. `UiSurface.blueScoreCapsule` reutiliza el botón dorado con nine-patch e interior azul dibujado en Flutter. El sol es `assets/images/map/score-sun.png`: recorte de 146 × 147 píxeles de la propuesta aprobada (`exec-92cd938a-76f6-4b2d-89cb-508af7c226ed.png`, origen 580,854). Conserva los píxeles RGB originales y añade alfa para aislar la silueta; mantiene su proporción, sin nine-patch. El nombre del nivel y el puntaje son texto real. No se integraron las extracciones generadas que devolvieron un tablero de cuadros opaco en lugar de alfa.
+
 `test/widgets/ui_surface_art_test.dart` compara píxeles de las esquinas al variar el ancho y la altura, comprueba barras vacías y rellenos muy pequeños, y verifica transparencia y silueta de los botones circulares. Las pruebas de navegación, tutorial, perfil, ajustes y tablero cubren sus integraciones. También se revisan capturas renderizadas de home, mapa, bienvenida, perfil y ajustes.
 
 Los controles `goldTile` y `creamTile` menores de 80 px reducen proporcionalmente las esquinas y el bisel; mantienen nine-patch para el eje que necesite crecer. Cuando el tamaño coincide con la referencia se dibuja la textura sin subdividirla, evitando uniones visibles en controles pequeños. Las referencias explícitas del tablero se conservan.

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import '../routes.dart';
+import '../data/level_node.dart';
+import 'score_feedback.dart';
+import 'ui_surface_art.dart';
 import 'game_feedback_scope.dart';
 import 'home_art.dart';
 import 'juicy_press.dart';
@@ -28,8 +31,8 @@ class MapWorldHeader extends StatelessWidget {
     children: [
       _MapRoundButton(
         key: const ValueKey('map-back'),
-        label: 'Volver',
-        glyph: MapGlyph.back,
+        label: 'Volver al inicio',
+        icon: Icons.home_rounded,
         size: compact ? 50 : 54,
         onPressed: onBack,
       ),
@@ -55,238 +58,176 @@ class MapWorldHeader extends StatelessWidget {
   );
 }
 
+/// Full-width world footer. Stars remain on their level markers.
 class MapStatusCard extends StatelessWidget {
   const MapStatusCard({
     super.key,
     required this.level,
-    required this.totalLevels,
     required this.points,
-    required this.unlocked,
     required this.onPrevious,
     required this.onNext,
     this.compact = false,
   });
 
   final int level;
-  final int totalLevels;
   final int points;
-  final bool unlocked;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final bool compact;
 
   @override
-  Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(maxWidth: 370),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final desktop =
-            defaultTargetPlatform != TargetPlatform.android &&
-            defaultTargetPlatform != TargetPlatform.iOS;
-        final width = math.min(constraints.maxWidth, 370.0);
-        final unit = (width / 350).clamp(.82, 1.06);
-        final worldHeight = compact ? 48.0 : 58.0;
-        final height =
-            (compact ? 88.0 : 102.0) + worldHeight + 13 + (unlocked ? 0 : 12);
-        final status = unlocked
-            ? '$points/3 puntos obtenidos'
-            : 'Consigue 3 puntos en el nivel ${level - 1}';
-
-        return SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const HomeArt(HomeSurface.status),
-              Padding(
-                padding: EdgeInsets.fromLTRB(16 * unit, 12, 16 * unit, 16),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: worldHeight,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      'MUNDO 1',
-                                      textAlign: TextAlign.center,
-                                      style: homeText(11 * unit).copyWith(
-                                        color: const Color(0xFFA46A0E),
-                                        letterSpacing: 1.8,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 2,
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      'Valle del Sol',
-                                      textAlign: TextAlign.center,
-                                      style: homeText(25 * unit),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 6),
-                      child: SizedBox(
-                        height: 1,
-                        width: double.infinity,
-                        child: ColoredBox(color: Color(0xFFE8C477)),
-                      ),
-                    ),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          if (desktop) ...[
-                            _MapRoundButton(
-                              key: const ValueKey('map-previous'),
-                              label: 'Nivel anterior',
-                              glyph: MapGlyph.chevron,
-                              mirrored: true,
-                              gold: onPrevious != null,
-                              size: compact ? 48 : 50 * unit,
-                              onPressed: onPrevious,
-                            ),
-                            SizedBox(width: 6 * unit),
-                          ],
-                          Expanded(
-                            child: Semantics(
-                              label: 'Nivel $level de $totalLevels. $status',
-                              excludeSemantics: true,
-                              child: Column(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        'Nivel $level de $totalLevels',
-                                        style: homeText(23 * unit),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Expanded(
-                                    flex: unlocked ? 2 : 3,
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: SizedBox(
-                                        width: unlocked ? null : 190,
-                                        child: Text(
-                                          status,
-                                          textAlign: TextAlign.center,
-                                          style: homeText(
-                                            14 * unit,
-                                            weight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  SizedBox(
-                                    height: compact ? 21 : 26,
-                                    child: _MapPointsTrack(
-                                      points: unlocked ? points : 0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (desktop) ...[
-                            SizedBox(width: 6 * unit),
-                            _MapRoundButton(
-                              key: const ValueKey('map-next'),
-                              label: 'Nivel siguiente',
-                              glyph: MapGlyph.chevron,
-                              gold: onNext != null,
-                              size: compact ? 48 : 50 * unit,
-                              onPressed: onNext,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+  Widget build(BuildContext context) => Stack(
+    children: [
+      const Positioned.fill(child: UiSurfaceArt(UiSurface.worldFooter)),
+      SafeArea(
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, bounds) {
+            final desktop =
+                defaultTargetPlatform != TargetPlatform.android &&
+                defaultTargetPlatform != TargetPlatform.iOS;
+            final large = bounds.maxWidth >= 700;
+            final titleSize = compact
+                ? 23.0
+                : large
+                ? 34.0
+                : 26.0;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                compact ? 10 : 16,
+                16,
+                compact ? 8 : 14,
               ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
-}
-
-class _MapPointsTrack extends StatelessWidget {
-  const _MapPointsTrack({required this.points});
-
-  final int points;
-
-  @override
-  Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(maxWidth: 160),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final starSize = constraints.maxHeight;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: starSize / 2),
-              child: Center(
-                child: SizedBox(
-                  height: 8,
-                  child: Stack(
-                    fit: StackFit.expand,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'MUNDO 1 · VALLE DEL SOL',
+                    textAlign: TextAlign.center,
+                    style: homeText(compact ? 10 : 12).copyWith(
+                      color: const Color(0xFFA46A0E),
+                      letterSpacing: 1.8,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 3 : 6),
+                  Row(
                     children: [
-                      const HomeArt(HomeSurface.progressTrack),
-                      Padding(
-                        padding: const EdgeInsets.all(1),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: (points / 3).clamp(0, 1),
-                            heightFactor: 1,
-                            child: const HomeArt(HomeSurface.progressFill),
+                      if (desktop)
+                        _MapRoundButton(
+                          key: const ValueKey('map-previous'),
+                          label: 'Nivel anterior',
+                          glyph: MapGlyph.chevron,
+                          mirrored: true,
+                          gold: onPrevious != null,
+                          size: 48,
+                          onPressed: onPrevious,
+                        ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              kValleyLevelNames[level - 1],
+                              key: const ValueKey('map-level-name'),
+                              style: homeText(titleSize),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
                       ),
+                      if (desktop)
+                        _MapRoundButton(
+                          key: const ValueKey('map-next'),
+                          label: 'Nivel siguiente',
+                          glyph: MapGlyph.chevron,
+                          gold: onNext != null,
+                          size: 48,
+                          onPressed: onNext,
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: compact ? 3 : 8),
+                  _WorldScoreBadge(
+                    points: points,
+                    height: compact
+                        ? 42
+                        : large
+                        ? 66
+                        : 54,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ],
+  );
+}
+
+class _WorldScoreBadge extends StatelessWidget {
+  const _WorldScoreBadge({required this.points, required this.height});
+  final int points;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Puntaje acumulado del mundo: $points puntos',
+    excludeSemantics: true,
+    child: SizedBox(
+      height: height,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                left: height * .5,
+                top: height * .12,
+                bottom: height * .12,
+              ),
+              child: UiSurfacePanel(
+                surface: UiSurface.blueScoreCapsule,
+                padding: EdgeInsets.fromLTRB(
+                  height * .6,
+                  height * .11,
+                  height * .3,
+                  height * .13,
+                ),
+                child: Text(
+                  formatScore(points),
+                  key: const ValueKey('map-world-score'),
+                  style: homeText(height * .48).copyWith(
+                    color: const Color(0xFFFFF1CE),
+                    shadows: const [
+                      Shadow(color: Color(0x88001741), offset: Offset(0, 2)),
                     ],
                   ),
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (var index = 0; index < 3; index++)
-                  MapIcon(
-                    index < points ? MapGlyph.goldStar : MapGlyph.emptyStar,
-                    size: starSize,
-                  ),
-              ],
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Image.asset(
+                  'assets/images/map/score-sun.png',
+                  key: const ValueKey('map-score-sun'),
+                  width: height,
+                  height: height,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  excludeFromSemantics: true,
+                ),
+              ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     ),
   );
 }
