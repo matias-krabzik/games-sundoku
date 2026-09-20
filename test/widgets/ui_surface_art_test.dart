@@ -45,6 +45,7 @@ void main() {
       for (final surface in [
         UiSurface.creamPanel,
         UiSurface.goldCreamPanel,
+        UiSurface.goldCreamCard,
         UiSurface.goldTile,
         UiSurface.creamTile,
         UiSurface.creamPill,

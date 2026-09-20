@@ -7,6 +7,7 @@
 | `goldButton` | `home/play-button.png` | Jugar, Vamos paso a paso, Siguiente, Listo y Guardar |
 | `creamPanel` | `home/status-panel.png` | Estado de la home, tarjetas del mapa, modales y filas de ajustes |
 | `goldCreamPanel` | `tutorial/gold-cream-panel.png` | Encabezados, historia e instrucciones del tutorial con el borde dorado de la referencia |
+| `goldCreamCard` | `tutorial/gold-cream-panel.png` | Ronda actual en el resumen: comparte el mismo recorte nine-patch del panel y aplica un tinte amarillo suave en Flutter, conservando su alfa |
 | `goldTile` | `tutorial/block-tiles.png` | Marco del tablero, casilla seleccionada y botones numéricos |
 | `creamTile` | `tutorial/block-tiles.png` | Casillas del tablero real, tanto en el bloque inicial como al expandirse |
 | `creamPill` | `home/header-surfaces.png` | Perfil de la home |
@@ -21,6 +22,8 @@ Las rutas de la tabla son relativas a `assets/images/`. Las coordenadas de recor
 `UiSurfacePanel` ajusta el panel al contenido real. `IllustratedActionButton` mide la etiqueta para adaptar el ancho y mantener una línea. Los textos siguen siendo widgets `Text`, y los iconos se componen encima de las superficies vacías. Los botones cuadrados mantienen su forma circular al cambiar de tamaño. En rellenos de progreso diminutos, los bordes reducen su escala conjuntamente cuando ya no caben.
 
 Personajes, fondos, logo, iconos, estrellas y medallones son dibujos: conservan su proporción y no usan nine-patch. Interruptores, campos de texto y otros controles dibujados por Flutter ya son adaptables y no necesitan nuevos PNG.
+
+El resumen infantil de niveles compone el panel `goldCreamPanel`, tres tarjetas (`goldCreamCard` para la actual, `creamTile` para las demás), medallones `goldRound` / `creamRound`, estrellas de `MapIcon` y una franja de totales sobre `creamTile`. Reutiliza `IllustratedActionButton` para Continuar y `creamCapsule` para Ok, uno al lado del otro. Todo número, estado, puntaje y tiempo es un `Text`; no incorpora la maqueta como imagen ni duplica los PNG existentes. El contenido puede desplazarse y las acciones permanecen visibles abajo.
 
 La extracción antigua `settings/done-button.png` se conserva como referencia, pero se excluye del paquete de assets de la aplicación: todas las acciones amarillas reutilizan el botón de la home.
 

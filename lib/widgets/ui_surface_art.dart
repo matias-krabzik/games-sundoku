@@ -11,6 +11,7 @@ enum UiSurface {
   goldButton,
   creamPanel,
   goldCreamPanel,
+  goldCreamCard,
   goldTile,
   creamTile,
   creamPill,
@@ -34,6 +35,9 @@ class UiSurfaceSpec {
   final Rect region;
   final Rect centerSlice;
   final Size referenceSize;
+
+  UiSurfaceSpec withReferenceSize(Size size) =>
+      UiSurfaceSpec(asset, imageSize, region, centerSlice, size);
 }
 
 extension UiSurfaceCatalog on UiSurface {
@@ -79,6 +83,9 @@ extension UiSurfaceCatalog on UiSurface {
       Rect.fromLTRB(.040, .080, .960, .880),
       Rect.fromLTRB(.14, .30, .86, .68),
       Size(300, 90),
+    ),
+    UiSurface.goldCreamCard => UiSurface.goldCreamPanel.spec.withReferenceSize(
+      const Size(160, 50),
     ),
     UiSurface.goldCreamPanel => const UiSurfaceSpec(
       'assets/images/tutorial/gold-cream-panel.png',
@@ -171,6 +178,15 @@ class UiSurfaceArt extends StatelessWidget {
         centerSlice: spec.centerSlice,
         referenceSize: reference,
       );
+      if (surface == UiSurface.goldCreamCard) {
+        return ColorFiltered(
+          colorFilter: const ColorFilter.mode(
+            Color(0xFFFFE9A6),
+            BlendMode.modulate,
+          ),
+          child: art,
+        );
+      }
       if (surface == UiSurface.worldFooter) {
         return Stack(
           fit: StackFit.expand,

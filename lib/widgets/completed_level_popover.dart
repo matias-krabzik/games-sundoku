@@ -132,10 +132,11 @@ class LevelSummaryCard extends StatelessWidget {
     child: LayoutBuilder(
       builder: (context, bounds) {
         final textScale = MediaQuery.textScalerOf(context).scale(1);
-        if (_isPracticeComplete) {
-          final width = math.min(440.0, bounds.maxWidth);
+        if (level == 1) {
+          final width = math.min(540.0, bounds.maxWidth);
+          final preferredHeight = _isPracticeComplete ? 500.0 : 360.0;
           final height = math.min(
-            340.0 + (textScale - 1).clamp(0.0, 1.0) * 100,
+            preferredHeight + (textScale - 1).clamp(0.0, 2.0) * 140,
             bounds.maxHeight,
           );
           final dense = bounds.maxWidth < 360 || bounds.maxHeight < 420;
@@ -145,7 +146,7 @@ class LevelSummaryCard extends StatelessWidget {
             height: height,
             child: UiSurfacePanel(
               surface: UiSurface.goldCreamPanel,
-              padding: EdgeInsets.all(dense ? 14 : 18),
+              padding: EdgeInsets.all(dense ? 14 : 22),
               child: _practiceSummary(dense: dense),
             ),
           );
@@ -171,29 +172,67 @@ class LevelSummaryCard extends StatelessWidget {
         }
 
         final wide = bounds.maxWidth > 680 && bounds.maxHeight < 580;
-        final width = math.min(wide ? 720.0 : 540.0, bounds.maxWidth);
-        final preferredHeight = wide ? 360.0 : 690.0;
+        final width = math.min(wide ? 760.0 : 540.0, bounds.maxWidth);
+        final preferredHeight = wide
+            ? 420.0
+            : width < 380
+            ? 660.0
+            : 732.0;
         final height = math.min(preferredHeight, bounds.maxHeight);
-        final dense = bounds.maxHeight < (wide ? 340 : 610);
+        final dense = width < 380 || height < 620;
         final padding = dense ? 14.0 : 22.0;
         final card = UiSurfacePanel(
           surface: UiSurface.goldCreamPanel,
           padding: EdgeInsets.fromLTRB(padding, padding, padding, padding - 2),
-          child: wide
-              ? Row(
-                  children: [
-                    Expanded(flex: 4, child: _heading(dense: dense)),
-                    const SizedBox(width: 22),
-                    Expanded(flex: 6, child: _details(dense: dense)),
-                  ],
-                )
-              : Column(
-                  children: [
-                    Expanded(flex: 42, child: _heading(dense: dense)),
-                    SizedBox(height: dense ? 7 : 12),
-                    Expanded(flex: 58, child: _details(dense: dense)),
-                  ],
+          child: Column(
+            children: [
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, contentBounds) => SingleChildScrollView(
+                    key: const ValueKey('level-summary-scroll'),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: contentBounds.maxHeight,
+                      ),
+                      child: wide
+                          ? Row(
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: _challengeHeading(dense: dense),
+                                ),
+                                const SizedBox(width: 20),
+                                Expanded(
+                                  flex: 6,
+                                  child: _roundCards(dense: dense),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _challengeHeading(dense: dense),
+                                SizedBox(height: dense ? 12 : 16),
+                                _roundCards(dense: dense),
+                              ],
+                            ),
+                    ),
+                  ),
                 ),
+              ),
+              const SizedBox(height: 8),
+              _SummaryActions(
+                primaryKey: _isComplete
+                    ? null
+                    : const ValueKey('level-summary-continue'),
+                primaryLabel: _isComplete ? null : 'Continuar',
+                primaryFontSize: dense ? 17 : 20,
+                onPrimary: onContinue,
+                onOk: onOk,
+                dense: dense,
+              ),
+            ],
+          ),
         );
         return SizedBox(
           key: const ValueKey('level-summary'),
@@ -207,47 +246,52 @@ class LevelSummaryCard extends StatelessWidget {
 
   Widget _practiceSummary({required bool dense}) => Column(
     children: [
-      Flexible(
-        flex: 2,
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            '¡Lo hiciste muy bien!',
-            style: homeText(dense ? 22 : 25),
-          ),
-        ),
-      ),
-      SizedBox(height: dense ? 5 : 8),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          3,
-          (_) => Padding(
-            padding: EdgeInsets.symmetric(horizontal: dense ? 3 : 5),
-            child: MapIcon(MapGlyph.goldStar, size: dense ? 31 : 38),
-          ),
-        ),
-      ),
-      SizedBox(height: dense ? 5 : 9),
       Expanded(
-        flex: 4,
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              'Completaste las 3 rondas de práctica.\n'
-              '¡Ya conoces las reglas básicas!\n'
-              'Puedes volver a jugar cuando quieras.',
-              style: homeText(dense ? 16 : 18, weight: FontWeight.w600),
-              textAlign: TextAlign.center,
+        child: LayoutBuilder(
+          builder: (context, bounds) => SingleChildScrollView(
+            key: const ValueKey('level-summary-scroll'),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: bounds.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _challengeHeading(dense: dense),
+                  if (_isPracticeComplete) ...[
+                    SizedBox(height: dense ? 16 : 20),
+                    Padding(
+                      padding: EdgeInsets.all(dense ? 16 : 20),
+                      child: Text(
+                        'Completaste las 3 rondas de práctica.\n'
+                        '¡Ya conoces las reglas básicas!\n'
+                        'Puedes volver a jugar cuando quieras.',
+                        style: homeText(
+                          dense ? 16 : 18,
+                          weight: FontWeight.w600,
+                        ).copyWith(height: 1.35),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-      SizedBox(height: dense ? 5 : 8),
+      const SizedBox(height: 8),
       _SummaryActions(
-        primaryKey: const ValueKey('level-replay'),
-        primaryLabel: 'Volver a jugar',
+        primaryKey: ValueKey(
+          _isPracticeComplete
+              ? 'level-replay'
+              : _isNewLevel
+              ? 'level-summary-play'
+              : 'level-summary-continue',
+        ),
+        primaryLabel: _isPracticeComplete
+            ? 'Volver a jugar'
+            : _isNewLevel
+            ? 'Jugar'
+            : 'Continuar',
         primaryFontSize: dense ? 17 : 20,
         onPrimary: onContinue,
         onOk: onOk,
@@ -317,43 +361,98 @@ class LevelSummaryCard extends StatelessWidget {
     ],
   );
 
-  Widget _details({required bool dense}) => Column(
-    children: [
-      Expanded(
-        child: _ResultsTable(
-          rounds: _rounds,
-          totalPoints: _totalPoints,
-          totalElapsedMs: _totalElapsedMs,
-          complete: _isComplete,
+  Widget _challengeHeading({required bool dense}) {
+    final stars = level == 1 ? lights.clamp(0, 3) : _completedRounds;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'VALLE DEL SOL',
+          style: homeText(dense ? 12 : 14)
+              .copyWith(color: const Color(0xFF9A630B), letterSpacing: .6),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Nivel $level',
+          style: homeText(dense ? 34 : 42),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _isPracticeComplete
+              ? '¡Lo hiciste muy bien!'
+              : level == 1
+              ? 'En progreso'
+              : _isComplete
+              ? '¡Completado!'
+              : '¡Vamos por las 3 estrellas!',
+          style: homeText(dense ? 18 : 23).copyWith(
+            color: _isComplete
+                ? const Color(0xFF2C873E)
+                : const Color(0xFF9A630B),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: dense ? 10 : 14),
+        Semantics(
+          label: '$stars de 3 estrellas ganadas',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              3,
+              (index) => Padding(
+                padding: EdgeInsets.symmetric(horizontal: dense ? 5 : 8),
+                child: MapIcon(
+                  index < stars ? MapGlyph.goldStar : MapGlyph.emptyStar,
+                  size: dense ? 46 : 62,
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (level != 1) ...[
+          const SizedBox(height: 8),
+          Text(
+            '$_completedRounds de 3 rondas completas',
+            style: homeText(dense ? 14 : 16),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _roundCards({required bool dense}) {
+    final rounds = _rounds;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < rounds.length; index++) ...[
+          if (index > 0) const SizedBox(height: 8),
+          _RoundCard(
+            key: ValueKey('level-summary-round-${index + 1}'),
+            number: index + 1,
+            round: rounds[index],
+            dense: dense,
+          ),
+        ],
+        SizedBox(height: dense ? 10 : 12),
+        _SummaryTotals(
+          points: _totalPoints,
+          elapsedMs: _totalElapsedMs,
           dense: dense,
         ),
-      ),
-      SizedBox(height: dense ? 4 : 8),
-      Text(
-        _footer,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: homeText(dense ? 14 : 17),
-        textAlign: TextAlign.center,
-      ),
-      SizedBox(height: dense ? 5 : 10),
-      _SummaryActions(
-        primaryKey: _isComplete
-            ? null
-            : const ValueKey('level-summary-continue'),
-        primaryLabel: _isComplete ? null : 'Continuar',
-        primaryFontSize: dense ? 17 : 20,
-        onPrimary: onContinue,
-        onOk: onOk,
-        dense: dense,
-      ),
-    ],
-  );
-
-  String get _footer {
-    if (_isComplete) return '¡Ganaste las 3 estrellas!';
-    if (session == null) return 'Todo está listo para comenzar.';
-    return 'Sigue desde donde lo dejaste.';
+        if (_isComplete) ...[
+          const SizedBox(height: 10),
+          Text(
+            '¡Ganaste las 3 estrellas!',
+            style: homeText(dense ? 16 : 18),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _fitText(String text, TextStyle style) => Expanded(
@@ -451,144 +550,147 @@ class _RoundSummary {
   final int? elapsedMs;
 }
 
-class _ResultsTable extends StatelessWidget {
-  const _ResultsTable({
-    required this.rounds,
-    required this.totalPoints,
-    required this.totalElapsedMs,
-    required this.complete,
+class _RoundCard extends StatelessWidget {
+  const _RoundCard({
+    super.key,
+    required this.number,
+    required this.round,
     required this.dense,
   });
 
-  final List<_RoundSummary> rounds;
-  final int totalPoints;
-  final int totalElapsedMs;
-  final bool complete;
+  final int number;
+  final _RoundSummary round;
   final bool dense;
 
   @override
   Widget build(BuildContext context) {
-    const border = Color(0xFFE9C77F);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xCFFFF9E8),
-        border: Border.all(color: border, width: 1.3),
-        borderRadius: BorderRadius.circular(17),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
+    final current = round.state == _RoundState.current;
+    final completed = round.state == _RoundState.completed;
+    final status = switch (round.state) {
+      _RoundState.completed => 'Completada',
+      _RoundState.current => 'En juego',
+      _RoundState.pending => 'Por jugar',
+    };
+    final statusColor = completed
+        ? const Color(0xFF2C873E)
+        : current
+        ? const Color(0xFF9A630B)
+        : const Color(0xFF766A56);
+    return MergeSemantics(
+      child: UiSurfacePanel(
+        surface: current ? UiSurface.goldCreamCard : UiSurface.creamTile,
+        constraints: BoxConstraints(minHeight: dense ? 76 : 88),
+        padding: EdgeInsets.symmetric(
+          horizontal: dense ? 10 : 14,
+          vertical: dense ? 12 : 14,
+        ),
+        child: Row(
           children: [
-            Expanded(
-              child: _row(
-                color: const Color(0xFFFFEAB2),
-                cells: const [
-                  _TableCell('Ronda', flex: 5),
-                  _TableCell('Puntos', flex: 3),
-                  _TableCell('Tiempo', flex: 3),
-                ],
-                header: true,
+            ExcludeSemantics(
+              child: SizedBox.square(
+                dimension: dense ? 44 : 58,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    UiSurfaceArt(
+                      current || completed
+                          ? UiSurface.goldRound
+                          : UiSurface.creamRound,
+                    ),
+                    Center(
+                      child: Text('$number', style: homeText(dense ? 27 : 34)),
+                    ),
+                  ],
+                ),
               ),
             ),
-            for (var i = 0; i < rounds.length; i++) ...[
-              const Divider(height: 1, thickness: 1, color: border),
-              Expanded(child: _roundRow(i, rounds[i])),
-            ],
-            const Divider(height: 1, thickness: 1.3, color: border),
+            SizedBox(width: dense ? 10 : 14),
             Expanded(
-              child: _row(
-                color: const Color(0xFFFFE39A),
-                cells: [
-                  _TableCell(complete ? 'Total' : 'Total actual', flex: 5),
-                  _TableCell(formatScore(totalPoints), flex: 3),
-                  _TableCell(formatPlayTime(totalElapsedMs), flex: 3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Ronda $number', style: homeText(dense ? 20 : 23)),
+                  const SizedBox(height: 3),
+                  Text(
+                    status,
+                    style: homeText(dense ? 16 : 18)
+                        .copyWith(color: statusColor),
+                  ),
+                  if (round.points != null && round.elapsedMs != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${formatScore(round.points!)} puntos · '
+                      '${formatPlayTime(round.elapsedMs!)}',
+                      style: homeText(dense ? 14 : 16, weight: FontWeight.w700),
+                    ),
+                  ],
                 ],
-                strong: true,
               ),
+            ),
+            SizedBox(width: dense ? 8 : 12),
+            MapIcon(
+              completed ? MapGlyph.goldStar : MapGlyph.emptyStar,
+              size: dense ? 34 : 46,
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _roundRow(int index, _RoundSummary round) {
-    final status = switch (round.state) {
-      _RoundState.completed => '✓ Completada',
-      _RoundState.current => 'En curso',
-      _RoundState.pending => 'Pendiente',
-    };
-    return _row(
-      color: round.state == _RoundState.current
-          ? const Color(0xFFFFF0BF)
-          : const Color(0x00FFFFFF),
-      cells: [
-        _TableCell(
-          '${index + 1}  $status',
-          flex: 5,
-          color: round.state == _RoundState.completed
-              ? const Color(0xFF27883E)
-              : round.state == _RoundState.current
-              ? const Color(0xFF9A630B)
-              : const Color(0xFF766A56),
-        ),
-        _TableCell(
-          round.points == null ? '—' : formatScore(round.points!),
-          flex: 3,
-        ),
-        _TableCell(
-          round.elapsedMs == null ? '—' : formatPlayTime(round.elapsedMs!),
-          flex: 3,
-        ),
-      ],
-    );
-  }
-
-  Widget _row({
-    required Color color,
-    required List<_TableCell> cells,
-    bool header = false,
-    bool strong = false,
-  }) => ColoredBox(
-    color: color,
-    child: Row(
-      children: [
-        for (final cell in cells)
-          Expanded(
-            flex: cell.flex,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: dense ? 4 : 8),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: cell.flex == 5
-                    ? Alignment.centerLeft
-                    : Alignment.center,
-                child: Text(
-                  cell.text,
-                  maxLines: 1,
-                  style:
-                      homeText(
-                        dense ? 13 : 16,
-                        weight: header || strong
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                      ).copyWith(
-                        color: cell.color,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
 }
 
-class _TableCell {
-  const _TableCell(this.text, {required this.flex, this.color});
+class _SummaryTotals extends StatelessWidget {
+  const _SummaryTotals({
+    required this.points,
+    required this.elapsedMs,
+    required this.dense,
+  });
 
-  final String text;
-  final int flex;
-  final Color? color;
+  final int points;
+  final int elapsedMs;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) => UiSurfacePanel(
+    surface: UiSurface.creamTile,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    child: LayoutBuilder(
+      builder: (context, bounds) {
+        final stacked =
+            bounds.maxWidth < 280 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.3;
+        final score = _metric(
+          Icons.star_rounded,
+          'Puntos: ${formatScore(points)}',
+        );
+        final time = _metric(
+          Icons.schedule_rounded,
+          'Tiempo: ${formatPlayTime(elapsedMs)}',
+        );
+        if (stacked) {
+          return Column(children: [score, const SizedBox(height: 8), time]);
+        }
+        return Row(
+          children: [
+            Expanded(child: score),
+            const SizedBox(
+              height: 26,
+              child: VerticalDivider(color: Color(0xFFD5BF91), thickness: 1.5),
+            ),
+            Expanded(child: time),
+          ],
+        );
+      },
+    ),
+  );
+
+  Widget _metric(IconData icon, String label) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(icon, color: homeNavy, size: dense ? 23 : 28),
+      const SizedBox(width: 7),
+      Flexible(child: Text(label, style: homeText(dense ? 14 : 16))),
+    ],
+  );
 }
