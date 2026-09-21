@@ -5,10 +5,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../routes.dart';
+
 import '../controllers/first_experience_controller.dart';
 import 'settings_screen.dart';
 import '../widgets/game_navigation_header.dart';
 import '../data/repositories/game_repository.dart';
+import '../domain/models/quick_play_difficulty.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../domain/models/sudoku_completion.dart';
 import '../widgets/home_art.dart';
@@ -38,11 +41,13 @@ class FirstExperienceScreen extends StatefulWidget {
     this.showDeveloperControls = kDebugMode,
     this.reviewOnly = false,
     this.levelNumber = 1,
+    this.quickPlayDifficulty,
   });
 
   final GameRepository repository;
   final bool reviewOnly;
   final int levelNumber;
+  final QuickPlayDifficulty? quickPlayDifficulty;
   final bool showDeveloperControls;
 
   @override
@@ -56,10 +61,80 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     widget.repository,
     reviewOnly: widget.reviewOnly,
     levelNumber: widget.levelNumber,
+    quickPlayDifficulty: widget.quickPlayDifficulty,
   );
   // Preserve the board and focus when the responsive layout changes parents.
   final _stageKey = GlobalKey();
   final _storyKey = GlobalKey();
+  FirstExperienceStep? _finishedStoryStep;
+  late final _blockDeal =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1200),
+        value: 1,
+      )..addStatusListener((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() {});
+        });
+      });
+
+  late final _blockTour =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 5400),
+        value: 1,
+      )..addStatusListener((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() {});
+        });
+      });
+
+  bool _blockTourPending = false;
+
+  void _queueBlockTour() {
+    _blockTourPending = true;
+    _blockTour.value = 1;
+    // Allow the board to lay out and report its expansion animation first.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startBlockTour());
+      WidgetsBinding.instance.scheduleFrame();
+    });
+  }
+
+  void _startBlockTour() {
+    if (!mounted ||
+        !_blockTourPending ||
+        _boardAnimating ||
+        _flow.step != FirstExperienceStep.expansion)
+      return;
+    setState(() {
+      _blockTourPending = false;
+      _blockTour.forward(from: 0);
+    });
+  }
+
+  List<int> get _lessonHighlights {
+    if (_flow.step != FirstExperienceStep.expansion) {
+      return _flow.highlightedIndices;
+    }
+    if (_reduceAnimations || _blockTourPending || _blockTour.isCompleted)
+      return [];
+    final block = (_blockTour.value * 9).floor().clamp(0, 8);
+    final row = (block ~/ 3) * 3;
+    final column = (block % 3) * 3;
+    return [
+      for (var r = 0; r < 3; r++)
+        for (var c = 0; c < 3; c++) (row + r) * 9 + column + c,
+    ];
+  }
+
+  void _storyFinished(FirstExperienceStep step) {
+    if (mounted && _flow.step == step && _finishedStoryStep != step) {
+      setState(() => _finishedStoryStep = step);
+    }
+  }
+
   late final _dokuEntrance =
       AnimationController(
         vsync: this,
@@ -137,6 +212,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       (_flow.reviewOnly || _flow.session != null) &&
       (_welcome || _flow.isStory);
   bool get _navigationBlocked =>
+      (_flow.isStory && _finishedStoryStep != _flow.step) ||
+      _blockDeal.isAnimating ||
+      _blockTourPending ||
+      _blockTour.isAnimating ||
       _settingsOpen ||
       _openingNextLevel ||
       _flow.isBusy ||
@@ -150,6 +229,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   void _boardAnimationChanged(bool animating) {
     if (mounted && _boardAnimating != animating) {
       setState(() => _boardAnimating = animating);
+      if (!animating) _startBlockTour();
     }
   }
 
@@ -176,9 +256,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _rewardTargetScheduled = false;
       if (!mounted || _rewardFlightFrom == null) return;
-      final box = _rewardBoardSlotKey.currentContext?.findRenderObject();
-      if (box is! RenderBox || !box.hasSize) return;
-      final target = box.localToGlobal(Offset.zero) & box.size;
+      final target = _rectInBoardLayer(_rewardBoardSlotKey);
+      if (target == null) return;
       if (target != _rewardFlightTo) setState(() => _rewardFlightTo = target);
       if (!_rewardEntrance.isAnimating && _rewardEntrance.value == 0) {
         _rewardEntrance.forward();
@@ -205,15 +284,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                 _rewardFlightTo ?? _rewardFlightFrom!,
                 progress,
               )!;
-              final layer = _rewardLayerKey.currentContext?.findRenderObject();
-              final offset = layer is RenderBox
-                  ? layer.localToGlobal(Offset.zero)
-                  : Offset.zero;
               return Stack(
                 clipBehavior: Clip.none,
-                children: [
-                  Positioned.fromRect(rect: rect.shift(-offset), child: child!),
-                ],
+                children: [Positioned.fromRect(rect: rect, child: child!)],
               );
             },
             child: _stage(cells, motion),
@@ -278,9 +351,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _nextTargetScheduled = false;
       if (!mounted || _nextPhase != _NextSudokuPhase.entering) return;
-      final box = _nextBoardSlotKey.currentContext?.findRenderObject();
-      if (box is! RenderBox || !box.hasSize) return;
-      final target = box.localToGlobal(Offset.zero) & box.size;
+      final target = _rectInBoardLayer(_nextBoardSlotKey);
+      if (target == null) return;
       if (_nextTo != target) setState(() => _nextTo = target);
       if (!_nextEntrance.isAnimating && _nextEntrance.value == 0) {
         _nextEntrance.forward();
@@ -297,17 +369,11 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
             animation: Listenable.merge([_nextExit, _nextEntrance]),
             builder: (context, _) {
               final from = _nextFrom!;
-              final layer = _rewardLayerKey.currentContext?.findRenderObject();
-              final offset = layer is RenderBox
-                  ? layer.localToGlobal(Offset.zero)
-                  : Offset.zero;
               final Rect rect;
               final double opacity;
               if (_nextPhase == _NextSudokuPhase.leaving) {
                 final progress = Curves.easeInCubic.transform(_nextExit.value);
-                rect = from.shift(
-                  Offset(-(from.right - offset.dx + 24) * progress, 0),
-                );
+                rect = from.shift(Offset(-(from.right + 24) * progress, 0));
                 opacity = 1 - progress;
               } else {
                 final target = _nextTo ?? from;
@@ -327,7 +393,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                 clipBehavior: Clip.none,
                 children: [
                   Positioned.fromRect(
-                    rect: rect.shift(-offset),
+                    rect: rect,
                     child: Opacity(
                       key: const ValueKey('next-board-fade'),
                       opacity: opacity,
@@ -380,7 +446,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _flow.addListener(_changed);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (!_flow.isPaused) unawaited(_flow.resumeGame());
+        if (!_flow.isPaused || _flow.isQuickPlay) unawaited(_flow.resumeGame());
         if (_flow.step == FirstExperienceStep.playing && _needsBriefing) {
           _openGameBriefing();
         }
@@ -394,11 +460,18 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     if (MediaQuery.disableAnimationsOf(context) ||
         MediaQuery.accessibleNavigationOf(context)) {
       _dokuEntrance.value = 1;
+      _blockDeal.value = 1;
+      _blockTourPending = false;
+      _blockTour.value = 1;
       _rewardEntrance.value = 1;
       if (_nextPhase == _NextSudokuPhase.leaving) _nextExit.value = 1;
       _nextEntrance.value = 1;
     } else if (!_entranceStarted) {
       _dokuEntrance.forward();
+      if (_flow.step == FirstExperienceStep.expansion) _queueBlockTour();
+      if (_flow.step == FirstExperienceStep.blockIntroduction) {
+        _blockDeal.forward(from: 0);
+      }
     }
     _entranceStarted = true;
   }
@@ -428,6 +501,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   }
 
   bool get _needsBriefing =>
+      !_flow.isQuickPlay &&
       !widget.reviewOnly &&
       widget.levelNumber == 1 &&
       _flow.gameIndex == 0 &&
@@ -435,11 +509,22 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               as Map?)?['briefingAccepted'] !=
           true;
 
-  Rect? _boardRect() {
-    final box = _stageKey.currentContext?.findRenderObject();
-    return box is RenderBox && box.hasSize
-        ? box.localToGlobal(Offset.zero) & box.size
-        : null;
+  Rect? _boardRect() => _rectInBoardLayer(_stageKey);
+
+  Rect? _rectInBoardLayer(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject();
+    final layer = _rewardLayerKey.currentContext?.findRenderObject();
+    if (box is! RenderBox ||
+        layer is! RenderBox ||
+        !box.attached ||
+        !layer.attached ||
+        !box.hasSize ||
+        !layer.hasSize) {
+      return null;
+    }
+    // Keep board flights in the game Stack's coordinates. Route transforms
+    // above it may be replaced before layout when a cinematic closes on iOS.
+    return box.localToGlobal(Offset.zero, ancestor: layer) & box.size;
   }
 
   Future<void> _openGameBriefing({Rect? from}) async {
@@ -498,11 +583,34 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   }
 
   void _changed() {
+    if (_previousStep != _flow.step) {
+      _finishedStoryStep = null;
+      if (_flow.step == FirstExperienceStep.expansion && !_reduceAnimations) {
+        _queueBlockTour();
+      } else {
+        _blockTourPending = false;
+        _blockTour.value = 1;
+      }
+      if (_flow.step == FirstExperienceStep.blockIntroduction) {
+        if (_reduceAnimations) {
+          _blockDeal.value = 1;
+        } else {
+          _blockDeal.forward(from: 0);
+        }
+      }
+    }
     if (!identical(_previousCompletion, _flow.completion)) {
       _previousCompletion = _flow.completion;
       _pendingBoardCompletion = _flow.completion?.wholeBoard == true
           ? _flow.completion
           : null;
+    }
+    if (_previousStep == FirstExperienceStep.playing &&
+        (_flow.step == FirstExperienceStep.celebration ||
+            _flow.step == FirstExperienceStep.complete) &&
+        mounted &&
+        ModalRoute.of(context)?.isCurrent != false) {
+      GameFeedbackScope.levelCompleted(context);
     }
     if (_previousAttention != _flow.attention) {
       _previousAttention = _flow.attention;
@@ -541,6 +649,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _flow.removeListener(_changed);
     _flow.dispose();
     _dokuEntrance.dispose();
+    _blockDeal.dispose();
+    _blockTour.dispose();
     _gameEntrance.dispose();
     _rewardEntrance.dispose();
     _nextExit.dispose();
@@ -673,6 +783,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, bounds) {
+                        final storyStep = _flow.step;
                         final wide =
                             bounds.maxWidth >= 700 &&
                             bounds.maxWidth > bounds.maxHeight * 1.2;
@@ -680,9 +791,12 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                         final flowHeader = _FlowHeader(
                           welcome: false,
                           compact: titleInGameAppBar,
-                          title: _finishingBoard
-                              ? 'Ronda ${_flow.gameIndex + 1} de 3'
+                          title: !_flow.isQuickPlay
+                              ? 'Juego ${_flow.levelNumber}'
                               : TutorialJourney.title(_flow),
+                          subtitle: !_flow.isQuickPlay
+                              ? 'Ronda ${_flow.gameIndex + 1} de ${_flow.roundCount}'
+                              : null,
                         );
                         final Widget content;
                         if (_welcome) {
@@ -696,6 +810,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             _flow.step.index >=
                                 FirstExperienceStep.expansion.index) {
                           content = TutorialJourney(
+                            onLessonFinished: () => _storyFinished(storyStep),
                             navigationBlocked: _navigationBlocked,
                             finishingBoard: _finishingBoard,
                             flow: _flow,
@@ -714,6 +829,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             onNextLevel: _openNextLevel,
                             navigation: _showGame
                                 ? GameNavigationHeader(
+                                    backLabel: _flow.isQuickPlay
+                                        ? 'Volver al inicio'
+                                        : 'Volver al mapa',
                                     center: titleInGameAppBar
                                         ? flowHeader
                                         : null,
@@ -735,7 +853,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                                 if (!titleInGameAppBar)
                                   _FlowHeader(
                                     welcome: false,
-                                    title: _finishingBoard
+                                    title: _finishingBoard && !_flow.isQuickPlay
                                         ? 'Ronda ${_flow.gameIndex + 1} de 3'
                                         : TutorialJourney.title(_flow),
                                   ),
@@ -830,6 +948,24 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
             if (kDebugMode && widget.showDeveloperControls)
               DeveloperFloatingMenu(
                 actions: [
+                  if (!_navigationBlocked &&
+                      _flow.readyToPlay &&
+                      !_flow.reviewOnly)
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-fill-except-one'),
+                      label: 'Completar menos 1',
+                      icon: Icons.grid_on_rounded,
+                      onPressed: _flow.debugFillExceptOne,
+                    ),
+                  if (!_navigationBlocked &&
+                      _flow.debugPreviousGameIndex != null)
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-restart-previous'),
+                      label:
+                          'Repetir sudoku ${_flow.debugPreviousGameIndex! + 1}',
+                      icon: Icons.replay_rounded,
+                      onPressed: _flow.debugRestartPrevious,
+                    ),
                   DeveloperMenuAction(
                     key: const ValueKey('dev-exit-tutorial'),
                     label: 'Salir',
@@ -845,6 +981,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   }
 
   int? get _nextLevelNumber {
+    if (_flow.isQuickPlay) return null;
     final number = widget.levelNumber + 1;
     if (number > 10 ||
         !widget.repository.state.isUnlocked(mapLevelId(number)) ||
@@ -868,6 +1005,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       unawaited(
         Navigator.of(context).pushReplacement<void, void>(
           WorldJourneyRoute(
+            settings: const RouteSettings(name: AppRoutes.game),
             reduceMotion: MediaQuery.disableAnimationsOf(context),
             builder: (_) => FirstExperienceScreen(
               repository: widget.repository,
@@ -968,19 +1106,13 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              'Toca los lados para avanzar o volver',
-              textAlign: TextAlign.center,
-              style: homeText(13, weight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
             IllustratedActionButton(
               key: ValueKey(_welcome ? 'intro-continue' : 'intro-start-block'),
               compact: compact,
               fontSize: 22,
               showPlayIcon: MediaQuery.textScalerOf(context).scale(16) <= 24,
               label: _flow.isBusy ? 'Guardando…' : 'Siguiente',
-              onPressed: _flow.isBusy ? null : _flow.advance,
+              onPressed: _navigationBlocked ? null : _flow.advance,
             ),
           ],
         ),
@@ -1108,7 +1240,12 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     );
   }
 
-  Widget _stage(List<int?> cells, Duration motion) => Center(
+  Widget _stage(List<int?> cells, Duration motion) => AnimatedBuilder(
+    animation: Listenable.merge([_blockDeal, _blockTour]),
+    builder: (context, _) => _animatedStage(cells, motion),
+  );
+
+  Widget _animatedStage(List<int?> cells, Duration motion) => Center(
     key: _stageKey,
     child: AnimatedBuilder(
       animation: _gameEntrance,
@@ -1137,7 +1274,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                 child: Center(
                   child: SudokuBoard(
                     key: const ValueKey('intro-board'),
-                    dealProgress: _nextPhase == _NextSudokuPhase.entering
+                    dealProgress:
+                        _flow.step == FirstExperienceStep.blockIntroduction
+                        ? _blockDeal.value
+                        : _nextPhase == _NextSudokuPhase.entering
                         ? ((_nextEntrance.value * 1350 - 800) / 500).clamp(
                             0.0,
                             1.0,
@@ -1165,7 +1305,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                         : null,
                     centerOnly:
                         _flow.step.index < FirstExperienceStep.expansion.index,
-                    highlightedIndices: _flow.highlightedIndices,
+                    highlightedIndices: _lessonHighlights,
                     helpFocusIndices: _flow.helpTip?.focusIndices ?? const {},
                     helpEmphasizedNumber: _flow.helpTip?.emphasizedNumber,
                     helpTraces: _flow.helpTip?.traces ?? const [],
@@ -1229,6 +1369,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
             key: _storyKey,
             autoplay: _dokuReady,
             interactive: false,
+            onFinished: () => _storyFinished(FirstExperienceStep.welcome),
             animate: !_hasLeftWelcome,
             lines: _welcome
                 ? TutorialStory.sentences
@@ -1321,11 +1462,13 @@ class _FlowHeader extends StatelessWidget {
     this.expanded = false,
     this.compact = false,
     this.title,
+    this.subtitle,
   });
   final bool welcome;
   final bool expanded;
   final bool compact;
   final String? title;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -1393,49 +1536,52 @@ class _FlowHeader extends StatelessWidget {
             ),
           ),
         if (!welcome && compact)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
+          FractionallySizedBox(
+            widthFactor: MediaQuery.sizeOf(context).shortestSide >= 600
+                ? .7
+                : 1,
             child: UiSurfacePanel(
               key: const ValueKey('intro-header'),
               surface: UiSurface.goldCreamPanel,
-              padding: const EdgeInsets.fromLTRB(28, 19, 28, 22),
-              child: FittedBox(fit: BoxFit.scaleDown, child: blockTitle),
-            ),
-          ),
-        if (!welcome && !compact)
-          Row(
-            children: [
-              SizedBox(
-                key: const ValueKey('intro-header-rays-left'),
-                width: 28,
-                height: 70,
-                child: Transform.flip(
-                  flipX: true,
-                  child: const TutorialBlockArt(TutorialGlyph.rays),
-                ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 28,
+                vertical: 20.5,
               ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: UiSurfacePanel(
-                  key: const ValueKey('intro-header'),
-                  surface: UiSurface.goldCreamPanel,
-                  padding: const EdgeInsets.fromLTRB(12, 19, 12, 22),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: largeText
-                        ? blockTitle
-                        : FittedBox(fit: BoxFit.scaleDown, child: blockTitle),
+              child: Center(
+                heightFactor: 1,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      blockTitle,
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          key: const ValueKey('game-round-subtitle'),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          style: homeText(13, weight: FontWeight.w600),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 7),
-              const SizedBox(
-                key: ValueKey('intro-header-rays-right'),
-                width: 28,
-                height: 70,
-                child: TutorialBlockArt(TutorialGlyph.rays),
-              ),
-            ],
+            ),
+          ),
+        if (!welcome && !compact)
+          UiSurfacePanel(
+            key: const ValueKey('intro-header'),
+            surface: UiSurface.goldCreamPanel,
+            padding: const EdgeInsets.fromLTRB(24, 19, 24, 22),
+            child: SizedBox(
+              width: double.infinity,
+              child: largeText
+                  ? blockTitle
+                  : FittedBox(fit: BoxFit.scaleDown, child: blockTitle),
+            ),
           ),
       ],
     );
@@ -1490,6 +1636,7 @@ class _GameBriefing extends StatefulWidget {
 
 class _GameBriefingState extends State<_GameBriefing> {
   bool _saving = false;
+  bool _textReady = false;
   String? _error;
   @override
   Widget build(BuildContext context) => ConstrainedBox(
@@ -1508,10 +1655,20 @@ class _GameBriefingState extends State<_GameBriefing> {
               style: homeText(28),
             ),
             const SizedBox(height: 12),
-            Text(
-              'Completa las casillas vacías con los números que faltan.\nToca una casilla y elige un número.\nRecuerda: no repitas números en la fila, la columna ni el bloque.',
-              textAlign: TextAlign.center,
-              style: homeText(20),
+            TutorialStory(
+              lines: const [
+                'Toca una casilla vacía y elige un número.',
+                'Las pistas te ayudarán a encontrar su lugar.',
+                '¡Recuerda! No repitas números en la fila, la columna ni el bloque.',
+              ],
+              tip: null,
+              interactive: false,
+              showPanel: false,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              textStyle: homeText(20).copyWith(height: 1.3),
+              onFinished: () {
+                if (mounted && !_textReady) setState(() => _textReady = true);
+              },
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
@@ -1522,7 +1679,7 @@ class _GameBriefingState extends State<_GameBriefing> {
               key: const ValueKey('game-briefing-accept'),
               label: _saving ? 'Guardando…' : '¡A jugar!',
               fontSize: 23,
-              onPressed: _saving
+              onPressed: _saving || !_textReady
                   ? null
                   : () async {
                       setState(() {

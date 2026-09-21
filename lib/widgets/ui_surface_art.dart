@@ -9,6 +9,7 @@ enum UiSurface {
   worldFooter,
   blueScoreCapsule,
   goldButton,
+  blueButton,
   creamPanel,
   goldCreamPanel,
   goldCreamCard,
@@ -42,6 +43,13 @@ class UiSurfaceSpec {
 
 extension UiSurfaceCatalog on UiSurface {
   UiSurfaceSpec get spec => switch (this) {
+    UiSurface.blueButton => const UiSurfaceSpec(
+      'assets/images/home/blue-button.png',
+      Size(2172, 724),
+      Rect.fromLTRB(.014, .14, .986, .83),
+      Rect.fromLTRB(.17, .35, .83, .65),
+      Size(224, 56),
+    ),
     UiSurface.worldFooter => const UiSurfaceSpec(
       'assets/images/home/status-panel.png',
       Size(2181, 721),

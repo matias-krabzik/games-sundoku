@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../data/level_catalog.dart';
 import '../data/repositories/game_repository.dart';
 import '../domain/models/game_session.dart';
+import '../domain/models/quick_play_difficulty.dart';
 import '../domain/help/sudoku_help.dart';
 import '../domain/models/json_data.dart';
 import '../domain/models/sudoku_definition.dart';
@@ -30,6 +31,7 @@ class FirstExperienceController extends ChangeNotifier {
     Random? random,
     this.reviewOnly = false,
     this.levelNumber = 1,
+    this.quickPlayDifficulty,
     this.helpEngine = const SudokuHelpEngine(),
   }) : _random = random ?? Random() {
     RangeError.checkValueInInterval(levelNumber, 1, 10, 'levelNumber');
@@ -51,9 +53,13 @@ class FirstExperienceController extends ChangeNotifier {
 
   static const moduleKey = 'firstExperience';
   final int levelNumber;
-  bool get isGeneratedLevel => levelNumber > 1;
+  final QuickPlayDifficulty? quickPlayDifficulty;
+  bool get isQuickPlay => quickPlayDifficulty != null;
+  int get roundCount => isQuickPlay ? 1 : 3;
+  bool get isGeneratedLevel => isQuickPlay || levelNumber > 1;
   String get storageKey =>
-      isGeneratedLevel ? 'generatedLevel/$levelNumber' : moduleKey;
+      quickPlayDifficulty?.storageKey ??
+      (isGeneratedLevel ? 'generatedLevel/$levelNumber' : moduleKey);
   bool _paused = false;
   bool get isPaused =>
       step == FirstExperienceStep.playing &&
@@ -67,6 +73,8 @@ class FirstExperienceController extends ChangeNotifier {
   final SudokuHelpEngine helpEngine;
   bool _helpVisible = false;
   final Random _random;
+  late final List<int> _exampleOrder = List.generate(9, (index) => index + 1)
+    ..shuffle(_random);
   late FirstExperienceStep _savedStep;
   late FirstExperienceStep _step;
   late List<int?> _cells;
@@ -93,7 +101,7 @@ class FirstExperienceController extends ChangeNotifier {
   FirstExperienceStep get step =>
       _step == FirstExperienceStep.playing &&
           puzzleProgress?.status == PlayStatus.completed
-      ? gameIndex == 2
+      ? gameIndex == roundCount - 1
             ? FirstExperienceStep.complete
             : FirstExperienceStep.celebration
       : _step;
@@ -108,11 +116,12 @@ class FirstExperienceController extends ChangeNotifier {
   int get filledCount => _cells.whereType<int>().length;
 
   GameSession? get session => repository.state.sessions[_module['sessionId']];
-  int get gameIndex => (_module['gameIndex'] as int? ?? 0).clamp(0, 2);
+  int get gameIndex =>
+      (_module['gameIndex'] as int? ?? 0).clamp(0, roundCount - 1);
   PuzzleProgress? get puzzleProgress => session?.puzzles[gameIndex];
   SudokuDefinition? get puzzleDefinition =>
       repository.state.puzzles[puzzleProgress?.puzzleId];
-  TutorialLesson? get lesson => lessonFor(step, _cells[4] ?? 1);
+  TutorialLesson? get lesson => lessonFor(step, exampleCenter);
   int get storyIndex => tutorialStorySteps.indexOf(step);
   int get storyCount => tutorialStorySteps.length;
   bool get isStory => storyIndex >= 0;
@@ -186,7 +195,7 @@ class FirstExperienceController extends ChangeNotifier {
   List<int> get exampleCenter {
     final chosen = [..._cells];
     final missing = [
-      for (final n in [8, 3, 5, 4, 1, 6, 9, 2, 7])
+      for (final n in _exampleOrder)
         if (!chosen.contains(n)) n,
     ];
     var next = 0;
@@ -246,10 +255,10 @@ class FirstExperienceController extends ChangeNotifier {
     final current = step;
     if (isStory) {
       if (current == FirstExperienceStep.welcome) {
-        await begin();
+        await begin(automaticBlock: true);
       } else if (current == FirstExperienceStep.blockIntroduction &&
           !reviewOnly) {
-        await startBlock();
+        await _save(FirstExperienceStep.expansion, exampleCenter);
       } else if (current == FirstExperienceStep.givensIntroduction) {
         if (session?.status == PlayStatus.completed) {
           await _save(FirstExperienceStep.complete, _cells);
@@ -261,11 +270,13 @@ class FirstExperienceController extends ChangeNotifier {
       }
     } else if (current == FirstExperienceStep.celebration) {
       await _save(
-        gameIndex == 2
+        gameIndex == roundCount - 1
             ? FirstExperienceStep.complete
             : FirstExperienceStep.playing,
         _cells,
-        changes: {'gameIndex': gameIndex == 2 ? 2 : gameIndex + 1},
+        changes: {
+          'gameIndex': gameIndex == roundCount - 1 ? gameIndex : gameIndex + 1,
+        },
       );
       if (startClock && _error == null && step == FirstExperienceStep.playing) {
         await resumeGame();
@@ -552,7 +563,7 @@ class FirstExperienceController extends ChangeNotifier {
     );
   }
 
-  Future<void> begin() async {
+  Future<void> begin({bool automaticBlock = false}) async {
     if (_disposed || _isBusy || _step != FirstExperienceStep.welcome) return;
     if (!reviewOnly && _savedStep != FirstExperienceStep.welcome) {
       _step = _savedStep == FirstExperienceStep.block
@@ -562,7 +573,10 @@ class FirstExperienceController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    await _save(FirstExperienceStep.blockIntroduction, _cells);
+    await _save(
+      FirstExperienceStep.blockIntroduction,
+      automaticBlock ? exampleCenter : _cells,
+    );
   }
 
   Future<void> startBlock() async {
@@ -597,7 +611,7 @@ class FirstExperienceController extends ChangeNotifier {
         session != null) {
       return;
     }
-    _step = FirstExperienceStep.block;
+    _step = FirstExperienceStep.blockIntroduction;
     _error = null;
     notifyListeners();
   }

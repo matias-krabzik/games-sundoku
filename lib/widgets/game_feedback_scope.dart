@@ -10,11 +10,29 @@ class GameFeedbackScope extends InheritedWidget {
     super.key,
     required this.onTap,
     this.onError,
+    this.onToggle,
+    this.onLevelCompleted,
     required super.child,
   });
 
   final VoidCallback onTap;
   final VoidCallback? onError;
+  final VoidCallback? onLevelCompleted;
+
+  static void levelCompleted(BuildContext context) => context
+      .getInheritedWidgetOfExactType<GameFeedbackScope>()
+      ?.onLevelCompleted
+      ?.call();
+  final void Function(bool enabled, bool sound)? onToggle;
+
+  static void toggle(
+    BuildContext context, {
+    required bool enabled,
+    required bool sound,
+  }) => context
+      .getInheritedWidgetOfExactType<GameFeedbackScope>()
+      ?.onToggle
+      ?.call(enabled, sound);
 
   static void tap(BuildContext context) =>
       context.getInheritedWidgetOfExactType<GameFeedbackScope>()?.onTap();
@@ -26,7 +44,10 @@ class GameFeedbackScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(GameFeedbackScope oldWidget) =>
-      onTap != oldWidget.onTap || onError != oldWidget.onError;
+      onTap != oldWidget.onTap ||
+      onError != oldWidget.onError ||
+      onToggle != oldWidget.onToggle ||
+      onLevelCompleted != oldWidget.onLevelCompleted;
 }
 
 class GameFeedbackHost extends StatefulWidget {
@@ -56,6 +77,7 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.repository.addListener(_syncMusic);
+    unawaited(widget.output.prepareEffects());
   }
 
   void _syncMusic() {
@@ -77,6 +99,26 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
     final settings = widget.repository.state.settings;
     unawaited(
       widget.output.tap(sound: settings.sound, vibration: settings.vibration),
+    );
+  }
+
+  void _toggle(bool enabled, bool sound) {
+    _engage();
+    unawaited(
+      widget.output.toggle(
+        enabled: enabled,
+        sound: sound,
+        vibration: widget.repository.state.settings.vibration,
+      ),
+    );
+  }
+
+  void _levelCompleted() {
+    if (!_foreground) return;
+    unawaited(
+      widget.output.levelCompleted(
+        sound: widget.repository.state.settings.sound,
+      ),
     );
   }
 
@@ -107,6 +149,8 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
   Widget build(BuildContext context) => GameFeedbackScope(
     onTap: _tap,
     onError: _error,
+    onToggle: _toggle,
+    onLevelCompleted: _levelCompleted,
     child: Listener(onPointerDown: (_) => _engage(), child: widget.child),
   );
 }

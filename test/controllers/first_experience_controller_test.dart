@@ -30,6 +30,44 @@ class _ControlledStore extends MemorySaveStore {
 
 void main() {
   group('FirstExperienceController', () {
+    test('automatic blocks vary by seed and persist across reopening and all stories', () async {
+      final arrangements = <String>{};
+      for (var seed = 0; seed < 5; seed++) {
+        final store = MemorySaveStore();
+        var repository = await GameRepository.open(store);
+        var controller = FirstExperienceController(
+          repository,
+          random: Random(seed),
+        );
+        await controller.advance();
+        final cells = List<int?>.of(controller.cells);
+        expect(cells, unorderedEquals(List.generate(9, (i) => i + 1)));
+        expect(controller.step, FirstExperienceStep.blockIntroduction);
+        arrangements.add(cells.join());
+        controller.dispose();
+        await repository.close();
+        repository = await GameRepository.open(store);
+        controller = FirstExperienceController(
+          repository,
+          random: Random(seed + 100),
+        );
+        expect(controller.exampleCenter, cells);
+        for (final step in [
+          FirstExperienceStep.expansion,
+          FirstExperienceStep.rowRule,
+          FirstExperienceStep.columnRule,
+          FirstExperienceStep.givensIntroduction,
+        ]) {
+          await controller.advance();
+          expect(controller.step, step);
+          expect(controller.cells, cells);
+        }
+        controller.dispose();
+        await repository.close();
+      }
+      expect(arrangements.length, greaterThan(1));
+    });
+
     test('successful placements choose random vacant cells without revisiting filled ones', () async {
       final repository = GameRepository.memory();
       addTearDown(repository.close);
@@ -137,7 +175,7 @@ void main() {
         controller = FirstExperienceController(repository);
         addTearDown(repository.close);
         addTearDown(controller.dispose);
-        expect(controller.step, FirstExperienceStep.block);
+        expect(controller.step, FirstExperienceStep.blockIntroduction);
         expect(controller.cells, [
           8,
           null,

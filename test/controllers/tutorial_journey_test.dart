@@ -90,21 +90,7 @@ void main() {
       FirstExperienceStep.columnRule,
       FirstExperienceStep.givensIntroduction,
     ];
-    Future<void> advanceStory() async {
-      if (flow.step != FirstExperienceStep.blockIntroduction) {
-        await flow.advance();
-        return;
-      }
-      await flow.advance();
-      expect(flow.step, FirstExperienceStep.block);
-      final completed = flow.exampleCenter;
-      for (var index = 0; index < completed.length; index++) {
-        if (flow.cells[index] != null) continue;
-        flow.selectCell(index);
-        await flow.placeNumber(completed[index]);
-      }
-      await flow.expandBoard();
-    }
+    Future<void> advanceStory() => flow.advance();
 
     for (var index = 0; index < stories.length; index++) {
       expect(flow.step, stories[index]);
@@ -165,17 +151,11 @@ void main() {
       expect(flow.error, isNotNull);
       store.fail = false;
       await flow.advance();
-      expect(flow.step, FirstExperienceStep.block);
-      expect(flow.cells, draft);
-      final completed = flow.exampleCenter;
-      for (var index = 0; index < draft.length; index++) {
-        if (flow.cells[index] != null) continue;
-        flow.selectCell(index);
-        await flow.placeNumber(completed[index]);
-      }
-      await flow.expandBoard();
       expect(flow.step, FirstExperienceStep.expansion);
       expect(flow.cells, unorderedEquals(List.generate(9, (i) => i + 1)));
+      for (var i = 0; i < draft.length; i++) {
+        if (draft[i] != null) expect(flow.cells[i], draft[i]);
+      }
       expect(repo.state.sessions, isEmpty);
     },
   );

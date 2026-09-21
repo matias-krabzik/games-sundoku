@@ -33,6 +33,8 @@ class TutorialCelebration extends StatelessWidget {
     this.boardSlotKey,
     this.actionKey,
     this.previousBoards = const [],
+    this.exitLabel = 'Mapa!',
+    this.starCount = 3,
     this.departure = const AlwaysStoppedAnimation(0),
   });
 
@@ -50,6 +52,8 @@ class TutorialCelebration extends StatelessWidget {
   final Key? boardSlotKey;
   final Key? actionKey;
   final List<Widget> previousBoards;
+  final String exitLabel;
+  final int starCount;
   final Animation<double> departure;
 
   @override
@@ -114,16 +118,6 @@ class TutorialCelebration extends StatelessWidget {
                     offset: Offset(0, 12 * leaving),
                     child: Column(
                       children: [
-                        Opacity(
-                          opacity: Curves.easeOut.transform(
-                            _interval(progress, 0, 350),
-                          ),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 470),
-                            child: header,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, body) => SingleChildScrollView(
@@ -256,6 +250,7 @@ class TutorialCelebration extends StatelessWidget {
                                   ),
                                   if (heroHeight >= 45)
                                     TutorialReward(
+                                      starCount: starCount,
                                       stars: stars,
                                       animation: animation,
                                       compact: true,
@@ -308,7 +303,7 @@ class TutorialCelebration extends StatelessWidget {
                               compact: true,
                               showPlayIcon: false,
                               fontSize: 21,
-                              label: 'Mapa!',
+                              label: exitLabel,
                               onPressed: actionOpacity < 1 ? null : onAction,
                             ),
                           ),
@@ -454,16 +449,18 @@ class TutorialReward extends StatelessWidget {
     this.animation = const AlwaysStoppedAnimation(1),
     this.compact = false,
     this.showDoku = true,
+    this.starCount = 3,
   });
 
   final int stars;
   final Animation<double> animation;
   final bool compact;
   final bool showDoku;
+  final int starCount;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: '$stars de 3 estrellas ganadas',
+    label: '$stars de $starCount estrellas ganadas',
     image: true,
     child: AnimatedBuilder(
       animation: animation,
@@ -491,7 +488,7 @@ class TutorialReward extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (var i = 0; i < 3; i++)
+                for (var i = 0; i < starCount; i++)
                   Builder(
                     builder: (context) {
                       final star = _interval(

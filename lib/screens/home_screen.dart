@@ -21,6 +21,7 @@ class HomeScreen extends StatefulWidget {
     this.unlockedLevels = 1,
     this.playerName = 'Jugador',
     this.onPlay,
+    this.onQuickPlay,
     this.onReady,
     this.hasStarted = false,
     this.quickPlayUnlocked = false,
@@ -32,6 +33,7 @@ class HomeScreen extends StatefulWidget {
   final int unlockedLevels;
   final String playerName;
   final VoidCallback? onPlay;
+  final VoidCallback? onQuickPlay;
   final ValueChanged<BuildContext>? onReady;
   final bool hasStarted;
   final bool quickPlayUnlocked;
@@ -129,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           Expanded(
                                             child: Center(
                                               child: _HomeActions(
+                                                onQuickPlay: widget.onQuickPlay,
                                                 onPlay: widget.onPlay,
                                                 availableLevel:
                                                     widget.availableLevel,
@@ -188,6 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const Expanded(child: _Doku()),
                                     const SizedBox(height: 8),
                                     _HomeActions(
+                                      onQuickPlay: widget.onQuickPlay,
                                       onPlay: widget.onPlay,
                                       availableLevel: widget.availableLevel,
                                       unlockedLevels: widget.unlockedLevels,
@@ -323,8 +327,10 @@ class _HomeActions extends StatelessWidget {
     required this.hasStarted,
     required this.quickPlayUnlocked,
     this.onPlay,
+    this.onQuickPlay,
   });
   final VoidCallback? onPlay;
+  final VoidCallback? onQuickPlay;
   final int availableLevel;
   final int unlockedLevels;
   final bool compact;
@@ -339,11 +345,12 @@ class _HomeActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (quickPlayUnlocked && horizontalActions)
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: compact ? 9 : 12,
+            runSpacing: compact ? 9 : 12,
             children: [
               SizedBox(width: 224, child: _adventureButton(context)),
-              SizedBox(width: compact ? 9 : 12),
               SizedBox(width: 280, child: _quickPlayButton()),
             ],
           )
@@ -380,7 +387,7 @@ class _HomeActions extends StatelessWidget {
     key: const ValueKey('home-quick-play'),
     label: 'Partida rápida',
     compact: compact,
-    onPressed: () {},
+    onPressed: onQuickPlay ?? () {},
   );
 }
 

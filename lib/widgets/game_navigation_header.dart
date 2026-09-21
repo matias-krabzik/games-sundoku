@@ -13,10 +13,12 @@ class GameNavigationHeader extends StatelessWidget {
     this.onBack,
     this.onSettings,
     this.center,
+    this.backLabel = 'Volver al mapa',
   });
   final VoidCallback? onBack;
   final VoidCallback? onSettings;
   final Widget? center;
+  final String backLabel;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -24,7 +26,7 @@ class GameNavigationHeader extends StatelessWidget {
     children: [
       GameHeaderButton(
         key: const ValueKey('game-back'),
-        label: 'Volver al mapa',
+        label: backLabel,
         onPressed: onBack,
         icon: const MapIcon(MapGlyph.back, size: 29),
       ),

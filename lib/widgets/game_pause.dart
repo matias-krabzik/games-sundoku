@@ -10,9 +10,13 @@ import 'juicy_press.dart';
 import 'ui_surface_art.dart';
 
 String formatPlayTime(int milliseconds) {
-  final seconds = milliseconds ~/ 1000;
-  final minutes = seconds ~/ 60;
-  return '${minutes.toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}';
+  final elapsed = Duration(milliseconds: milliseconds);
+  String twoDigits(int value) => value.toString().padLeft(2, '0');
+  final minutesAndSeconds =
+      '${twoDigits(elapsed.inMinutes % 60)}:${twoDigits(elapsed.inSeconds % 60)}';
+  if (elapsed.inHours == 0) return minutesAndSeconds;
+  final hoursAndTime = '${twoDigits(elapsed.inHours % 24)}:$minutesAndSeconds';
+  return elapsed.inDays > 0 ? '${elapsed.inDays}d $hoursAndTime' : hoursAndTime;
 }
 
 class GameTimerControls extends StatefulWidget {

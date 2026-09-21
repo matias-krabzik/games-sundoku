@@ -155,7 +155,7 @@ class _TutorialStoryGesturesState extends State<TutorialStoryGestures> {
       if (_active && widget.onNext != null) _nextAction: () => _navigate(true),
     },
     child: FocusableActionDetector(
-      enabled: _active,
+      // Keep keyboard focus while animation temporarily locks navigation.
       focusNode: _focusNode,
       autofocus: true,
       includeFocusSemantics: false,

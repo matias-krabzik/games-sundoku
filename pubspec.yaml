@@ -71,8 +71,15 @@ flutter:
     - assets/images/settings/icons.png
     - assets/images/home/
     - assets/images/map/
+    - assets/images/quick-play/
     - assets/images/tutorial/
-    - assets/audio/
+    - assets/audio/soft-tap.wav
+    - assets/audio/games/
+    - assets/audio/map/
+    - assets/audio/sfx/minimize.wav
+    - assets/audio/sfx/maximize.wav
+    - assets/audio/sfx/question.wav
+    - assets/audio/sfx/win/mixkit-completion-of-a-level-2063.wav
     - assets/fonts/OFL-Baloo2.txt
 
   fonts:

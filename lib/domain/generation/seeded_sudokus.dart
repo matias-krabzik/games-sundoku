@@ -1,12 +1,47 @@
 import '../models/sudoku_definition.dart';
+import '../models/quick_play_difficulty.dart';
 
-/// Versioned, platform-independent generation. Removing a clue is accepted only
-/// when naked/hidden singles still solve the entire board without guessing.
+/// Versioned generation with unique solutions. Adventure and easy quick games
+/// use singles; harder quick games remove more clues and require stronger logic.
 class SeededSudokus {
   static const version = 'easy-singles-v1';
 
-  static SudokuDefinition create({required String id, required String seed}) {
-    final random = _SeedRandom(seed);
+  static SudokuDefinition create({
+    required String id,
+    required String seed,
+    QuickPlayDifficulty? difficulty,
+  }) {
+    for (var attempt = 0; attempt < 64; attempt++) {
+      final puzzle = _create(
+        id: id,
+        seed: seed,
+        difficulty: difficulty,
+        randomSeed: attempt == 0 ? seed : '$seed/attempt-$attempt',
+      );
+      final needsAdvancedLogic =
+          difficulty == QuickPlayDifficulty.hard ||
+          difficulty == QuickPlayDifficulty.extreme;
+      if (difficulty == null ||
+          (puzzle.initial.where((n) => n == null).length ==
+                  difficulty.emptyCells &&
+              (!needsAdvancedLogic ||
+                  solveWithSingles(
+                        puzzle.initial.map((n) => n ?? 0).toList(),
+                      ) ==
+                      null))) {
+        return puzzle;
+      }
+    }
+    throw StateError('Could not generate the requested difficulty');
+  }
+
+  static SudokuDefinition _create({
+    required String id,
+    required String seed,
+    required String randomSeed,
+    QuickPlayDifficulty? difficulty,
+  }) {
+    final random = _SeedRandom(randomSeed);
     final solution = List<int>.filled(81, 0);
     bool fill() {
       var selected = -1;
@@ -37,20 +72,57 @@ class SeededSudokus {
     var removed = 0;
     for (final index in order) {
       initial[index] = 0;
-      if (solveWithSingles(initial) != null) {
-        if (++removed == 38) break;
+      final accepted =
+          difficulty == null || difficulty == QuickPlayDifficulty.easy
+          ? solveWithSingles(initial) != null
+          : hasUniqueSolution(initial);
+      if (accepted) {
+        if (++removed == (difficulty?.emptyCells ?? 38)) break;
       } else {
         initial[index] = solution[index];
       }
     }
     return SudokuDefinition(
       id: id,
-      difficulty: 'easy',
+      difficulty: difficulty?.name ?? 'easy',
       seed: seed,
-      generatorVersion: version,
+      generatorVersion: difficulty == null ? version : 'quick-unique-v1',
       initial: initial.map((n) => n == 0 ? null : n).toList(),
       solution: solution,
     );
+  }
+
+  /// Stop after the second solution; never accept an ambiguous puzzle.
+  static bool hasUniqueSolution(List<int> source) {
+    final cells = [...source];
+    var solutions = 0;
+    void search() {
+      var target = -1;
+      var options = <int>[];
+      for (var i = 0; i < 81; i++) {
+        if (cells[i] != 0) continue;
+        final available = candidates(cells, i);
+        if (available.isEmpty) return;
+        if (target == -1 || available.length < options.length) {
+          target = i;
+          options = available;
+          if (options.length == 1) break;
+        }
+      }
+      if (target == -1) {
+        solutions++;
+        return;
+      }
+      for (final value in options) {
+        cells[target] = value;
+        search();
+        cells[target] = 0;
+        if (solutions >= 2) return;
+      }
+    }
+
+    search();
+    return solutions == 1;
   }
 
   static final units = <List<int>>[

@@ -11,7 +11,29 @@ import 'package:sundoku/screens/settings_screen.dart';
 import 'package:sundoku/widgets/juicy_press.dart';
 
 class _FeedbackSpy extends GameFeedback {
+  var effectsPrepared = false;
+  @override
+  Future<void> prepareEffects() async => effectsPrepared = true;
   final music = <bool>[];
+  final modals = <bool>[];
+  @override
+  Future<void> modalOpened({required bool sound}) async {
+    expect(
+      effectsPrepared,
+      isTrue,
+      reason: 'Effects prepare before the first modal',
+    );
+    modals.add(sound);
+  }
+
+  final toggles = <({bool enabled, bool sound, bool vibration})>[];
+  @override
+  Future<void> toggle({
+    required bool enabled,
+    required bool sound,
+    required bool vibration,
+  }) async =>
+      toggles.add((enabled: enabled, sound: sound, vibration: vibration));
   final taps = <({bool sound, bool vibration})>[];
   @override
   Future<void> setMusicEnabled(bool enabled) async => music.add(enabled);
@@ -108,6 +130,7 @@ void main() {
     final repo = await GameRepository.open(store);
     final feedback = _FeedbackSpy();
     await _open(tester, repo, feedback: feedback);
+    expect(feedback.modals.last, isTrue);
     await _toggle(tester, 'Música');
     await _toggle(tester, 'Efectos de sonido');
     await _toggle(tester, 'Vibración');
@@ -115,9 +138,17 @@ void main() {
     expect(repo.state.settings.sound, isFalse);
     expect(repo.state.settings.vibration, isFalse);
     expect(feedback.music.last, isFalse);
-    expect(feedback.taps.last, (sound: false, vibration: false));
+    expect(feedback.toggles, [
+      (enabled: false, sound: true, vibration: true),
+      (enabled: false, sound: true, vibration: true),
+      (enabled: false, sound: false, vibration: false),
+    ]);
     await _toggle(tester, 'Vibración');
-    expect(feedback.taps.last, (sound: false, vibration: true));
+    expect(feedback.toggles.last, (
+      enabled: true,
+      sound: false,
+      vibration: true,
+    ));
     await _toggle(tester, 'Música');
     expect(feedback.music.last, isTrue);
     await tester.pumpWidget(const SizedBox());

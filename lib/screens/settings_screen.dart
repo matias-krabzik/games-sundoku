@@ -88,7 +88,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         music: music,
         vibration: vibration,
       );
-      if (mounted) GameFeedbackScope.tap(context);
+      if (mounted) {
+        GameFeedbackScope.toggle(
+          context,
+          enabled: (sound ?? music ?? vibration)!,
+          // Confirm turning sound off once; other muted toggles stay silent.
+          sound: old.sound || widget.repository.state.settings.sound,
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(

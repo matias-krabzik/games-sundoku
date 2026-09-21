@@ -323,6 +323,15 @@ void main() {
         }
         expect(tester.takeException(), isNull);
         if (index < 2) {
+          expect(find.byKey(const ValueKey('intro-header')), findsNothing);
+          expect(
+            find.byKey(const ValueKey('intro-header-rays-left')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('intro-header-rays-right')),
+            findsNothing,
+          );
           await scene.tap(
             tester,
             find.text(index == 0 ? 'Vamos al segundo' : 'Vamos al tercero'),

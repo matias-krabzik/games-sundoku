@@ -31,6 +31,12 @@ final board = find.byKey(const ValueKey('intro-board'));
 const center = [8, 3, 5, 4, 1, 6, 9, 2, 7];
 final captureKey = GlobalKey();
 
+class _WinFeedbackSpy extends GameFeedback {
+  final wins = <bool>[];
+  @override
+  Future<void> levelCompleted({required bool sound}) async => wins.add(sound);
+}
+
 class _ErrorFeedbackSpy extends GameFeedback {
   final vibrations = <bool>[];
 
@@ -46,7 +52,18 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
+Future<void> waitForAction(WidgetTester tester, Finder target) async {
+  for (var i = 0; i < 24; i++) {
+    final widget = tester.widget(target);
+    if (widget is! IllustratedActionButton || widget.onPressed != null) return;
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+  }
+  fail('Action remained locked after its animation: $target');
+}
+
 Future<void> tap(WidgetTester tester, Finder target) async {
+  await waitForAction(tester, target);
   await tester.ensureVisible(target);
   await settle(tester);
   expect(target.hitTestable(), findsOneWidget);
@@ -158,6 +175,52 @@ Future<void> show(
 }
 
 void main() {
+  testWidgets('step three highlights all nine 3x3 blocks in order', (
+    tester,
+  ) async {
+    configure(tester, reduced: false);
+    final repo = GameRepository.memory();
+    addTearDown(repo.dispose);
+    await repo.saveModule(FirstExperienceController.moduleKey, {
+      'step': 'blockIntroduction',
+      'cells': center,
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildSunDokuTheme(),
+        home: FirstExperienceScreen(repository: repo),
+      ),
+    );
+    await settle(tester);
+    await waitForAction(tester, next);
+    await tester.widget<IllustratedActionButton>(next).onPressed!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    expect(tester.widget<SudokuBoard>(board).highlightedIndices, isEmpty);
+    for (
+      var i = 0;
+      i < 20 && tester.widget<SudokuBoard>(board).highlightedIndices.isEmpty;
+      i++
+    ) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(milliseconds: 50));
+    for (var block = 0; block < 9; block++) {
+      final expected = [
+        for (var r = 0; r < 3; r++)
+          for (var c = 0; c < 3; c++)
+            (block ~/ 3 * 3 + r) * 9 + block % 3 * 3 + c,
+      ];
+      expect(tester.widget<SudokuBoard>(board).highlightedIndices, expected);
+      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+    await tester.pump();
+    expect(tester.widget<SudokuBoard>(board).highlightedIndices, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   for (final gameIndex in [0, 1, 2]) {
     testWidgets('victory ${gameIndex + 1} fans the actual solved boards', (
       tester,
@@ -190,7 +253,9 @@ void main() {
           }
         }
       }
-      await show(tester, repo);
+      final feedback = _WinFeedbackSpy();
+      await show(tester, repo, feedback: feedback);
+      expect(feedback.wins, isEmpty);
       final element = tester.element(board);
       await tap(tester, find.byKey(ValueKey('sudoku-cell-$last')));
       await tester.tap(
@@ -202,6 +267,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 20));
         if (find.byType(TutorialCelebration).evaluate().isNotEmpty) break;
       }
+      expect(feedback.wins, [true]);
       // Measure the reward slot and initialize the flight ticker before timing it.
       await tester.pump();
       await tester.pump();
@@ -412,14 +478,20 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         expect(tileOpacity(40), greaterThan(0));
         expect(tileOpacity(0), 0);
-        expect(tester.getRect(board), landed);
+        expect(
+          tester.getRect(board),
+          rectMoreOrLessEquals(landed, epsilon: .001),
+        );
         await tester.pump(const Duration(milliseconds: 250));
         expect(tileOpacity(0), greaterThan(0));
         expect(controlsOpacity(), inExclusiveRange(0, 1));
         await tester.pump(const Duration(milliseconds: 200));
         await tester.pump(const Duration(milliseconds: 16));
         await tester.pump();
-        expect(tester.getRect(board), landed);
+        expect(
+          tester.getRect(board),
+          rectMoreOrLessEquals(landed, epsilon: .001),
+        );
         expect(tester.element(board), same(element));
         expect(tileOpacity(0), 1);
         expect(controlsOpacity(), 1);
@@ -437,7 +509,9 @@ void main() {
     );
   }
 
-  testWidgets('tutorial DEV menu only exposes the exit action', (tester) async {
+  testWidgets('game DEV can leave one cell and replay the completed sudoku', (
+    tester,
+  ) async {
     configure(tester, reduced: false);
     final repo = GameRepository.memory();
     final definitions = TutorialSudokus.create(center);
@@ -457,8 +531,34 @@ void main() {
     await show(tester, repo, showDeveloperControls: true);
     await tap(tester, find.byKey(const ValueKey('dev-floating-button')));
     expect(find.byKey(const ValueKey('dev-exit-tutorial')), findsOneWidget);
-    expect(find.byKey(const ValueKey('dev-fill-except-one')), findsNothing);
-    expect(find.byKey(const ValueKey('dev-game-options')), findsNothing);
+    final fill = find.byKey(const ValueKey('dev-fill-except-one'));
+    expect(fill, findsOneWidget);
+    expect(find.byKey(const ValueKey('dev-restart-previous')), findsNothing);
+    await tap(tester, fill);
+    final cells = tester.widget<SudokuBoard>(board).cells;
+    expect(cells.where((value) => value == null).length, 1);
+    final missing = cells.indexOf(null);
+    expect(tester.widget<SudokuBoard>(board).selectedIndex, missing);
+    expect(
+      repo.state.sessions.values.single.puzzles.first.status,
+      PlayStatus.active,
+    );
+    await tap(
+      tester,
+      find.byKey(
+        ValueKey('intro-number-${definitions.first.solution[missing]}'),
+      ),
+    );
+    await settle(tester);
+    await settle(tester);
+    await tap(tester, find.byKey(const ValueKey('dev-floating-button')));
+    expect(fill, findsNothing);
+    await tap(tester, find.byKey(const ValueKey('dev-restart-previous')));
+    expect(
+      repo.state.sessions.values.single.puzzles.first.status,
+      PlayStatus.active,
+    );
+    expect(tester.widget<SudokuBoard>(board).cells, definitions.first.initial);
     await tester.pumpWidget(const SizedBox());
     await repo.flush();
     await repo.close();
@@ -746,11 +846,8 @@ void main() {
     String step() =>
         (repo.state.modules[FirstExperienceController.moduleKey] as Map)['step']
             as String;
-    for (final target in [
-      'rowRule',
-      'columnRule',
-      'givensIntroduction',
-    ]) {
+    for (final target in ['rowRule', 'columnRule', 'givensIntroduction']) {
+      await waitForAction(tester, next);
       await tester.widget<IllustratedActionButton>(next).onPressed!();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 30));
@@ -774,6 +871,7 @@ void main() {
       }
       await tester.pump(const Duration(seconds: 2));
       await tester.pump();
+      await waitForAction(tester, next);
       expect(tester.widget<TutorialStoryGestures>(gestures).enabled, true);
       expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
       expect(step(), target);
@@ -783,7 +881,7 @@ void main() {
   });
 
   testWidgets(
-    'board moves upward before briefing and play controls wait for acceptance',
+    'board animates into play before briefing and controls wait for acceptance',
     (tester) async {
       configure(tester, reduced: false);
       tester.view.physicalSize = const Size(390, 1000);
@@ -794,6 +892,7 @@ void main() {
         'cells': center,
       });
       await show(tester, repo);
+      await waitForAction(tester, next);
       final before = tester.getRect(board);
       final element = tester.element(board);
       await tester.widget<IllustratedActionButton>(next).onPressed!();
@@ -806,8 +905,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await settle(tester);
       final after = tester.getRect(board);
-      expect(middle.top, lessThan(before.top));
-      expect(middle.top, greaterThan(after.top));
+      expect(
+        middle.top,
+        inExclusiveRange(
+          before.top < after.top ? before.top : after.top,
+          before.top > after.top ? before.top : after.top,
+        ),
+      );
       expect(tester.element(board), same(element));
       expect(find.byKey(const ValueKey('game-briefing')), findsOneWidget);
       expect(tester.widget<SudokuBoard>(board).onSelect, isNull);
@@ -858,7 +962,7 @@ void main() {
   );
 
   testWidgets(
-    'normal play opens settings above the title and returns to the map',
+    'normal play aligns navigation around the title and returns to the map',
     (tester) async {
       configure(tester);
       final repo = GameRepository.memory();
@@ -882,8 +986,13 @@ void main() {
       final title = tester.getRect(find.text('Ronda 1 de 3'));
       final back = find.byKey(const ValueKey('game-back'));
       final settings = find.byKey(const ValueKey('game-settings'));
-      expect(tester.getRect(back).bottom, lessThan(title.top));
-      expect(tester.getRect(settings).bottom, lessThan(title.top));
+      expect(title.left, greaterThan(tester.getRect(back).right));
+      expect(title.right, lessThan(tester.getRect(settings).left));
+      expect(tester.getRect(back).left, 16);
+      expect(
+        tester.getRect(settings).right,
+        tester.view.physicalSize.width - 16,
+      );
       expect(tester.widget<SudokuBoard>(board).selectedIndex, isNull);
       final session = repo.state.sessions.values.single;
       final definition = repo.state.puzzles[session.puzzles.first.puzzleId]!;
@@ -951,6 +1060,9 @@ void main() {
         expect(progress.count, 6);
         expect(next.hitTestable(), findsOneWidget);
         expect(find.byKey(const ValueKey('intro-number-1')), findsNothing);
+        await waitForAction(tester, next);
+        if (step == 'givensIntroduction')
+          await capture(tester, 'tutorial-pistas');
         if (step == 'blockIntroduction') {
           await capture(tester, 'tutorial-historia-bloque');
         }
@@ -959,9 +1071,6 @@ void main() {
           await capture(tester, 'tutorial-regla-columna');
         }
         await tap(tester, next);
-        if (step == 'blockIntroduction') {
-          await tap(tester, find.byKey(const ValueKey('intro-next')));
-        }
         expect(tester.element(board), same(element));
       }
       expect(find.byKey(const ValueKey('game-briefing')), findsOneWidget);

@@ -8,6 +8,7 @@ import '../../domain/models/game_save.dart';
 import '../../domain/scoring/sudoku_scoring.dart';
 import '../../domain/generation/seeded_sudokus.dart';
 import '../../domain/models/game_session.dart';
+import '../../domain/models/quick_play_difficulty.dart';
 import '../../domain/models/json_data.dart';
 import '../../domain/models/player_profile.dart';
 import '../../domain/models/sudoku_definition.dart';
@@ -200,6 +201,123 @@ class GameRepository extends ChangeNotifier {
           : {'step': 'playing', 'gameIndex': 0, 'started': false},
     );
   }
+
+  GameSession? pendingQuickPlay(QuickPlayDifficulty difficulty) {
+    final module = state.modules[difficulty.storageKey];
+    if (module is! Map) return null;
+    final session = state.sessions[module['sessionId']];
+    return session?.canResume == true ? session : null;
+  }
+
+  GameSession? get pendingQuickGame {
+    final pending =
+        state.sessions.values
+            .where(
+              (session) =>
+                  session.canResume &&
+                  state.levels[session.levelId]?.worldId == 'quick-play',
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return pending.firstOrNull;
+  }
+
+  Future<GameSession> startQuickPlay(
+    QuickPlayDifficulty difficulty, {
+    bool replacePending = false,
+  }) async {
+    final pending = pendingQuickGame;
+    if (pending != null && !replacePending) {
+      if (state.puzzles[pending.puzzles.single.puzzleId]!.difficulty ==
+          difficulty.name) {
+        return pending;
+      }
+      throw StateError('Confirm before replacing the pending quick game');
+    }
+    final id = 'quick-play/${difficulty.name}/${const Uuid().v4()}';
+    final puzzle = await compute(_generateQuickPuzzle, (
+      id: '$id/sudoku',
+      seed: '${state.player.id}/$id',
+      difficulty: difficulty,
+    ));
+    late String sessionId;
+    await _update((save) {
+      // Do not discard a different save that appeared while generating.
+      final existing = pendingQuickGame;
+      if (existing?.id != pending?.id) {
+        throw StateError('The pending quick game changed');
+      }
+      if (existing != null && !replacePending) {
+        sessionId = existing.id;
+        return save;
+      }
+      sessionId = const Uuid().v4();
+      final discarded = {
+        if (replacePending)
+          for (final session in save.sessions.values)
+            if (session.canResume &&
+                save.levels[session.levelId]?.worldId == 'quick-play')
+              session.levelId,
+      };
+      final discardedPuzzles = {
+        for (final levelId in discarded) ...save.levels[levelId]!.puzzleIds,
+      };
+      final session = GameSession(
+        id: sessionId,
+        playerId: save.player.id,
+        levelId: id,
+        puzzles: [PuzzleProgress.initial(puzzle)],
+        startedAt: _now(),
+        updatedAt: _now(),
+      );
+      return save.copyWith(
+        levels: {
+          for (final entry in save.levels.entries)
+            if (!discarded.contains(entry.key)) entry.key: entry.value,
+          id: LevelDefinition(
+            id: id,
+            worldId: 'quick-play',
+            puzzleIds: [puzzle.id],
+          ),
+        },
+        puzzles: {
+          for (final entry in save.puzzles.entries)
+            if (!discardedPuzzles.contains(entry.key)) entry.key: entry.value,
+          puzzle.id: puzzle,
+        },
+        progress: {
+          for (final entry in save.progress.entries)
+            if (!discarded.contains(entry.key)) entry.key: entry.value,
+        },
+        sessions: {
+          for (final entry in save.sessions.entries)
+            if (!discarded.contains(entry.value.levelId))
+              entry.key: _paused(entry.value),
+          sessionId: session,
+        },
+        activeSessionId: sessionId,
+        modules: {
+          for (final entry in save.modules.entries)
+            if (!entry.key.startsWith('quickPlay/')) entry.key: entry.value,
+          difficulty.storageKey: {
+            'sessionId': sessionId,
+            'step': 'playing',
+            'gameIndex': 0,
+            'started': false,
+          },
+        },
+      );
+    });
+    return state.sessions[sessionId]!;
+  }
+
+  static SudokuDefinition _generateQuickPuzzle(
+    ({String id, String seed, QuickPlayDifficulty difficulty}) request,
+  ) => SeededSudokus.create(
+    id: request.id,
+    seed: request.seed,
+    difficulty: request.difficulty,
+  );
 
   Future<GameSession> startOrResumeLevel(
     String levelId, {

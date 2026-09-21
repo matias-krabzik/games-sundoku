@@ -7,6 +7,8 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String profile = '/profile';
   static const String map = '/map';
+  static const String game = '/game';
+  static const String quickPlay = '/quick-play';
   static const String tutorialReview = '/level-1/tutorial-review';
   static const String firstExperience = '/level-1/introduction';
 }

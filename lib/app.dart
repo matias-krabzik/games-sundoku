@@ -9,8 +9,11 @@ import 'data/repositories/game_repository.dart';
 import 'data/services/game_feedback.dart';
 import 'data/services/device_game_feedback.dart';
 import 'widgets/game_feedback_scope.dart';
+import 'widgets/music_route_observer.dart';
+import 'widgets/modal_sound_observer.dart';
 import 'theme.dart';
 import 'screens/home_screen.dart';
+import 'screens/quick_play_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
@@ -35,6 +38,14 @@ class _SunDokuAppState extends State<SunDokuApp> {
       widget.repository ?? GameRepository.memory();
   late final LevelProgress _progress = LevelProgress(repository: _repository);
   late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
+
+  late final _musicObserver = MusicRouteObserver(_feedback);
+
+  late final _modalSoundObserver = ModalSoundObserver(
+    onOpened: () => unawaited(
+      _feedback.modalOpened(sound: _repository.state.settings.sound),
+    ),
+  );
 
   bool _openingPlay = false;
   bool? _departingHomeHasStarted;
@@ -167,6 +178,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
         if (!context.mounted) return;
         await Navigator.of(context).push(
           WorldJourneyRoute(
+            settings: const RouteSettings(name: AppRoutes.game),
             reduceMotion: MediaQuery.disableAnimationsOf(context),
             builder: (_) => FirstExperienceScreen(
               repository: _repository,
@@ -192,6 +204,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
       output: _feedback,
       child: MaterialApp(
         title: 'SunDoku',
+        navigatorObservers: [_musicObserver, _modalSoundObserver],
         debugShowCheckedModeBanner: false,
         theme: buildSunDokuTheme(),
         initialRoute: AppRoutes.splash,
@@ -221,6 +234,8 @@ class _SunDokuAppState extends State<SunDokuApp> {
               listenable: _progress,
               builder: (context, _) => HomeScreen(
                 onPlay: () => _play(context),
+                onQuickPlay: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.quickPlay),
                 onReady: (homeContext) => unawaited(_welcome(homeContext)),
                 onResetAll: _repository.resetDebugSave,
                 hasStarted: _departingHomeHasStarted ?? _hasStarted,
@@ -234,6 +249,15 @@ class _SunDokuAppState extends State<SunDokuApp> {
             ),
           ),
           AppRoutes.map => _mapRoute(context, settings),
+          AppRoutes.quickPlay => WorldJourneyRoute(
+            settings: settings,
+            reduceMotion: WidgetsBinding
+                .instance
+                .platformDispatcher
+                .accessibilityFeatures
+                .disableAnimations,
+            builder: (_) => QuickPlayScreen(repository: _repository),
+          ),
           AppRoutes.firstExperience => WorldJourneyRoute(
             settings: settings,
             reduceMotion: WidgetsBinding

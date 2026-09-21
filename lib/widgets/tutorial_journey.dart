@@ -13,6 +13,7 @@ import 'sudoku_board.dart';
 import 'sudoku_help.dart';
 import 'sudoku_time_summary.dart';
 import 'tutorial_celebration.dart';
+import 'tutorial_story.dart';
 import 'tutorial_block_controls.dart';
 import 'ui_surface_art.dart';
 
@@ -30,6 +31,7 @@ class TutorialJourney extends StatelessWidget {
     this.navigation,
     required this.onExit,
     this.navigationBlocked = false,
+    this.onLessonFinished,
     this.finishingBoard = false,
     this.rewardAnimation = const AlwaysStoppedAnimation(1),
     this.rewardBoardSlotKey,
@@ -47,6 +49,7 @@ class TutorialJourney extends StatelessWidget {
   final Widget? navigation;
   final VoidCallback onExit;
   final bool navigationBlocked;
+  final VoidCallback? onLessonFinished;
   final bool finishingBoard;
   final Animation<double> rewardAnimation;
   final Key? rewardBoardSlotKey;
@@ -65,22 +68,26 @@ class TutorialJourney extends StatelessWidget {
       (flow.step == FirstExperienceStep.celebration ||
           flow.step == FirstExperienceStep.complete);
 
-  static String title(FirstExperienceController flow) =>
-      flow.lesson?.title ??
-      switch (flow.step) {
-        FirstExperienceStep.gameIntroduction => [
-          'Jugamos juntos',
-          'Ahora eliges tú',
-          '¡Tú puedes!',
-        ][flow.gameIndex],
-        FirstExperienceStep.givensIntroduction => 'Listo para jugar',
-        FirstExperienceStep.inputIntroduction => 'Así ponemos un número',
-        FirstExperienceStep.playing => 'Ronda ${flow.gameIndex + 1} de 3',
-        FirstExperienceStep.celebration => '¡Sudoku completo!',
-        FirstExperienceStep.complete =>
-          '¡Completaste el nivel ${flow.levelNumber}!',
-        _ => 'Tu primer sudoku',
-      };
+  static String title(FirstExperienceController flow) => flow.isQuickPlay
+      ? flow.step == FirstExperienceStep.complete
+            ? '¡Partida completada!'
+            : flow.quickPlayDifficulty!.label
+      : flow.lesson?.title ??
+            switch (flow.step) {
+              FirstExperienceStep.gameIntroduction => [
+                'Jugamos juntos',
+                'Ahora eliges tú',
+                '¡Tú puedes!',
+              ][flow.gameIndex],
+              FirstExperienceStep.givensIntroduction =>
+                '¡El tablero está listo!',
+              FirstExperienceStep.inputIntroduction => 'Así ponemos un número',
+              FirstExperienceStep.playing => 'Ronda ${flow.gameIndex + 1} de 3',
+              FirstExperienceStep.celebration => '¡Sudoku completo!',
+              FirstExperienceStep.complete =>
+                '¡Completaste el nivel ${flow.levelNumber}!',
+              _ => 'Tu primer sudoku',
+            };
 
   String get _message {
     if (flow.isGeneratedLevel && _celebrating) {
@@ -96,7 +103,7 @@ class TutorialJourney extends StatelessWidget {
               'Elige una casilla vacía\ny coloca el número que falta.',
               '¡Vamos con el tercero!\nCompleta el tablero sin repetir números.',
             ][flow.gameIndex],
-            FirstExperienceStep.givensIntroduction => 'Las pistas no se cambian.\nToca una casilla vacía y elige un número.',
+            FirstExperienceStep.givensIntroduction => '¡Ya armamos el tablero completo!\nLos números que ves son las pistas.\nSe quedan en su lugar y te ayudan a descubrir los que faltan.',
             FirstExperienceStep.inputIntroduction =>
               'Toca una casilla vacía.\nDespués toca un número para ponerlo.',
             FirstExperienceStep.playing => flow.playMessage,
@@ -172,6 +179,8 @@ class TutorialJourney extends StatelessWidget {
   Widget build(BuildContext context) {
     if (_celebrating) {
       return TutorialCelebration(
+        starCount: flow.roundCount,
+        exitLabel: flow.isQuickPlay ? 'Volver' : 'Mapa!',
         animation: rewardAnimation,
         departure: departure,
         board: board,
@@ -197,6 +206,7 @@ class TutorialJourney extends StatelessWidget {
         message: _message,
         summary: flow.step == FirstExperienceStep.complete
             ? SudokuTimeSummary(
+                quickPlayDifficulty: flow.quickPlayDifficulty?.label,
                 elapsedMs: [
                   for (final puzzle in flow.session!.puzzles) puzzle.elapsedMs,
                 ],
@@ -392,6 +402,7 @@ class TutorialJourney extends StatelessWidget {
                                     const SizedBox(height: 12),
                                   if (!_playing)
                                     TutorialLessonCard(
+                                      onFinished: onLessonFinished,
                                       message: _message,
                                       messageKey:
                                           '${flow.step}-${flow.gameCell}-${flow.playMessage}',
@@ -584,45 +595,20 @@ class TutorialLessonCard extends StatelessWidget {
     required this.message,
     required this.messageKey,
     this.progress,
+    this.onFinished,
   });
   final String message;
   final String messageKey;
   final String? progress;
+  final VoidCallback? onFinished;
 
   @override
-  Widget build(BuildContext context) => UiSurfacePanel(
-    surface: UiSurface.goldCreamPanel,
-    padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Semantics(
-          liveRegion: true,
-          child: TweenAnimationBuilder<double>(
-            key: ValueKey(messageKey),
-            tween: Tween(begin: 0, end: 1),
-            duration:
-                MediaQuery.disableAnimationsOf(context) ||
-                    MediaQuery.accessibleNavigationOf(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 350),
-            builder: (_, value, child) => Opacity(opacity: value, child: child),
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: homeText(20),
-            ),
-          ),
-        ),
-        if (progress != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            progress!,
-            textAlign: TextAlign.center,
-            style: homeText(15, weight: FontWeight.w600),
-          ),
-        ],
-      ],
-    ),
+  Widget build(BuildContext context) => TutorialStory(
+    key: ValueKey(messageKey),
+    lines: [message, if (progress != null) progress!],
+    tip: null,
+    interactive: false,
+    textStyle: homeText(20).copyWith(height: 1.3),
+    onFinished: onFinished,
   );
 }

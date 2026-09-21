@@ -37,7 +37,7 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 1000));
         final first = visibleText(tester);
-        expect(first, startsWith('Antes'));
+        expect(first, startsWith('¡Hola!'));
         expect(
           first.length,
           lessThan(TutorialStory.sentences.join('\n').length),

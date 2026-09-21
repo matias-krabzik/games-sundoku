@@ -16,6 +16,9 @@ class TutorialStory extends StatefulWidget {
     this.skipHint = 'Toca para mostrar toda la historia',
     this.interactive = true,
     this.animate = true,
+    this.showPanel = true,
+    this.textStyle,
+    this.padding,
   });
 
   final bool autoplay;
@@ -25,21 +28,23 @@ class TutorialStory extends StatefulWidget {
   final String skipHint;
   final bool interactive;
   final bool animate;
+  final bool showPanel;
+  final TextStyle? textStyle;
+  final EdgeInsets? padding;
 
   static const sentences = [
-    'Antes se llamaba Number Place.',
-    'En 1984, Nikoli lo llevó a Japón.',
-    'Allí recibió el nombre Sudoku.',
+    '¡Hola! Vamos a descubrir el sudoku.',
+    'Es un juego para mirar, pensar y encontrar',
+    'el lugar de cada número.',
   ];
-  static const conclusion = 'No necesitas hacer cuentas.';
+  static const conclusion = '¡No hace falta sumar ni restar!';
   static final semanticLabel = '${sentences.join(' ')} $conclusion';
 
   static const blockLines = [
-    'Vamos a completar un bloque de 9 casillas.',
-    'Elige números del 1 al 9, sin repetir.',
-    'Yo iré marcando otra casilla vacía.',
+    '¡Mira cómo se llena este bloque!',
+    'Van los números del 1 al 9, sin repetir ninguno.',
   ];
-  static const blockTip = 'También puedes tocar otra casilla.';
+  static const blockTip = '¡Cada número tiene su lugar!';
 
   @override
   State<TutorialStory> createState() => _TutorialStoryState();
@@ -48,6 +53,7 @@ class TutorialStory extends StatefulWidget {
 class _TutorialStoryState extends State<TutorialStory>
     with SingleTickerProviderStateMixin {
   final _revealAt = <int>[];
+  final _tipRevealAt = <int>[];
   late final AnimationController _reveal;
   late int _typingEnd;
   late int _duration;
@@ -64,6 +70,7 @@ class _TutorialStoryState extends State<TutorialStory>
 
   void _configureTiming() {
     _revealAt.clear();
+    _tipRevealAt.clear();
     var time = 350;
     for (final letter in widget.lines.join('\n').characters) {
       time += 32;
@@ -72,7 +79,14 @@ class _TutorialStoryState extends State<TutorialStory>
       if (letter == ',') time += 100;
     }
     _typingEnd = time;
-    _duration = time + (widget.tip == null ? 0 : 450);
+    if (widget.tip != null) {
+      time += 200;
+      for (final _ in widget.tip!.characters) {
+        time += 32;
+        _tipRevealAt.add(time);
+      }
+    }
+    _duration = time;
     _reveal.duration = Duration(milliseconds: _duration);
   }
 
@@ -173,14 +187,17 @@ class _TutorialStoryState extends State<TutorialStory>
                       ? Border.all(color: homeNavy, width: 2)
                       : null,
                 ),
-                child: UiSurfacePanel(
+                child: _StorySurface(
+                  showPanel: widget.showPanel,
                   surface: UiSurface.goldCreamPanel,
-                  padding: EdgeInsets.fromLTRB(
-                    24,
-                    largeText ? 46 : 23,
-                    24,
-                    largeText ? 54 : 27,
-                  ),
+                  padding:
+                      widget.padding ??
+                      EdgeInsets.fromLTRB(
+                        24,
+                        largeText ? 46 : 23,
+                        24,
+                        largeText ? 54 : 27,
+                      ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -196,10 +213,12 @@ class _TutorialStoryState extends State<TutorialStory>
                           ],
                         ),
                         textAlign: TextAlign.center,
-                        style: homeText(
-                          narrow ? 17 : 18,
-                          weight: FontWeight.w600,
-                        ).copyWith(height: 1.25),
+                        style:
+                            widget.textStyle ??
+                            homeText(
+                              narrow ? 17 : 18,
+                              weight: FontWeight.w600,
+                            ).copyWith(height: 1.25),
                       ),
                       if (widget.tip != null) ...[
                         Opacity(
@@ -223,8 +242,32 @@ class _TutorialStoryState extends State<TutorialStory>
                                 const HomeIcon(HomeGlyph.sun, size: 28),
                                 const SizedBox(width: 8),
                                 Flexible(
-                                  child: Text(
-                                    widget.tip!,
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: widget.tip!.characters
+                                              .take(
+                                                _tipRevealAt
+                                                    .where((at) => at <= time)
+                                                    .length,
+                                              )
+                                              .toString(),
+                                        ),
+                                        TextSpan(
+                                          text: widget.tip!.characters
+                                              .skip(
+                                                _tipRevealAt
+                                                    .where((at) => at <= time)
+                                                    .length,
+                                              )
+                                              .toString(),
+                                          style: const TextStyle(
+                                            color: Colors.transparent,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     textAlign: TextAlign.center,
                                     style: homeText(narrow ? 18 : 20),
                                   ),
@@ -244,4 +287,22 @@ class _TutorialStoryState extends State<TutorialStory>
       },
     );
   }
+}
+
+class _StorySurface extends StatelessWidget {
+  const _StorySurface({
+    required this.showPanel,
+    required this.surface,
+    required this.padding,
+    required this.child,
+  });
+  final bool showPanel;
+  final UiSurface surface;
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => showPanel
+      ? UiSurfacePanel(surface: surface, padding: padding, child: child)
+      : Padding(padding: padding, child: child);
 }

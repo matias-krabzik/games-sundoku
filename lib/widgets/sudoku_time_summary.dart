@@ -12,11 +12,13 @@ class SudokuTimeSummary extends StatelessWidget {
     required this.elapsedMs,
     required this.levelNumber,
     this.points = const [],
+    this.quickPlayDifficulty,
   });
 
   final List<int> elapsedMs;
   final List<int> points;
   final int levelNumber;
+  final String? quickPlayDifficulty;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -36,17 +38,25 @@ class SudokuTimeSummary extends StatelessWidget {
               if (!dense)
                 Expanded(
                   child: _text(
-                    '¡Completaste las ${elapsedMs.length} rondas!',
+                    quickPlayDifficulty == null
+                        ? '¡Completaste las ${elapsedMs.length} rondas!'
+                        : 'Partida rápida · $quickPlayDifficulty',
                     22,
                   ),
                 ),
               Expanded(
-                child: _row(['Ronda', 'Puntos', 'Tiempo'], header: true),
+                child: _row([
+                  quickPlayDifficulty == null ? 'Ronda' : 'Sudoku',
+                  'Puntos',
+                  'Tiempo',
+                ], header: true),
               ),
               for (var i = 0; i < elapsedMs.length; i++)
                 Expanded(
                   child: _row([
-                    'Ronda ${i + 1}',
+                    quickPlayDifficulty == null
+                        ? 'Ronda ${i + 1}'
+                        : quickPlayDifficulty!,
                     formatScore(i < points.length ? points[i] : 0),
                     formatPlayTime(elapsedMs[i]),
                   ], index: i),
@@ -60,15 +70,16 @@ class SudokuTimeSummary extends StatelessWidget {
                   ),
                 ], total: true),
               ),
-              Expanded(
-                child: _text(
-                  levelNumber == 10
-                      ? '¡Completaste el Valle del Sol!'
-                      : 'El nivel ${levelNumber + 1} ya está abierto.',
-                  17,
+              if (quickPlayDifficulty == null)
+                Expanded(
+                  child: _text(
+                    levelNumber == 10
+                        ? '¡Completaste el Valle del Sol!'
+                        : 'El nivel ${levelNumber + 1} ya está abierto.',
+                    17,
+                  ),
                 ),
-              ),
-              if (!dense)
+              if (!dense && quickPlayDifficulty == null)
                 Expanded(
                   child: _text(
                     'Niveles 1–10: los puntos no afectan el avance.',

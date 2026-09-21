@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'game_feedback_scope.dart';
 import 'home_art.dart';
 import 'juicy_press.dart';
+import 'ui_surface_art.dart';
 
 /// Fits its label while nine-patch artwork preserves the home button's corners.
 class IllustratedActionButton extends StatelessWidget {
@@ -17,6 +18,7 @@ class IllustratedActionButton extends StatelessWidget {
     this.fontSize = 34,
     this.showPlayIcon = true,
     this.leadingIcon,
+    this.secondary = false,
   });
 
   final String label;
@@ -25,12 +27,18 @@ class IllustratedActionButton extends StatelessWidget {
   final double fontSize;
   final bool showPlayIcon;
   final Widget? leadingIcon;
+  final bool secondary;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
-      final referenceSize = compact ? const Size(224, 70) : const Size(244, 78);
-      final textStyle = homeText(fontSize);
+      final referenceSize = secondary
+          ? const Size(224, 56)
+          : compact
+          ? const Size(224, 70)
+          : const Size(244, 78);
+      final textStyle = homeText(fontSize)
+          .copyWith(color: secondary ? const Color(0xFFFFF3D3) : homeNavy);
       final hasIcon = leadingIcon != null || showPlayIcon;
       final textPainter = TextPainter(
         text: TextSpan(text: label, style: textStyle),
@@ -56,7 +64,10 @@ class IllustratedActionButton extends StatelessWidget {
           builder: (_, _) => Stack(
             fit: StackFit.expand,
             children: [
-              HomeArt(HomeSurface.play, playReferenceSize: referenceSize),
+              if (secondary)
+                UiSurfaceArt(UiSurface.blueButton, referenceSize: referenceSize)
+              else
+                HomeArt(HomeSurface.play, playReferenceSize: referenceSize),
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 10, 24, 17),
                 child: FittedBox(

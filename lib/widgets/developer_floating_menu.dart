@@ -50,6 +50,7 @@ class _DeveloperFloatingMenuState extends State<DeveloperFloatingMenu> {
     final selected = await showDialog<DeveloperMenuAction>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         key: const ValueKey('dev-menu-dialog'),
         backgroundColor: const Color(0xFFF0F1F2),
         surfaceTintColor: Colors.transparent,

@@ -5,6 +5,7 @@
 | Superficie | PNG existente | Usos |
 | --- | --- | --- |
 | `goldButton` | `home/play-button.png` | Jugar, Vamos paso a paso, Siguiente, Listo y Guardar |
+| `blueButton` | `home/blue-button.png` | Acción secundaria «Nueva partida», con texto crema e icono de reinicio; nine-patch conserva los extremos y el borde dorado |
 | `creamPanel` | `home/status-panel.png` | Estado de la home, tarjetas del mapa, modales y filas de ajustes |
 | `goldCreamPanel` | `tutorial/gold-cream-panel.png` | Encabezados, historia e instrucciones del tutorial con el borde dorado de la referencia |
 | `goldCreamCard` | `tutorial/gold-cream-panel.png` | Ronda actual en el resumen: comparte el mismo recorte nine-patch del panel y aplica un tinte amarillo suave en Flutter, conservando su alfa |
