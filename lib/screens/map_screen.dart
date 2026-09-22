@@ -94,7 +94,8 @@ class _MapScreenState extends State<MapScreen>
     setState(() {
       for (final node in kMap1Nodes) {
         final saved = _progress.lightsFor(node.level);
-        if (saved < _lightsFor(node.level) ||
+        if (_preparingWorld ||
+            saved < _lightsFor(node.level) ||
             (_awardingLevel != null && !_replaying)) {
           _visibleLights[node.level] = saved;
         }
@@ -260,6 +261,34 @@ class _MapScreenState extends State<MapScreen>
       if (mounted) {
         showToast(context, 'No se pudo completar el nivel. Intentá de nuevo.');
       }
+    }
+  }
+
+  bool _preparingWorld = false;
+
+  Future<void> _completeWorldExceptLastPuzzle() async {
+    if (_preparingWorld) return;
+    if (_awardingLevel != null) {
+      showToast(
+        context,
+        'Esperá a que termine la animación e intentá de nuevo.',
+      );
+      return;
+    }
+    _preparingWorld = true;
+    try {
+      await _progress.completeWorldExceptLastPuzzle();
+      if (!mounted) return;
+      await _focusLevel(kMap1Nodes.last.level);
+      if (mounted) {
+        showToast(context, 'Mundo listo: falta la ronda 3 del último juego.');
+      }
+    } catch (_) {
+      if (mounted) {
+        showToast(context, 'No se pudo preparar el mundo. Intentá de nuevo.');
+      }
+    } finally {
+      _preparingWorld = false;
     }
   }
 
@@ -507,6 +536,14 @@ class _MapScreenState extends State<MapScreen>
                     if (kDebugMode && widget.showDeveloperControls)
                       DeveloperFloatingMenu(
                         actions: [
+                          DeveloperMenuAction(
+                            key: const ValueKey(
+                              'dev-complete-world-except-last',
+                            ),
+                            label: 'Completar mundo menos última ronda',
+                            icon: Icons.flag_outlined,
+                            onPressed: _completeWorldExceptLastPuzzle,
+                          ),
                           DeveloperMenuAction(
                             key: const ValueKey('dev-reset-world'),
                             label: 'Resetear mundo',

@@ -12,9 +12,15 @@ Autor: Kevin MacLeod (incompetech.com).
 | Morning | Juego, selección aleatoria |
 | Evening | Juego, selección aleatoria |
 
-## Pendiente antes de publicar
+## Créditos implementados
 
-Agregar una pantalla de créditos accesible desde Configuración. El usuario pidió implementarla más adelante.
-Copiar la atribución de cada ficha del catálogo y conservarla junto con su licencia.
-Incluir títulos, autor, fuente, enlace a CC BY 4.0 e indicar modificaciones si las hubiera.
+Disponibles en Configuración → Licencias → Música y sonidos. Incluyen los cuatro títulos, autor, fuente y CC BY 4.0 en un bloque breve. «Ver licencia» abre el texto oficial completo, incluido en `assets/licenses/CC-BY-4.0.txt` para leerlo sin conexión, con un enlace a la licencia oficial. Los detalles técnicos se conservan solo en este documento.
+
+Referencias del catálogo (títulos e ISRC verificados el 2026-09-22):
+- Devonshire Waltz Moderato: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN2100016
+- Devonshire Waltz Allegretto: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN2100017
+- Morning: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN2300003
+- Evening: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN2300002
+
+Catálogo de títulos e ISRC: https://incompetech.com/music/royalty-free/full_list.php
 Los MP3 se integran sin editar; la app ajusta el volumen y los reproduce en bucle.

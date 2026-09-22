@@ -266,6 +266,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('dev-reset-level-1')));
     await _finishMapTransition(tester);
     expect(progress.lightsFor(1), 0);
+    await tester.tap(find.byKey(const ValueKey('dev-floating-button')));
+    await _finishMapTransition(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('dev-complete-world-except-last')),
+    );
+    await _finishMapTransition(tester);
+    expect(progress.lightsFor(9), 3);
+    expect(progress.lightsFor(10), 2);
+    expect(
+      progress.sessionFor(10)!.nextPuzzleId,
+      progress.sessionFor(10)!.puzzles.last.puzzleId,
+    );
   });
 
   _desktopTestWidgets(

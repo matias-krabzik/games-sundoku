@@ -17,6 +17,7 @@ import 'tutorial_celebration.dart';
 import 'tutorial_story.dart';
 import 'tutorial_block_controls.dart';
 import 'ui_surface_art.dart';
+import 'world_completion_recap.dart';
 
 export 'tutorial_celebration.dart' show TutorialReward;
 
@@ -106,7 +107,7 @@ class TutorialJourney extends StatelessWidget {
       }
       if (flow.step == FirstExperienceStep.complete) {
         return flow.isLastLevel
-            ? '¡Resolviste todos los juegos! Puedes volver a jugar tus favoritos e intentar mejorar tu tiempo.'
+            ? '${worldCongratulations(flow.repository.state.player)} Completaste todos los juegos del Valle del Sol. ¡Vamos a recordar lo que aprendiste!'
             : '¡Conseguiste las tres estrellas! El siguiente juego ya está desbloqueado.';
       }
       if (flow.gameIndex == 0) {
@@ -196,7 +197,11 @@ class TutorialJourney extends StatelessWidget {
       return TutorialCelebration(
         title: title(flow),
         starCount: flow.roundCount,
-        exitLabel: flow.isQuickPlay ? 'Volver al inicio' : 'Volver al mapa',
+        exitLabel: flow.isLastLevel && flow.step == FirstExperienceStep.complete
+            ? 'Ver lo aprendido'
+            : flow.isQuickPlay
+            ? 'Volver al inicio'
+            : 'Volver al mapa',
         animation: rewardAnimation,
         departure: departure,
         board: board,
@@ -242,7 +247,17 @@ class TutorialJourney extends StatelessWidget {
         nextLevelNumber: nextLevelNumber,
         onNextLevel: flow.isBusy || navigationBlocked ? null : onNextLevel,
         finalGame: flow.step == FirstExperienceStep.complete,
-        onAction: flow.isBusy || navigationBlocked ? null : _advance,
+        onAction: flow.isBusy || navigationBlocked
+            ? null
+            : flow.isLastLevel && flow.step == FirstExperienceStep.complete
+            ? () async {
+                final finished = await showWorldCompletionRecap(
+                  context,
+                  flow.repository.state.player,
+                );
+                if (context.mounted && finished == true) onExit();
+              }
+            : _advance,
       );
     }
     final help = flow.helpTip;

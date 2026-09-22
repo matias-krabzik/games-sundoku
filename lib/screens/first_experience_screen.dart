@@ -10,6 +10,7 @@ import '../routes.dart';
 import '../controllers/first_experience_controller.dart';
 import 'settings_screen.dart';
 import '../widgets/game_navigation_header.dart';
+import '../widgets/game_layout.dart';
 import '../data/repositories/game_repository.dart';
 import '../domain/models/quick_play_difficulty.dart';
 import '../widgets/game_feedback_scope.dart';
@@ -1569,9 +1570,9 @@ class _FlowHeader extends StatelessWidget {
           ),
         if (!welcome && compact)
           FractionallySizedBox(
-            widthFactor: MediaQuery.sizeOf(context).shortestSide >= 600
-                ? .7
-                : 1,
+            widthFactor: GameLayout.titleWidthFactor(
+              MediaQuery.sizeOf(context).shortestSide,
+            ),
             child: UiSurfacePanel(
               key: const ValueKey('intro-header'),
               surface: UiSurface.goldCreamPanel,

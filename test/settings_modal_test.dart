@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:sundoku/app.dart';
 import 'package:sundoku/data/repositories/game_repository.dart';
@@ -90,6 +93,71 @@ Future<void> _toggle(WidgetTester tester, String label) async {
 
 void main() {
   testWidgets(
+    'about shows the installed version and opens the studio website',
+    (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'SunDoku',
+        packageName: 'com.example.sundoku',
+        version: '2.3.4',
+        buildNumber: '7',
+        buildSignature: '',
+      );
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      final messenger = tester.binding.defaultBinaryMessenger;
+      final launches = <MethodCall>[];
+      var canOpen = true;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        launches.add(call);
+        return canOpen;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await _open(tester, repo);
+      expect(find.text('SunDoku · v2.3.4'), findsOneWidget);
+      await _toggle(tester, 'Acerca de SunDoku');
+    expect(find.bySemanticsLabel('Krabzik Games'), findsOneWidget);
+      expect(find.text('Versión 2.3.4'), findsOneWidget);
+      expect(find.textContaining('acompañá a Doku'), findsNothing);
+      final website = find.text('games.krabzik.com');
+      await tester.ensureVisible(website);
+      await tester.pumpAndSettle();
+      await tester.tap(website);
+      await tester.pumpAndSettle();
+      expect(launches.single.method, 'launch');
+      expect(launches.single.arguments['url'], 'https://games.krabzik.com');
+      expect(launches.single.arguments['useSafariVC'], isFalse);
+      expect(launches.single.arguments['useWebView'], isFalse);
+
+      canOpen = false;
+      await tester.tap(website);
+      await tester.pumpAndSettle();
+      expect(find.text('https://games.krabzik.com'), findsOneWidget);
+      expect(find.textContaining('No pudimos abrir el enlace'), findsOneWidget);
+
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      for (final size in [
+        const Size(320, 568),
+        const Size(844, 390),
+        const Size(1024, 1366),
+      ]) {
+        tester.view.physicalSize = size;
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const ValueKey('about-back')).hitTestable(),
+          findsOneWidget,
+        );
+      }
+      await tester.tap(find.byKey(const ValueKey('about-back')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('about-dialog')), findsNothing);
+      expect(find.byType(SettingsScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'modal keeps home behind it and finishes its press before closing',
     (tester) async {
       final repo = GameRepository.memory();
@@ -98,6 +166,7 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(find.text('Configuración'), findsOneWidget);
       expect(find.text('Idioma'), findsNothing);
+      expect(find.text('A tu manera, a tu ritmo'), findsNothing);
       final homeContext = tester.element(find.byType(HomeScreen));
       expect(ModalRoute.of(homeContext)!.isCurrent, isFalse);
       final done = find.byKey(const ValueKey('settings-done'));
@@ -119,6 +188,144 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(SettingsScreen), findsNothing);
       expect(find.byType(HomeScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'licenses read the Flutter registry and return through each modal',
+    (tester) async {
+      LicenseRegistry.addLicense(() async* {
+        yield LicenseEntryWithLineBreaks([
+          '0 Test library',
+          '0 Shared library',
+        ], 'Shared copyright notice.');
+        yield LicenseEntryWithLineBreaks([
+          '0 Test library',
+        ], 'Second required license notice.');
+      });
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      final feedback = _FeedbackSpy();
+      await _open(tester, repo, feedback: feedback);
+      final previousSounds = feedback.modals.length;
+      await _toggle(tester, 'Licencias');
+      expect(feedback.modals.length, previousSounds + 1);
+      await tester.tap(find.text('Flutter y bibliotecas'));
+      await tester.pumpAndSettle();
+      expect(feedback.modals.length, previousSounds + 2);
+      await tester.tap(find.text('0 Test library'));
+      await tester.pumpAndSettle();
+      expect(feedback.modals.length, previousSounds + 3);
+      final text = tester
+          .widget<SelectableText>(find.byType(SelectableText).last)
+          .data!;
+      expect(text, contains('Shared copyright notice.'));
+      expect(text, contains('Second required license notice.'));
+      await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Baloo 2'));
+      await tester.tap(find.text('Baloo 2'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SelectableText>(find.byType(SelectableText).last).data,
+        contains('SIL OPEN FONT LICENSE'),
+      );
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
+        await tester.pumpAndSettle();
+      }
+      expect(find.byKey(const ValueKey('licenses-dialog')), findsNothing);
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'audio credits include the bundled licenses and stay usable after rotation',
+    (tester) async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await _open(tester, repo, size: const Size(320, 568));
+      await _toggle(tester, 'Licencias');
+      await tester.tap(find.text('Música y sonidos'));
+      await tester.pumpAndSettle();
+      final credits = find.byType(ListView).last;
+      expect(find.text('Kevin MacLeod (incompetech.com)'), findsOneWidget);
+      final music = tester
+          .widgetList<SelectableText>(find.byType(SelectableText))
+          .map((w) => w.data ?? '')
+          .join('\n');
+      for (final title in [
+        'Devonshire Waltz Moderato',
+        'Devonshire Waltz Allegretto',
+        'Morning',
+        'Evening',
+      ]) {
+        expect(music, contains(title));
+      }
+      final readMusic = find.byKey(
+        const ValueKey('license-assets/licenses/CC-BY-4.0.txt'),
+      );
+      await tester.ensureVisible(readMusic);
+      await tester.pumpAndSettle();
+      await tester.tap(readMusic);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SelectableText>(find.byType(SelectableText).last).data,
+        contains(
+          'Creative Commons Attribution 4.0 International Public License',
+        ),
+      );
+      for (final size in [const Size(844, 390), const Size(320, 568)]) {
+        tester.view.physicalSize = size;
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('licenses-back')).last.hitTestable(),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      }
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
+      await tester.pumpAndSettle();
+      final readKenney = find.byKey(
+        const ValueKey('license-assets/licenses/CC0-1.0.txt'),
+      );
+      await tester.scrollUntilVisible(
+        readKenney,
+        200,
+        scrollable: find
+            .descendant(of: credits, matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(readKenney);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SelectableText>(find.byType(SelectableText).last).data,
+        contains('CC0 1.0 Universal'),
+      );
+      await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Mixkit'),
+        200,
+        scrollable: find
+            .descendant(of: credits, matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Mixkit Sound Effects Free License'),
+        findsOneWidget,
+      );
+      expect(
+        await rootBundle.loadString('assets/licenses/CC-BY-4.0.txt'),
+        contains('Section 8 -- Interpretation'),
+      );
       expect(tester.takeException(), isNull);
     },
   );

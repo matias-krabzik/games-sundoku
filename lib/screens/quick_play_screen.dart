@@ -7,6 +7,7 @@ import '../routes.dart';
 import '../data/repositories/game_repository.dart';
 import '../domain/models/quick_play_difficulty.dart';
 import '../widgets/game_feedback_scope.dart';
+import '../widgets/game_layout.dart';
 import '../widgets/game_navigation_header.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
@@ -180,20 +181,26 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                           : () => Navigator.of(context).push(
                               SettingsRoute(repository: widget.repository),
                             ),
-                      center: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      center: FractionallySizedBox(
+                        widthFactor: GameLayout.titleWidthFactor(
+                          MediaQuery.sizeOf(context).shortestSide,
+                        ),
                         child: UiSurfacePanel(
                           surface: UiSurface.goldCreamPanel,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 18,
                             vertical: 16,
                           ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'Partida rápida',
-                              maxLines: 1,
-                              style: homeText(24),
+                          child: Center(
+                            heightFactor: 1,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Partida rápida',
+                                maxLines: 1,
+                                textAlign: TextAlign.center,
+                                style: homeText(24),
+                              ),
                             ),
                           ),
                         ),

@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../data/repositories/game_repository.dart';
 import '../domain/models/player_profile.dart';
+import '../widgets/app_version_label.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../widgets/juicy_press.dart';
 import '../widgets/settings_art.dart';
 import '../widgets/ui_surface_art.dart';
+import 'about_screen.dart';
+import 'licenses_screen.dart';
 
 /// A non-opaque route keeps the actual home screen visible behind the panel.
 class SettingsRoute extends RawDialogRoute<void> {
@@ -118,69 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).pop();
   }
 
-  void _about() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: SettingsPanelSurface(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: DefaultTextStyle(
-                  style: _text(18),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/images/sundoku-logo.png',
-                        width: 210,
-                        height: 88,
-                        fit: BoxFit.contain,
-                        semanticLabel: 'SunDoku',
-                      ),
-                      Text(
-                        'Un poquito de sol,\nun nuevo desafío.',
-                        textAlign: TextAlign.center,
-                        style: _text(22, weight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Resolvé sudokus y acompañá a Doku en su aventura.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text('Versión 1.0.0', style: _text(15)),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        height: 64,
-                        width: double.infinity,
-                        child: JuicyPress(
-                          label: 'Volver a configuración',
-                          onPressed: () => Navigator.of(context).pop(),
-                          onFeedback: () => GameFeedbackScope.tap(context),
-                          builder: (context, depression) => SettingsGoldSurface(
-                            depression: depression,
-                            child: Text(
-                              'Volver',
-                              style: _text(27, weight: FontWeight.w800),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _about() => showSunDokuAbout(context);
 
   @override
   Widget build(BuildContext context) => PopScope(
@@ -253,15 +194,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ],
                           ),
-                          SizedBox(height: short ? 3 : 7),
-                          Text(
-                            'A tu manera, a tu ritmo',
-                            textAlign: TextAlign.center,
-                            style: _text(
-                              narrow ? 15 : 17,
-                              weight: FontWeight.w700,
-                            ),
-                          ),
                           SizedBox(height: short ? 10 : 19),
                           Expanded(
                             child: ListenableBuilder(
@@ -331,6 +263,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                                   size: 25,
                                                 ),
                                               ),
+                                              const SizedBox(height: 10),
+                                              _settingRow(
+                                                label: 'Licencias',
+                                                icon: SettingsGlyph.info,
+                                                onPressed: () =>
+                                                    showLicensesMenu(context),
+                                                trailing: const SettingsIcon(
+                                                  SettingsGlyph.chevron,
+                                                  size: 25,
+                                                ),
+                                              ),
                                               if (_error != null)
                                                 Padding(
                                                   padding:
@@ -391,8 +334,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           SizedBox(height: short ? 4 : 8),
-                          Text(
-                            'SunDoku · v1.0.0',
+                          AppVersionLabel(
+                            prefix: 'SunDoku · v',
                             style: _text(13).copyWith(
                               color: settingsNavy.withValues(alpha: .75),
                             ),

@@ -104,6 +104,58 @@ void main() {
     },
   );
 
+  test(
+    'world shortcut persists 29 wins and the last round can finish normally',
+    () async {
+      final store = MemorySaveStore();
+      final repo = await GameRepository.open(store);
+      addTearDown(repo.close);
+      await repo.setPlayerName('Tester');
+      await repo.completeDebugWorldExceptLastPuzzle(random: Random(12));
+      for (var number = 1; number <= 9; number++) {
+        expect(repo.state.progress[mapLevelId(number)]!.bestLights, 3);
+      }
+      expect(repo.state.progress[mapLevelId(10)]!.bestLights, 2);
+      expect(repo.state.progress[mapLevelId(10)]!.firstCompletedAt, isNull);
+      final reopened = await GameRepository.open(store);
+      addTearDown(reopened.close);
+      expect(reopened.state.player.name, 'Tester');
+      final session = await reopened.startGeneratedLevel(10);
+      expect(session.lights, 2);
+      expect(session.nextPuzzleId, session.puzzles.last.puzzleId);
+      expect(
+        reopened.state.modules['generatedLevel/10'],
+        containsPair('gameIndex', 2),
+      );
+      final puzzle = reopened.state.puzzles[session.nextPuzzleId]!;
+      expect(session.puzzles.last.cells.map((c) => c.value), puzzle.initial);
+      await reopened.activatePuzzle(session.id, puzzle.id);
+      for (var i = 0; i < puzzle.initial.length; i++) {
+        if (!puzzle.isFixed(i)) {
+          await reopened.setCell(session.id, puzzle.id, i, puzzle.solution[i]);
+        }
+      }
+      expect(reopened.state.sessions[session.id]!.status, PlayStatus.completed);
+      expect(reopened.state.progress[mapLevelId(10)]!.bestLights, 3);
+      await reopened.completeDebugWorldExceptLastPuzzle(random: Random(14));
+      expect(reopened.state.progress[mapLevelId(10)]!.bestLights, 2);
+      expect((await reopened.startGeneratedLevel(10)).lights, 2);
+    },
+  );
+
+  test('world shortcut leaves no partial changes when saving fails', () async {
+    final store = FailingStore();
+    final repo = await GameRepository.open(store);
+    addTearDown(repo.close);
+    final before = repo.state;
+    store.failNext = true;
+    await expectLater(
+      repo.completeDebugWorldExceptLastPuzzle(random: Random(2)),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(repo.state, same(before));
+  });
+
   test('dev rewind persists the board and selected game atomically', () async {
     final store = FailingStore();
     final repo = await GameRepository.open(store);

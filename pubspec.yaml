@@ -43,6 +43,8 @@ dependencies:
   path_provider: ^2.1.6
   uuid: ^4.6.0
   audioplayers: ^6.8.1
+  url_launcher: ^6.3.2
+  package_info_plus: ^10.2.1
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +83,7 @@ flutter:
     - assets/audio/sfx/question.wav
     - assets/audio/sfx/win/mixkit-completion-of-a-level-2063.wav
     - assets/fonts/OFL-Baloo2.txt
+    - assets/licenses/
 
   fonts:
     - family: Baloo2

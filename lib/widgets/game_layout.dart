@@ -14,6 +14,9 @@ abstract final class GameLayout {
   static double mobileBoardSize(double viewportWidth) =>
       viewportWidth * mobileBoardWidthFraction;
 
+  static double titleWidthFactor(double shortestSide) =>
+      shortestSide >= 600 ? .7 : 1;
+
   static double boardCellSize(double boardSize) =>
       boardSize * _boardContentFraction / 9;
 

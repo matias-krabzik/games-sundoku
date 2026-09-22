@@ -292,6 +292,10 @@ void main() {
         );
         await scene.settle(tester);
         expect(
+          tester.getCenter(find.text('Partida rápida')).dx,
+          closeTo(size.width / 2, 1),
+        );
+        expect(
           find.byKey(const ValueKey('quick-play-start')).hitTestable(),
           findsOneWidget,
         );

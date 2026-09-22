@@ -85,6 +85,9 @@ class LevelProgress extends ChangeNotifier {
     return _repository.completeDebugLevel(level);
   }
 
+  Future<void> completeWorldExceptLastPuzzle() =>
+      _repository.completeDebugWorldExceptLastPuzzle();
+
   @override
   void dispose() {
     _repository.removeListener(notifyListeners);
