@@ -97,7 +97,7 @@ void main() {
     (tester) async {
       PackageInfo.setMockInitialValues(
         appName: 'SunDoku',
-        packageName: 'com.example.sundoku',
+        packageName: 'com.krabzik.games.sundoku',
         version: '2.3.4',
         buildNumber: '7',
         buildSignature: '',
