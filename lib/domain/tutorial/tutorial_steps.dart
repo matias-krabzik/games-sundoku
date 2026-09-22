@@ -13,6 +13,7 @@ enum FirstExperienceStep {
   columnRule,
   columnPractice,
   gameIntroduction,
+  solvedExample,
   givensIntroduction,
   inputIntroduction,
   playing,
@@ -27,6 +28,7 @@ const tutorialStorySteps = [
   FirstExperienceStep.expansion,
   FirstExperienceStep.rowRule,
   FirstExperienceStep.columnRule,
+  FirstExperienceStep.solvedExample,
   FirstExperienceStep.givensIntroduction,
 ];
 
@@ -84,13 +86,13 @@ TutorialLesson? lessonFor(
   ),
   FirstExperienceStep.rowRule => TutorialLesson(
     'Las filas',
-    'Una fila va de lado a lado.\n¡Mira! Ya están el ${center[3]}, el ${center[4]} y el ${center[5]}.\nNo puedes ponerlos otra vez en las casillas de la izquierda ni de la derecha de esta fila.',
+    'Una fila va de lado a lado. En cada fila van los números del 1 al 9, sin repetir.\nAquí ya están el ${center[3]}, el ${center[4]} y el ${center[5]}. No pueden aparecer otra vez en esta fila, ni a la izquierda ni a la derecha.',
     'Siguiente',
     group: SudokuGroup.row,
   ),
   FirstExperienceStep.columnRule => TutorialLesson(
     'Las columnas',
-    'Una columna va de arriba abajo.\n¡Mira! Ya están el ${center[1]}, el ${center[4]} y el ${center[7]}.\nNo puedes ponerlos otra vez en las casillas de arriba ni de abajo de esta columna.',
+    'Una columna va de arriba abajo. En cada columna van los números del 1 al 9, sin repetir.\nAquí ya están el ${center[1]}, el ${center[4]} y el ${center[7]}. No pueden aparecer otra vez en esta columna, ni arriba ni abajo.',
     'Siguiente',
     group: SudokuGroup.column,
   ),

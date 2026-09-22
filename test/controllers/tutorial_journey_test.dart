@@ -54,6 +54,44 @@ Future<void> solve(FirstExperienceController flow) async {
 }
 
 void main() {
+  test(
+    'solved example becomes the same clues and first playable puzzle',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      final flow = await at(repo, FirstExperienceStep.columnRule);
+      addTearDown(flow.dispose);
+      await flow.advance();
+      expect(flow.step, FirstExperienceStep.solvedExample);
+      final solution = [...flow.boardValues];
+      expect(solution.whereType<int>(), hasLength(81));
+      expect(solution.where((number) => number == 5), hasLength(9));
+      for (final group in SudokuGroup.values) {
+        for (var index = 0; index < 81; index++) {
+          expect(
+            groupCells(index, group).map((cell) => solution[cell]).toSet(),
+            {1, 2, 3, 4, 5, 6, 7, 8, 9},
+          );
+        }
+      }
+      final reopened = FirstExperienceController(repo);
+      expect(reopened.step, FirstExperienceStep.solvedExample);
+      expect(reopened.boardValues, solution);
+      reopened.dispose();
+      await flow.advance();
+      expect(flow.step, FirstExperienceStep.givensIntroduction);
+      final clues = [...flow.boardValues];
+      expect(clues, contains(null));
+      for (final index in flow.fixedIndices) {
+        expect(clues[index], solution[index]);
+      }
+      expect(repo.state.sessions, isEmpty);
+      await flow.advance();
+      expect(flow.boardValues, clues);
+      expect(flow.puzzleDefinition!.solution, solution);
+    },
+  );
+
   test('review starts at welcome and never changes a running game', () async {
     final repo = await GameRepository.open(MemorySaveStore());
     addTearDown(repo.close);
@@ -70,7 +108,7 @@ void main() {
     }
     await review.advance();
     await review.previousStory();
-    expect(review.step, FirstExperienceStep.columnRule);
+    expect(review.step, FirstExperienceStep.solvedExample);
     expect(repo.state, same(saved));
     expect(playing.step, FirstExperienceStep.playing);
   });
@@ -88,6 +126,7 @@ void main() {
       FirstExperienceStep.expansion,
       FirstExperienceStep.rowRule,
       FirstExperienceStep.columnRule,
+      FirstExperienceStep.solvedExample,
       FirstExperienceStep.givensIntroduction,
     ];
     Future<void> advanceStory() => flow.advance();
@@ -179,7 +218,7 @@ void main() {
       expect(flow.step, entry.value, reason: entry.key.name);
       expect(flow.cells, center);
       expect(flow.isStory, true);
-      expect(flow.storyCount, 6);
+      expect(flow.storyCount, 7);
       expect(repo.state.sessions, isEmpty);
       expect(repo.state.totalLights, 0);
       await flow.advance();
@@ -242,6 +281,7 @@ void main() {
       await enterGame(flow);
       for (var game = 0; game < 3; game++) {
         await solve(flow);
+        expect(flow.isFirstSudokuVictory, game == 0);
         if (game < 2) await flow.advance();
       }
       final completedId = flow.session!.id;
@@ -259,6 +299,7 @@ void main() {
       expect(repo.state.totalLights, 3);
       expect(repo.state.isUnlocked(mapLevelId(2)), isTrue);
       await solve(replay);
+      expect(replay.isFirstSudokuVictory, false);
       expect(repo.state.totalLights, 3);
     },
   );

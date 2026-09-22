@@ -61,36 +61,43 @@ class IllustratedActionButton extends StatelessWidget {
           label: label,
           onFeedback: () => GameFeedbackScope.tap(context),
           onPressed: onPressed,
-          builder: (_, _) => Stack(
-            fit: StackFit.expand,
-            children: [
-              if (secondary)
-                UiSurfaceArt(UiSurface.blueButton, referenceSize: referenceSize)
-              else
-                HomeArt(HomeSurface.play, playReferenceSize: referenceSize),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 10, 24, 17),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (hasIcon) ...[
-                        leadingIcon ?? const HomeIcon(HomeGlyph.play, size: 34),
-                        const SizedBox(width: 17),
+          builder: (_, _) => Opacity(
+            opacity: onPressed == null ? .45 : 1,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (secondary)
+                  UiSurfaceArt(
+                    UiSurface.blueButton,
+                    referenceSize: referenceSize,
+                  )
+                else
+                  HomeArt(HomeSurface.play, playReferenceSize: referenceSize),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 10, 24, 17),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasIcon) ...[
+                          leadingIcon ??
+                              const HomeIcon(HomeGlyph.play, size: 34),
+                          const SizedBox(width: 17),
+                        ],
+                        Text(
+                          label,
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.center,
+                          style: textStyle,
+                        ),
                       ],
-                      Text(
-                        label,
-                        maxLines: 1,
-                        softWrap: false,
-                        textAlign: TextAlign.center,
-                        style: textStyle,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

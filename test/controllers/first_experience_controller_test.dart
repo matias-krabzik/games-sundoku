@@ -56,6 +56,7 @@ void main() {
           FirstExperienceStep.expansion,
           FirstExperienceStep.rowRule,
           FirstExperienceStep.columnRule,
+          FirstExperienceStep.solvedExample,
           FirstExperienceStep.givensIntroduction,
         ]) {
           await controller.advance();

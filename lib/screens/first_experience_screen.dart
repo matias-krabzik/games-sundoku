@@ -14,6 +14,7 @@ import '../data/repositories/game_repository.dart';
 import '../domain/models/quick_play_difficulty.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../domain/models/sudoku_completion.dart';
+import '../domain/tutorial/tutorial_solution_tour.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
 import '../widgets/settings_art.dart';
@@ -21,7 +22,6 @@ import '../widgets/sudoku_board.dart';
 import '../widgets/score_feedback.dart';
 import '../data/level_catalog.dart';
 import '../widgets/tutorial_story.dart';
-import '../widgets/tutorial_block_art.dart';
 import '../widgets/tutorial_block_controls.dart';
 import '../widgets/tutorial_journey.dart';
 import '../widgets/tutorial_celebration.dart';
@@ -91,6 +91,12 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
   bool _blockTourPending = false;
 
+  late final _solutionTour = AnimationController(
+    vsync: this,
+    duration: TutorialSolutionTour.duration,
+    value: 1,
+  );
+
   void _queueBlockTour() {
     _blockTourPending = true;
     _blockTour.value = 1;
@@ -106,8 +112,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     if (!mounted ||
         !_blockTourPending ||
         _boardAnimating ||
-        _flow.step != FirstExperienceStep.expansion)
+        _flow.step != FirstExperienceStep.expansion) {
       return;
+    }
     setState(() {
       _blockTourPending = false;
       _blockTour.forward(from: 0);
@@ -115,11 +122,15 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   }
 
   List<int> get _lessonHighlights {
+    if (_flow.step == FirstExperienceStep.solvedExample) {
+      return TutorialSolutionTour(_solutionTour.value).highlightedIndices;
+    }
     if (_flow.step != FirstExperienceStep.expansion) {
       return _flow.highlightedIndices;
     }
-    if (_reduceAnimations || _blockTourPending || _blockTour.isCompleted)
+    if (_reduceAnimations || _blockTourPending || _blockTour.isCompleted) {
       return [];
+    }
     final block = (_blockTour.value * 9).floor().clamp(0, 8);
     final row = (block ~/ 3) * 3;
     final column = (block % 3) * 3;
@@ -211,15 +222,18 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       !_showGame &&
       (_flow.reviewOnly || _flow.session != null) &&
       (_welcome || _flow.isStory);
+  bool get _canSkipTutorialAnimations =>
+      _flow.reviewOnly || _flow.session != null;
   bool get _navigationBlocked =>
-      (_flow.isStory && _finishedStoryStep != _flow.step) ||
-      _blockDeal.isAnimating ||
-      _blockTourPending ||
-      _blockTour.isAnimating ||
+      (!_canSkipTutorialAnimations &&
+          ((_flow.isStory && _finishedStoryStep != _flow.step) ||
+              _blockDeal.isAnimating ||
+              _blockTourPending ||
+              _blockTour.isAnimating)) ||
       _settingsOpen ||
       _openingNextLevel ||
       _flow.isBusy ||
-      _boardAnimating ||
+      (_boardAnimating && (!_flow.isStory || !_canSkipTutorialAnimations)) ||
       _finishingBoard ||
       _rewardFlightFrom != null ||
       _nextPhase != null ||
@@ -463,12 +477,16 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       _blockDeal.value = 1;
       _blockTourPending = false;
       _blockTour.value = 1;
+      _solutionTour.value = 1;
       _rewardEntrance.value = 1;
       if (_nextPhase == _NextSudokuPhase.leaving) _nextExit.value = 1;
       _nextEntrance.value = 1;
     } else if (!_entranceStarted) {
       _dokuEntrance.forward();
       if (_flow.step == FirstExperienceStep.expansion) _queueBlockTour();
+      if (_flow.step == FirstExperienceStep.solvedExample) {
+        _solutionTour.forward(from: 0);
+      }
       if (_flow.step == FirstExperienceStep.blockIntroduction) {
         _blockDeal.forward(from: 0);
       }
@@ -585,6 +603,12 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   void _changed() {
     if (_previousStep != _flow.step) {
       _finishedStoryStep = null;
+      if (_flow.step == FirstExperienceStep.solvedExample &&
+          !_reduceAnimations) {
+        _solutionTour.forward(from: 0);
+      } else {
+        _solutionTour.value = 1;
+      }
       if (_flow.step == FirstExperienceStep.expansion && !_reduceAnimations) {
         _queueBlockTour();
       } else {
@@ -651,6 +675,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _dokuEntrance.dispose();
     _blockDeal.dispose();
     _blockTour.dispose();
+    _solutionTour.dispose();
     _gameEntrance.dispose();
     _rewardEntrance.dispose();
     _nextExit.dispose();
@@ -811,6 +836,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                                 FirstExperienceStep.expansion.index) {
                           content = TutorialJourney(
                             onLessonFinished: () => _storyFinished(storyStep),
+                            solutionTour: _solutionTour,
                             navigationBlocked: _navigationBlocked,
                             finishingBoard: _finishingBoard,
                             flow: _flow,
@@ -1241,7 +1267,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   }
 
   Widget _stage(List<int?> cells, Duration motion) => AnimatedBuilder(
-    animation: Listenable.merge([_blockDeal, _blockTour]),
+    animation: Listenable.merge([_blockDeal, _blockTour, _solutionTour]),
     builder: (context, _) => _animatedStage(cells, motion),
   );
 
@@ -1288,11 +1314,17 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       FirstExperienceStep.rowRule => SudokuBoardReveal.row,
                       FirstExperienceStep.columnRule =>
                         SudokuBoardReveal.column,
-                      FirstExperienceStep.givensIntroduction =>
+                      FirstExperienceStep.solvedExample =>
                         SudokuBoardReveal.remaining,
+                      FirstExperienceStep.givensIntroduction =>
+                        SudokuBoardReveal.givens,
                       _ => SudokuBoardReveal.none,
                     },
                     cells: cells,
+                    emphasizedNumber:
+                        _flow.step == FirstExperienceStep.solvedExample
+                        ? TutorialSolutionTour.number
+                        : null,
                     selectedIndex: _explaining
                         ? null
                         : _flow.step == FirstExperienceStep.block

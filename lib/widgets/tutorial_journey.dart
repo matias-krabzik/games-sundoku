@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/first_experience_controller.dart';
 import '../domain/models/game_session.dart';
+import '../domain/tutorial/tutorial_solution_tour.dart';
 import 'home_art.dart';
 import 'game_layout.dart';
 import 'game_pause.dart';
@@ -32,6 +33,7 @@ class TutorialJourney extends StatelessWidget {
     required this.onExit,
     this.navigationBlocked = false,
     this.onLessonFinished,
+    this.solutionTour = const AlwaysStoppedAnimation(1),
     this.finishingBoard = false,
     this.rewardAnimation = const AlwaysStoppedAnimation(1),
     this.rewardBoardSlotKey,
@@ -50,6 +52,7 @@ class TutorialJourney extends StatelessWidget {
   final VoidCallback onExit;
   final bool navigationBlocked;
   final VoidCallback? onLessonFinished;
+  final Animation<double> solutionTour;
   final bool finishingBoard;
   final Animation<double> rewardAnimation;
   final Key? rewardBoardSlotKey;
@@ -70,7 +73,7 @@ class TutorialJourney extends StatelessWidget {
 
   static String title(FirstExperienceController flow) => flow.isQuickPlay
       ? flow.step == FirstExperienceStep.complete
-            ? '¡Partida completada!'
+            ? '¡Sudoku resuelto!'
             : flow.quickPlayDifficulty!.label
       : flow.lesson?.title ??
             switch (flow.step) {
@@ -79,21 +82,39 @@ class TutorialJourney extends StatelessWidget {
                 'Ahora eliges tú',
                 '¡Tú puedes!',
               ][flow.gameIndex],
-              FirstExperienceStep.givensIntroduction =>
-                '¡El tablero está listo!',
+              FirstExperienceStep.solvedExample => '¡Mira cómo encaja todo!',
+              FirstExperienceStep.givensIntroduction => '¡Ahora te toca a ti!',
               FirstExperienceStep.inputIntroduction => 'Así ponemos un número',
               FirstExperienceStep.playing => 'Ronda ${flow.gameIndex + 1} de 3',
-              FirstExperienceStep.celebration => '¡Sudoku completo!',
+              FirstExperienceStep.celebration =>
+                flow.gameIndex == 0
+                    ? flow.isFirstSudokuVictory
+                          ? '¡Lo lograste!'
+                          : '¡Una estrella para ti!'
+                    : '¡Ya tienes dos estrellas!',
               FirstExperienceStep.complete =>
-                '¡Completaste el nivel ${flow.levelNumber}!',
+                flow.isLastLevel
+                    ? '¡Lo completaste todo!'
+                    : '¡Juego ${flow.levelNumber} completado!',
               _ => 'Tu primer sudoku',
             };
 
   String get _message {
-    if (flow.isGeneratedLevel && _celebrating) {
-      final time = formatPlayTime(flow.puzzleProgress!.elapsedMs);
-      return '¡Sudoku completo! Ganaste una estrella.\n'
-          'Tiempo: $time\n¡Vamos por el siguiente!';
+    if (_celebrating) {
+      if (flow.isQuickPlay) {
+        return '¡Cada número en su lugar! ¿Vamos con otro desafío?';
+      }
+      if (flow.step == FirstExperienceStep.complete) {
+        return flow.isLastLevel
+            ? '¡Resolviste todos los juegos! Puedes volver a jugar tus favoritos e intentar mejorar tu tiempo.'
+            : '¡Conseguiste las tres estrellas! El siguiente juego ya está desbloqueado.';
+      }
+      if (flow.gameIndex == 0) {
+        return flow.isFirstSudokuVictory
+            ? 'Resolviste tu primer sudoku y ganaste una estrella. ¡Vamos por el siguiente!'
+            : 'Cada número encontró su lugar. ¡Ya completaste la primera ronda!';
+      }
+      return '¡Otro sudoku resuelto! Solo falta uno para completar este juego.';
     }
     return flow.lesson != null
         ? flow.lessonMessage
@@ -103,17 +124,10 @@ class TutorialJourney extends StatelessWidget {
               'Elige una casilla vacía\ny coloca el número que falta.',
               '¡Vamos con el tercero!\nCompleta el tablero sin repetir números.',
             ][flow.gameIndex],
-            FirstExperienceStep.givensIntroduction => '¡Ya armamos el tablero completo!\nLos números que ves son las pistas.\nSe quedan en su lugar y te ayudan a descubrir los que faltan.',
+            FirstExperienceStep.givensIntroduction => 'Ahora quitamos algunos números del tablero resuelto.\nLos que quedan son tus pistas: no se pueden cambiar.\n¡Descubre los que faltan! Recuerda mirar su fila, su columna y su bloque.',
             FirstExperienceStep.inputIntroduction =>
               'Toca una casilla vacía.\nDespués toca un número para ponerlo.',
             FirstExperienceStep.playing => flow.playMessage,
-            FirstExperienceStep.celebration => [
-              '¡Resolviste tu primer sudoku!\nGanaste una estrella.',
-              '¡Ya tienes dos estrellas!\nVamos por la tercera.',
-              '¡Tres sudokus resueltos!\nGanaste las tres estrellas.',
-            ][flow.gameIndex],
-            FirstExperienceStep.complete =>
-              'El nivel 2 ya está abierto.\n¡Doku te espera en el mapa!',
             _ => '',
           };
   }
@@ -133,7 +147,8 @@ class TutorialJourney extends StatelessWidget {
                 'Vamos al tercero',
                 'Ver mi logro',
               ][flow.gameIndex],
-              FirstExperienceStep.complete => 'Mapa!',
+              FirstExperienceStep.complete =>
+                flow.isQuickPlay ? 'Volver al inicio' : 'Volver al mapa',
               _ => 'Siguiente',
             };
 
@@ -179,8 +194,9 @@ class TutorialJourney extends StatelessWidget {
   Widget build(BuildContext context) {
     if (_celebrating) {
       return TutorialCelebration(
+        title: title(flow),
         starCount: flow.roundCount,
-        exitLabel: flow.isQuickPlay ? 'Volver' : 'Mapa!',
+        exitLabel: flow.isQuickPlay ? 'Volver al inicio' : 'Volver al mapa',
         animation: rewardAnimation,
         departure: departure,
         board: board,
@@ -205,15 +221,21 @@ class TutorialJourney extends StatelessWidget {
         stars: flow.session?.lights ?? 0,
         message: _message,
         summary: flow.step == FirstExperienceStep.complete
-            ? SudokuTimeSummary(
-                quickPlayDifficulty: flow.quickPlayDifficulty?.label,
-                elapsedMs: [
-                  for (final puzzle in flow.session!.puzzles) puzzle.elapsedMs,
-                ],
-                levelNumber: flow.levelNumber,
-                points: [
-                  for (final puzzle in flow.session!.puzzles) puzzle.points,
-                ],
+            ? AnimatedBuilder(
+                animation: rewardAnimation,
+                builder: (context, _) => SudokuTimeSummary(
+                  message: _message,
+                  autoplayMessage: rewardAnimation.value * 1700 >= 1500,
+                  quickPlayDifficulty: flow.quickPlayDifficulty?.label,
+                  elapsedMs: [
+                    for (final puzzle in flow.session!.puzzles)
+                      puzzle.elapsedMs,
+                  ],
+                  levelNumber: flow.levelNumber,
+                  points: [
+                    for (final puzzle in flow.session!.puzzles) puzzle.points,
+                  ],
+                ),
               )
             : null,
         action: _action,
@@ -400,7 +422,25 @@ class TutorialJourney extends StatelessWidget {
                                     ),
                                   ] else if (!_celebrating && wide == false)
                                     const SizedBox(height: 12),
-                                  if (!_playing)
+                                  if (flow.step ==
+                                      FirstExperienceStep.solvedExample)
+                                    AnimatedBuilder(
+                                      animation: solutionTour,
+                                      builder: (context, _) {
+                                        final tour = TutorialSolutionTour(
+                                          solutionTour.value,
+                                        );
+                                        return TutorialLessonCard(
+                                          message: tour.message,
+                                          messageKey:
+                                              'solution-tour-${tour.phase}',
+                                          onFinished: tour.finished
+                                              ? onLessonFinished
+                                              : null,
+                                        );
+                                      },
+                                    )
+                                  else if (!_playing)
                                     TutorialLessonCard(
                                       onFinished: onLessonFinished,
                                       message: _message,
@@ -605,7 +645,7 @@ class TutorialLessonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TutorialStory(
     key: ValueKey(messageKey),
-    lines: [message, if (progress != null) progress!],
+    lines: [message, ?progress],
     tip: null,
     interactive: false,
     textStyle: homeText(20).copyWith(height: 1.3),

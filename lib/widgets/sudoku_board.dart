@@ -11,7 +11,7 @@ import 'sudoku_help_trails.dart';
 import '../domain/help/sudoku_help_motion.dart';
 import 'ui_surface_art.dart';
 
-enum SudokuBoardReveal { none, row, column, remaining }
+enum SudokuBoardReveal { none, row, column, remaining, givens }
 
 class SudokuBoard extends StatefulWidget {
   const SudokuBoard({
@@ -25,6 +25,7 @@ class SudokuBoard extends StatefulWidget {
     this.onSelect,
     this.centerOnly = false,
     this.highlightedIndices = const [],
+    this.emphasizedNumber,
     this.conflictIndices = const {},
     this.errorPulse = 0,
     this.completion,
@@ -48,6 +49,7 @@ class SudokuBoard extends StatefulWidget {
   final ValueChanged<int>? onSelect;
   final bool centerOnly;
   final List<int> highlightedIndices;
+  final int? emphasizedNumber;
   final Set<int> conflictIndices;
 
   /// Changes only for a new incorrect entry, never just for selecting a cell.
@@ -204,6 +206,10 @@ class _SudokuBoardState extends State<SudokuBoard>
                 oldWidget.cells[i] != widget.cells[i])
               i,
         },
+        SudokuBoardReveal.givens => {
+          for (var i = 0; i < 81; i++)
+            if (oldWidget.cells[i] != widget.cells[i]) i,
+        },
         SudokuBoardReveal.none => <int>{},
       };
       _outgoing =
@@ -264,6 +270,22 @@ class _SudokuBoardState extends State<SudokuBoard>
           ? 1
           : 0,
     );
+    if (widget.reveal == SudokuBoardReveal.givens) {
+      final fade = Curves.easeInOut.transform(_lesson.value);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          ExcludeSemantics(
+            child: Opacity(
+              key: ValueKey('given-removal-$index'),
+              opacity: 1 - fade,
+              child: oldCell(highlighted: false),
+            ),
+          ),
+          Opacity(opacity: fade, child: child),
+        ],
+      );
+    }
     final incoming = _incoming.contains(index);
     final sequential = widget.reveal == SudokuBoardReveal.remaining;
     final elapsed = _lesson.value * (sequential ? 1700 : 900);
@@ -593,6 +615,10 @@ class _SudokuBoardState extends State<SudokuBoard>
                                     builder: (context, progress, _) => _SudokuCell(
                                       index: index,
                                       value: cells[index],
+                                      muted:
+                                          widget.emphasizedNumber != null &&
+                                          cells[index] !=
+                                              widget.emphasizedNumber,
                                       selected: selectedIndex == index,
                                       selectionOrigin: selectedIndex,
                                       inSelectedLine:
@@ -604,7 +630,11 @@ class _SudokuBoardState extends State<SudokuBoard>
                                               index % 9 == selectedIndex % 9),
                                       matchingNumber:
                                           !centerOnly &&
-                                          (widget.helpEmphasizedNumber != null
+                                          (widget.emphasizedNumber != null
+                                              ? cells[index] ==
+                                                    widget.emphasizedNumber
+                                              : widget.helpEmphasizedNumber !=
+                                                    null
                                               ? cells[index] ==
                                                     widget.helpEmphasizedNumber
                                               : onSelect != null &&
@@ -763,6 +793,7 @@ class _SudokuCell extends StatelessWidget {
     required this.highlight,
     this.related = false,
     this.matchingNumber = false,
+    this.muted = false,
     this.inSelectedLine = false,
     this.celebrating = false,
     this.selectionOrigin,
@@ -778,6 +809,7 @@ class _SudokuCell extends StatelessWidget {
   final double highlight;
   final bool related;
   final bool matchingNumber;
+  final bool muted;
   final bool inSelectedLine;
   final bool celebrating;
   final int? selectionOrigin;
@@ -911,7 +943,9 @@ class _SudokuCell extends StatelessWidget {
                                 child: SudokuDigit(
                                   value!,
                                   size: bounds.maxWidth * (marked ? .52 : .58),
-                                  color: appearance.digit,
+                                  color: muted
+                                      ? appearance.digit.withValues(alpha: .35)
+                                      : appearance.digit,
                                 ),
                               ),
                             ),

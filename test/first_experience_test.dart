@@ -237,7 +237,7 @@ void main() {
     );
     await _tap(tester, _continue);
     expect(find.byKey(const ValueKey('tutorial-choose-order')), findsNothing);
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 5; i++) {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await _settle(tester);
     }

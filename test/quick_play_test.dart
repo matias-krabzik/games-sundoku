@@ -254,11 +254,11 @@ void main() {
       resumed.selectGameCell(last);
       await resumed.placeGameNumber(resumed.puzzleDefinition!.solution[last]);
       await scene.settle(tester);
-      expect(find.text('¡Partida completada!'), findsOneWidget);
-      expect(find.text('Siguiente nivel 2'), findsNothing);
+      expect(find.text('¡Sudoku resuelto!'), findsOneWidget);
+      expect(find.text('Siguiente juego'), findsNothing);
       expect(find.text('El nivel 2 ya está abierto.'), findsNothing);
-      expect(find.text('Volver').hitTestable(), findsOneWidget);
-      await scene.tap(tester, find.text('Volver'));
+      expect(find.text('Volver al inicio').hitTestable(), findsOneWidget);
+      await scene.tap(tester, find.text('Volver al inicio'));
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

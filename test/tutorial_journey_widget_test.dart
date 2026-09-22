@@ -53,7 +53,7 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 Future<void> waitForAction(WidgetTester tester, Finder target) async {
-  for (var i = 0; i < 24; i++) {
+  for (var i = 0; i < 64; i++) {
     final widget = tester.widget(target);
     if (widget is! IllustratedActionButton || widget.onPressed != null) return;
     await tester.pump(const Duration(milliseconds: 500));
@@ -175,6 +175,145 @@ Future<void> show(
 }
 
 void main() {
+  testWidgets('solved example tours all groups and fades only missing clues', (
+    tester,
+  ) async {
+    configure(tester, reduced: false);
+    final repo = GameRepository.memory();
+    addTearDown(repo.dispose);
+    await repo.saveModule(FirstExperienceController.moduleKey, {
+      'step': 'columnRule',
+      'cells': center,
+    });
+    await show(tester, repo);
+    await waitForAction(tester, next);
+    final element = tester.element(board);
+    await tester.widget<IllustratedActionButton>(next).onPressed!();
+    await tester.pump();
+    final solved = tester.widget<SudokuBoard>(board).cells;
+    final matches = [
+      for (var i = 0; i < 81; i++)
+        if (solved[i] == 5) i,
+    ];
+    expect(matches, hasLength(9));
+    expect(solved.whereType<int>(), hasLength(81));
+    var elapsed = 0;
+    for (var phase = 0; phase < 3; phase++) {
+      for (var group = 0; group < 9; group++) {
+        final target = 4000 + phase * 6000 + (group * 6000 / 9).round() + 333;
+        await tester.pump(Duration(milliseconds: target - elapsed));
+        await tester.pump();
+        elapsed = target;
+        final widget = tester.widget<SudokuBoard>(board);
+        final expected = switch (phase) {
+          0 => groupCells(group * 9, SudokuGroup.row),
+          1 => groupCells(group, SudokuGroup.column),
+          _ => groupCells(group ~/ 3 * 27 + group % 3 * 3, SudokuGroup.block),
+        };
+        expect(widget.highlightedIndices, expected);
+        expect(widget.emphasizedNumber, 5);
+        expect(widget.onSelect, isNull);
+        expect(expected.where(matches.contains), hasLength(1));
+        for (final index in matches) {
+          expect(
+            find.byKey(ValueKey('sudoku-matching-number-$index')),
+            findsOneWidget,
+          );
+        }
+        expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+        if (phase == 0 && group == 5) {
+          await capture(
+            tester,
+            'tutorial-solucion-filas',
+            settleAnimations: false,
+          );
+        }
+      }
+    }
+    await waitForAction(tester, next);
+    expect(tester.widget<SudokuBoard>(board).highlightedIndices, isEmpty);
+    await capture(tester, 'tutorial-solucion-completa');
+    await tester.widget<IllustratedActionButton>(next).onPressed!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    final clues = tester.widget<SudokuBoard>(board);
+    expect(tester.element(board), same(element));
+    expect(clues.emphasizedNumber, isNull);
+    expect(clues.highlightedIndices, isEmpty);
+    final empty = clues.cells.indexOf(null);
+    final fade = tester.widget<Opacity>(
+      find.byKey(ValueKey('given-removal-$empty')),
+    );
+    expect(fade.opacity, allOf(greaterThan(0), lessThan(1)));
+    for (final index in clues.fixedIndices) {
+      expect(clues.cells[index], solved[index]);
+      expect(find.byKey(ValueKey('given-removal-$index')), findsNothing);
+    }
+    expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+    await waitForAction(tester, next);
+    await capture(tester, 'tutorial-solucion-pistas');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('review can advance immediately while tutorial animations run', (
+    tester,
+  ) async {
+    configure(tester, reduced: false);
+    final repo = GameRepository.memory();
+    addTearDown(repo.dispose);
+    await show(tester, repo, reviewOnly: true);
+    final saved = repo.state;
+    for (var step = 0; step < 6; step++) {
+      final button = find.byKey(
+        ValueKey(step == 0 ? 'intro-continue' : 'tutorial-next'),
+      );
+      final action = tester.widget<IllustratedActionButton>(button).onPressed;
+      expect(action, isNotNull);
+      await action!();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
+    expect(repo.state, same(saved));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'solved example supports reduced motion, large text and rotation',
+    (tester) async {
+      configure(tester);
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await repo.saveModule(FirstExperienceController.moduleKey, {
+        'step': 'solvedExample',
+        'cells': center,
+      });
+      await show(tester, repo, textScale: 2);
+      final element = tester.element(board);
+      for (final size in [
+        const Size(320, 568),
+        const Size(844, 390),
+        const Size(768, 1024),
+      ]) {
+        tester.view.physicalSize = size;
+        await settle(tester);
+        expect(tester.element(board), same(element));
+        expect(tester.widget<SudokuBoard>(board).highlightedIndices, isEmpty);
+        expect(tester.widget<SudokuBoard>(board).emphasizedNumber, 5);
+        expect(next.hitTestable(), findsOneWidget);
+        expect(tester.getRect(next).bottom, lessThan(size.height));
+        expect(
+          tester.widget<IllustratedActionButton>(next).onPressed,
+          isNotNull,
+        );
+        expect(tester.takeException(), isNull);
+      }
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('step three highlights all nine 3x3 blocks in order', (
     tester,
   ) async {
@@ -300,6 +439,20 @@ void main() {
       );
       expect(tester.element(board), same(element));
       expect(find.byType(SudokuBoard), findsNWidgets(gameIndex + 1));
+      String writtenMessage() {
+        final span =
+            tester
+                    .widget<Text>(
+                      find.byKey(const ValueKey('intro-story-text')),
+                    )
+                    .textSpan!
+                as TextSpan;
+        return (span.children!.first as TextSpan).text!;
+      }
+
+      final beforeTyping = writtenMessage();
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(writtenMessage().length, greaterThan(beforeTyping.length));
       final fan = tester.widget<TutorialBoardFan>(
         find.byType(TutorialBoardFan),
       );
@@ -363,7 +516,12 @@ void main() {
             expect(bounds.left, greaterThanOrEqualTo(0));
             expect(bounds.right, lessThanOrEqualTo(size.width));
           }
-          expect(find.byType(SingleChildScrollView), findsNothing);
+          await tester.drag(
+            find.byType(SingleChildScrollView),
+            const Offset(0, -250),
+          );
+          await tester.pump();
+          expect(next.hitTestable(), findsOneWidget);
           expect(tester.takeException(), isNull);
           await capture(tester, 'victoria-3-${size.width.toInt()}');
         }
@@ -846,7 +1004,12 @@ void main() {
     String step() =>
         (repo.state.modules[FirstExperienceController.moduleKey] as Map)['step']
             as String;
-    for (final target in ['rowRule', 'columnRule', 'givensIntroduction']) {
+    for (final target in [
+      'rowRule',
+      'columnRule',
+      'solvedExample',
+      'givensIntroduction',
+    ]) {
       await waitForAction(tester, next);
       await tester.widget<IllustratedActionButton>(next).onPressed!();
       await tester.pump();
@@ -1044,6 +1207,7 @@ void main() {
         'expansion',
         'rowRule',
         'columnRule',
+        'solvedExample',
         'givensIntroduction',
       ];
       for (var i = 0; i < stories.length; i++) {
@@ -1057,12 +1221,13 @@ void main() {
           find.byType(TutorialStoryProgress),
         );
         expect(progress.index, i + 1);
-        expect(progress.count, 6);
+        expect(progress.count, 7);
         expect(next.hitTestable(), findsOneWidget);
         expect(find.byKey(const ValueKey('intro-number-1')), findsNothing);
         await waitForAction(tester, next);
-        if (step == 'givensIntroduction')
+        if (step == 'givensIntroduction') {
           await capture(tester, 'tutorial-pistas');
+        }
         if (step == 'blockIntroduction') {
           await capture(tester, 'tutorial-historia-bloque');
         }
@@ -1112,12 +1277,12 @@ void main() {
         expect(find.byType(TutorialReward), findsOneWidget);
         if (game < 2) await tap(tester, next);
       }
-      expect(find.text('¡Completaste el nivel 1!'), findsOneWidget);
-      expect(find.text('Mapa!'), findsOneWidget);
+      expect(find.text('¡Juego 1 completado!'), findsOneWidget);
+      expect(find.text('Volver al mapa'), findsOneWidget);
       expect(find.text('Repasar las reglas'), findsNothing);
       expect(find.byKey(const ValueKey('tutorial-review')), findsNothing);
       await settle(tester);
-      expect(find.text('Siguiente nivel 2').hitTestable(), findsOneWidget);
+      expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
       expect(repo.state.isUnlocked(mapLevelId(2)), true);
       await capture(tester, 'tutorial-nivel-completo');
       expect(tester.element(board), same(element));

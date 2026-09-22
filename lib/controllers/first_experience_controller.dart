@@ -124,6 +124,17 @@ class FirstExperienceController extends ChangeNotifier {
   TutorialLesson? get lesson => lessonFor(step, exampleCenter);
   int get storyIndex => tutorialStorySteps.indexOf(step);
   int get storyCount => tutorialStorySteps.length;
+  bool get isLastLevel =>
+      !isQuickPlay &&
+      !initialLevelCatalog.containsKey(mapLevelId(levelNumber + 1));
+  bool get isFirstSudokuVictory =>
+      !isQuickPlay &&
+      levelNumber == 1 &&
+      gameIndex == 0 &&
+      session != null &&
+      !repository.state.sessions.values.any(
+        (other) => other.id != session!.id && other.lights > 0,
+      );
   bool get isStory => storyIndex >= 0;
   bool get readyToPlay =>
       step == FirstExperienceStep.playing &&
@@ -205,7 +216,9 @@ class FirstExperienceController extends ChangeNotifier {
   SudokuDefinition get _storyPuzzle =>
       puzzleDefinition ?? TutorialSudokus.create(exampleCenter).first;
 
-  List<int?> get boardValues => hasGameBoard
+  List<int?> get boardValues => step == FirstExperienceStep.solvedExample
+      ? _storyPuzzle.solution
+      : hasGameBoard
       ? step == FirstExperienceStep.givensIntroduction
             ? _storyPuzzle.initial
             : puzzleProgress!.cells.map((c) => c.value).toList(growable: false)

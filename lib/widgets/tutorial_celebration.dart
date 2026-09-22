@@ -24,6 +24,7 @@ class TutorialCelebration extends StatelessWidget {
     required this.header,
     required this.stars,
     required this.message,
+    required this.title,
     required this.action,
     required this.onAction,
     required this.finalGame,
@@ -33,7 +34,7 @@ class TutorialCelebration extends StatelessWidget {
     this.boardSlotKey,
     this.actionKey,
     this.previousBoards = const [],
-    this.exitLabel = 'Mapa!',
+    this.exitLabel = 'Volver al mapa',
     this.starCount = 3,
     this.departure = const AlwaysStoppedAnimation(0),
   });
@@ -43,6 +44,7 @@ class TutorialCelebration extends StatelessWidget {
   final Widget header;
   final int stars;
   final String message;
+  final String title;
   final Widget? summary;
   final int? nextLevelNumber;
   final VoidCallback? onNextLevel;
@@ -103,7 +105,7 @@ class TutorialCelebration extends StatelessWidget {
                         summary ??
                         TutorialStory(
                           key: ValueKey('reward-story-$stars'),
-                          lines: message.split('\n'),
+                          lines: [title, ...message.split('\n')],
                           tip: null,
                           autoplay: progress * 1700 >= 1500,
                           skipHint: 'Toca para mostrar todo el mensaje',
@@ -297,7 +299,7 @@ class TutorialCelebration extends StatelessWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            flex: 3,
+                            flex: 5,
                             child: IllustratedActionButton(
                               key: const ValueKey('tutorial-next'),
                               compact: true,
@@ -316,7 +318,7 @@ class TutorialCelebration extends StatelessWidget {
                                 compact: true,
                                 showPlayIcon: false,
                                 fontSize: 21,
-                                label: 'Siguiente nivel $nextLevelNumber',
+                                label: 'Siguiente juego',
                                 onPressed: actionOpacity < 1
                                     ? null
                                     : onNextLevel,

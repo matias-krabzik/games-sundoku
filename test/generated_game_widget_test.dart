@@ -342,7 +342,7 @@ void main() {
           expect(find.text('En pausa'), findsNothing);
         }
       }
-      expect(find.text('¡Completaste el nivel 2!'), findsOneWidget);
+      expect(find.text('¡Juego 2 completado!'), findsOneWidget);
       expect(flow.step, FirstExperienceStep.complete);
       expect(repo.state.isUnlocked(mapLevelId(3)), true);
       expect(find.byType(SudokuTimeSummary), findsOneWidget);
@@ -362,16 +362,20 @@ void main() {
             .data,
         formatPlayTime(flow.session!.elapsedMs),
       );
-      expect(find.text('El nivel 3 ya está abierto.'), findsOneWidget);
+      expect(
+        tester
+            .widget<SudokuTimeSummary>(find.byType(SudokuTimeSummary))
+            .message,
+        '¡Conseguiste las tres estrellas! El siguiente juego ya está desbloqueado.',
+      );
       await tester.pump(const Duration(seconds: 10));
       await scene.capture(tester, 'level-2-summary');
       tester.view.physicalSize = const Size(390, 844);
       await scene.settle(tester);
       await tester.ensureVisible(find.byType(SudokuTimeSummary));
       await scene.capture(tester, 'level-2-summary-mobile');
-      expect(find.text('Mapa!').hitTestable(), findsOneWidget);
-      expect(find.text('Siguiente nivel 3').hitTestable(), findsOneWidget);
-      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(find.text('Volver al mapa').hitTestable(), findsOneWidget);
+      expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
       expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('summary-total-points')))
@@ -385,19 +389,18 @@ void main() {
       ]) {
         tester.view.physicalSize = size;
         await scene.settle(tester);
-        expect(find.byType(SingleChildScrollView), findsNothing);
         expect(find.byKey(const ValueKey('reward-doku-fade')), findsNothing);
-        expect(find.text('Mapa!').hitTestable(), findsOneWidget);
-        expect(find.text('Siguiente nivel 3').hitTestable(), findsOneWidget);
+        expect(find.text('Volver al mapa').hitTestable(), findsOneWidget);
+        expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
       tester.view.physicalSize = const Size(360, 640);
       await scene.show(tester, repo, levelNumber: 2, textScale: 2);
       await scene.settle(tester);
-      expect(find.text('Siguiente nivel 3').hitTestable(), findsOneWidget);
+      expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
       await scene.capture(tester, 'summary-small-large-text');
-      await scene.tap(tester, find.text('Siguiente nivel 3'));
+      await scene.tap(tester, find.text('Siguiente juego'));
       await tester.pump(const Duration(milliseconds: 1600));
       await tester.pump();
       expect(find.text('Ronda 1 de 3'), findsOneWidget);

@@ -4,6 +4,7 @@ import 'game_pause.dart';
 import 'home_art.dart';
 import 'score_feedback.dart';
 import 'ui_surface_art.dart';
+import 'tutorial_story.dart';
 
 /// Real text and adaptive rows over the shared nine-patch panel.
 class SudokuTimeSummary extends StatelessWidget {
@@ -11,6 +12,8 @@ class SudokuTimeSummary extends StatelessWidget {
     super.key,
     required this.elapsedMs,
     required this.levelNumber,
+    required this.message,
+    this.autoplayMessage = true,
     this.points = const [],
     this.quickPlayDifficulty,
   });
@@ -18,6 +21,8 @@ class SudokuTimeSummary extends StatelessWidget {
   final List<int> elapsedMs;
   final List<int> points;
   final int levelNumber;
+  final String message;
+  final bool autoplayMessage;
   final String? quickPlayDifficulty;
 
   @override
@@ -70,22 +75,29 @@ class SudokuTimeSummary extends StatelessWidget {
                   ),
                 ], total: true),
               ),
-              if (quickPlayDifficulty == null)
-                Expanded(
-                  child: _text(
-                    levelNumber == 10
-                        ? '¡Completaste el Valle del Sol!'
-                        : 'El nivel ${levelNumber + 1} ya está abierto.',
-                    17,
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: TutorialStory(
+                      key: ValueKey('summary-message-$message'),
+                      lines: [message],
+                      tip: null,
+                      showPanel: false,
+                      autoplay: autoplayMessage,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      textStyle: homeText(
+                        17,
+                        weight: FontWeight.w600,
+                      ).copyWith(height: 1.2),
+                      skipHint: 'Toca para mostrar todo el mensaje',
+                    ),
                   ),
                 ),
-              if (!dense && quickPlayDifficulty == null)
-                Expanded(
-                  child: _text(
-                    'Niveles 1–10: los puntos no afectan el avance.',
-                    14,
-                  ),
-                ),
+              ),
             ],
           ),
         ),
