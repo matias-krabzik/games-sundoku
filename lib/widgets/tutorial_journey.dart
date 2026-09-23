@@ -253,12 +253,18 @@ class TutorialJourney extends StatelessWidget {
             ? null
             : flow.isLastLevel && flow.step == FirstExperienceStep.complete
             ? () async {
-                final finished = await showWorldCompletionRecap(
+                final destination = await showWorldCompletionRecap(
                   context,
                   flow.repository.state.player,
                 );
-                if (context.mounted && finished == true) {
-                  (onWorldCompleted ?? onExit)();
+                if (!context.mounted) return;
+                switch (destination) {
+                  case WorldCompletionDestination.map:
+                    onExit();
+                  case WorldCompletionDestination.home:
+                    (onWorldCompleted ?? onExit)();
+                  case null:
+                    break;
                 }
               }
             : _advance,

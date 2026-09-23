@@ -14,6 +14,8 @@ Licencia: https://creativecommons.org/publicdomain/zero/1.0/
 | maximize | Activar un check |
 | minimize | Desactivar un check |
 | question | Abrir un modal |
+| gate/ignite (`open_003.ogg`, Interface Sounds) | Inicio del encendido del sol, después del scroll |
+| gate/sparkle (`jingles_PIZZI00.ogg`, Music Jingles) | Chispas del sol al 65 % del encendido |
 
 Los originales OGG se conservan en assets/audio/sfx. Se generaron copias WAV PCM de 16 bits para reproducción compatible con iOS; la app ajusta el volumen.
 
@@ -22,6 +24,16 @@ Los originales OGG se conservan en assets/audio/sfx. Se generaron copias WAV PCM
 Configuración → Licencias → Música y sonidos incluye «Kenney (kenney.nl)», la fuente y CC0 1.0 en un bloque breve. «Ver licencia» abre el texto oficial completo de `assets/licenses/CC0-1.0.txt`, con un enlace a la licencia oficial. Los efectos y detalles de conversión se documentan aquí.
 Fuente del paquete: https://kenney.nl/assets/interface-sounds
 CC0 no exige atribución; se incluye a petición del usuario.
+
+### Encendido del sol (2026-09-23)
+
+- [ ] TODO: Reemplazar los sonidos del sol (`gate/ignite.wav` y `gate/sparkle.wav`) por efectos que encajen mejor con el encendido y el rebote. Mantener una licencia compatible con uso comercial y actualizar las fuentes y los créditos al sustituirlos.
+
+Fuentes verificadas: https://kenney.nl/assets/interface-sounds y https://kenney.nl/assets/music-jingles. Ambos paquetes son CC0 y permiten uso comercial. Los dos originales y las licencias incluidas en los paquetes se conservan en `design/audio/world-gate/`.
+
+Copias de reproducción: `assets/audio/sfx/gate/ignite.wav` (0,314 s, mono) y `sparkle.wav` (0,494 s, estéreo). Conversión de OGG a WAV PCM de 16 bits, 44.100 Hz con libsndfile, sin modificar tono ni duración. Volumen en la app: 0,35 y 0,65, respectivamente. Se precargan, respetan Ajustes → Sonidos y se detienen al abandonar/cubrir el mapa o poner la app en segundo plano. El giro posterior es silencioso. Con movimiento reducido solo suena el tintineo.
+
+En Licencias se conserva el bloque de Kenney / Interface Sounds y se añade uno breve para Music Jingles, con la misma licencia CC0 ya incluida en la app.
 
 ## Mixkit — Completion of a level
 

@@ -19,6 +19,8 @@ class IllustratedActionButton extends StatelessWidget {
     this.showPlayIcon = true,
     this.leadingIcon,
     this.secondary = false,
+    this.artPadding = EdgeInsets.zero,
+    this.contentPadding = const EdgeInsets.fromLTRB(24, 10, 24, 17),
   });
 
   final String label;
@@ -28,6 +30,8 @@ class IllustratedActionButton extends StatelessWidget {
   final bool showPlayIcon;
   final Widget? leadingIcon;
   final bool secondary;
+  final EdgeInsets artPadding;
+  final EdgeInsets contentPadding;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -65,15 +69,20 @@ class IllustratedActionButton extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (secondary)
-                  UiSurfaceArt(
-                    UiSurface.blueButton,
-                    referenceSize: referenceSize,
-                  )
-                else
-                  HomeArt(HomeSurface.play, playReferenceSize: referenceSize),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 10, 24, 17),
+                  padding: artPadding,
+                  child: secondary
+                      ? UiSurfaceArt(
+                          UiSurface.blueButton,
+                          referenceSize: referenceSize,
+                        )
+                      : HomeArt(
+                          HomeSurface.play,
+                          playReferenceSize: referenceSize,
+                        ),
+                ),
+                Padding(
+                  padding: contentPadding,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Row(

@@ -116,7 +116,7 @@ void main() {
       await _open(tester, repo);
       expect(find.text('SunDoku · v2.3.4'), findsOneWidget);
       await _toggle(tester, 'Acerca de SunDoku');
-    expect(find.bySemanticsLabel('Krabzik Games'), findsOneWidget);
+      expect(find.bySemanticsLabel('Krabzik Games'), findsOneWidget);
       expect(find.text('Versión 2.3.4'), findsOneWidget);
       expect(find.textContaining('acompañá a Doku'), findsNothing);
       final website = find.text('games.krabzik.com');
@@ -265,7 +265,9 @@ void main() {
         expect(music, contains(title));
       }
       final readMusic = find.byKey(
-        const ValueKey('license-assets/licenses/CC-BY-4.0.txt'),
+        const ValueKey(
+          'license-https://incompetech.com/music/royalty-free/music.html',
+        ),
       );
       await tester.ensureVisible(readMusic);
       await tester.pumpAndSettle();
@@ -291,25 +293,27 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
       await tester.pumpAndSettle();
-      final readKenney = find.byKey(
-        const ValueKey('license-assets/licenses/CC0-1.0.txt'),
-      );
-      await tester.scrollUntilVisible(
-        readKenney,
-        200,
-        scrollable: find
-            .descendant(of: credits, matching: find.byType(Scrollable))
-            .first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(readKenney);
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<SelectableText>(find.byType(SelectableText).last).data,
-        contains('CC0 1.0 Universal'),
-      );
-      await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
-      await tester.pumpAndSettle();
+      for (final pack in ['interface-sounds', 'music-jingles']) {
+        final readKenney = find.byKey(
+          ValueKey('license-https://kenney.nl/assets/$pack'),
+        );
+        await tester.scrollUntilVisible(
+          readKenney,
+          200,
+          scrollable: find
+              .descendant(of: credits, matching: find.byType(Scrollable))
+              .first,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(readKenney);
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<SelectableText>(find.byType(SelectableText).last).data,
+          contains('CC0 1.0 Universal'),
+        );
+        await tester.tap(find.byKey(const ValueKey('licenses-back')).last);
+        await tester.pumpAndSettle();
+      }
       await tester.scrollUntilVisible(
         find.text('Mixkit'),
         200,

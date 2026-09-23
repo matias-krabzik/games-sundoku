@@ -56,6 +56,7 @@ void main() {
       expect(text, contains('¡No se cambian!'));
       expect(story.tip, contains('¡Desbloqueaste Partida rápida!'));
       expect(find.text('Ir al inicio'), findsOneWidget);
+      expect(find.text('Volver al mapa'), findsOneWidget);
       for (final size in [
         const Size(320, 568),
         const Size(844, 390),
@@ -66,6 +67,10 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(
           find.byKey(const ValueKey('world-recap-done')).hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('world-recap-map')).hitTestable(),
           findsOneWidget,
         );
       }

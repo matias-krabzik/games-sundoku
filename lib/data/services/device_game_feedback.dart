@@ -45,6 +45,10 @@ class DeviceGameFeedback extends GameFeedback {
   Future<void> _modalTail = Future.value();
   Future<void> _musicTail = Future.value();
   Future<void> _effectTail = Future.value();
+  final _gatePlayers = <WorldGateSound, AudioPlayer>{};
+  Future<void>? _gatePreparation;
+  Future<void> _gateTail = Future.value();
+  int _gateGeneration = 0;
   bool _closed = false;
 
   Future<void> _safely(Future<void> Function() action) async {
@@ -177,7 +181,51 @@ class DeviceGameFeedback extends GameFeedback {
 
   @override
   Future<void> prepareEffects() async {
-    await Future.wait([_prepareModal(), _prepareWin()]);
+    await Future.wait([_prepareModal(), _prepareWin(), _prepareGate()]);
+  }
+
+  // TODO: Replace the sun's ignite/sparkle sounds and update their credits.
+  Future<void> _prepareGate() => _gatePreparation ??= _safely(() async {
+    for (final cue in WorldGateSound.values) {
+      if (_closed) return;
+      final player = _gatePlayers[cue] = AudioPlayer()..positionUpdater = null;
+      await player.setAudioContext(_context);
+      await player.setReleaseMode(ReleaseMode.stop);
+      await player.setVolume(cue == WorldGateSound.ignite ? .35 : .65);
+      await player.setSource(AssetSource('audio/sfx/gate/${cue.name}.wav'));
+    }
+  });
+
+  @override
+  Future<void> worldGate(WorldGateSound cue, {required bool sound}) {
+    if (_closed || !sound) return Future.value();
+    final generation = _gateGeneration;
+    _gateTail = _gateTail.then(
+      (_) => _safely(() async {
+        await _prepareGate();
+        if (_closed || generation != _gateGeneration) return;
+        final player = _gatePlayers[cue];
+        if (player?.source == null) return;
+        await player!.seek(Duration.zero);
+        if (_closed || generation != _gateGeneration) return;
+        await player.resume();
+      }),
+    );
+    return _gateTail;
+  }
+
+  @override
+  Future<void> stopWorldGate() {
+    ++_gateGeneration;
+    if (_closed) return Future.value();
+    _gateTail = _gateTail.then(
+      (_) => _safely(() async {
+        for (final player in _gatePlayers.values) {
+          if (player.state == PlayerState.playing) await player.pause();
+        }
+      }),
+    );
+    return _gateTail;
   }
 
   Future<void> _prepareWin() => _winPreparation ??= _safely(() async {
@@ -257,6 +305,8 @@ class DeviceGameFeedback extends GameFeedback {
       _effectTail,
       _modalTail,
       _winTail,
+      _gateTail,
+      ?_gatePreparation,
       if (_winPreparation != null) _winPreparation!,
       if (_modalPreparation != null) _modalPreparation!,
     ]);
@@ -266,6 +316,9 @@ class DeviceGameFeedback extends GameFeedback {
       await _modal?.dispose();
       await _winCompleted?.cancel();
       await _win?.dispose();
+      for (final player in _gatePlayers.values) {
+        await player.dispose();
+      }
     });
   }
 }

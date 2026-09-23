@@ -25,93 +25,113 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'))).load();
   });
 
-  testWidgets(
-    'finishing world one returns home and discovers quick play once',
-    (tester) async {
-      scene.configure(tester);
-      final repo = GameRepository.memory();
-      await repo.completeDebugWorldExceptLastPuzzle();
-      await tester.pumpWidget(
-        RepaintBoundary(
-          key: scene.captureKey,
-          child: SunDokuApp(repository: repo, feedback: const GameFeedback()),
-        ),
-      );
-      await tester.pump(const Duration(seconds: 3));
-      await scene.settle(tester);
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
-      await scene.tap(tester, find.byKey(const ValueKey('home-play')));
-      final navigator = Navigator.of(tester.element(find.byType(MapScreen)));
-      unawaited(
-        navigator.push(
-          MaterialPageRoute<void>(
-            settings: const RouteSettings(name: AppRoutes.game),
-            builder: (_) =>
-                FirstExperienceScreen(repository: repo, levelNumber: 10),
+  for (final returnToMap in [false, true]) {
+    testWidgets(
+      'finishing world one discovers quick play once, via map: $returnToMap',
+      (tester) async {
+        scene.configure(tester);
+        final repo = GameRepository.memory();
+        await repo.completeDebugWorldExceptLastPuzzle();
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: scene.captureKey,
+            child: SunDokuApp(repository: repo, feedback: const GameFeedback()),
           ),
-        ),
-      );
-      await scene.settle(tester);
-      final flow = tester
-          .widget<TutorialJourney>(find.byType(TutorialJourney))
-          .flow;
-      expect(flow.gameIndex, 2);
-      await flow.resumeGame();
-      await flow.debugFillExceptOne();
-      final last = flow.boardValues.indexOf(null);
-      expect(last, greaterThanOrEqualTo(0));
-      flow.selectGameCell(last);
-      await flow.placeGameNumber(flow.puzzleDefinition!.solution[last]);
-      await scene.settle(tester);
-      expect(repo.quickPlayUnlocked, isTrue);
-      expect(
-        repo.shouldCelebrateQuickPlay,
-        isTrue,
-        reason: 'Home is still covered',
-      );
-      await scene.waitForAction(tester, scene.next);
-      await scene.tap(tester, scene.next);
-      expect(
-        find.byKey(const ValueKey('world-completion-recap')),
-        findsOneWidget,
-      );
-      await scene.tap(tester, find.byKey(const ValueKey('world-recap-done')));
-      await repo.flush();
-      await scene.settle(tester);
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.byType(MapScreen, skipOffstage: false), findsNothing);
-      expect(
-        Navigator.of(tester.element(find.byType(HomeScreen))).canPop(),
-        isFalse,
-      );
-      expect(find.text('¡Nuevo!'), findsOneWidget);
-      expect(find.text('¡Elige la dificultad y sigue jugando!'), findsNothing);
-      expect(repo.shouldCelebrateQuickPlay, isFalse);
-      expect(repo.quickPlayIsNew, isTrue);
-      await scene.capture(tester, 'home-quick-play-unlocked');
-      final quick = find.byKey(const ValueKey('home-quick-play'));
-      final adventure = find.byKey(const ValueKey('home-play'));
-      expect(
-        tester.getBottomLeft(quick).dy,
-        lessThan(tester.getTopLeft(adventure).dy),
-      );
-      await scene.tap(tester, quick);
-      expect(find.byType(QuickPlayScreen), findsOneWidget);
-      expect(repo.quickPlayIsNew, isFalse);
-      Navigator.of(tester.element(find.byType(QuickPlayScreen))).pop();
-      await scene.settle(tester);
-      expect(find.text('¡Nuevo!'), findsNothing);
-      expect(find.byKey(const ValueKey('home-quick-play-hint')), findsNothing);
-      expect(
-        tester.getBottomLeft(quick).dy,
-        lessThan(tester.getTopLeft(adventure).dy),
-      );
-      await tester.pumpWidget(const SizedBox());
-      await scene.settle(tester);
-      await repo.close();
-    },
-  );
+        );
+        await tester.pump(const Duration(seconds: 3));
+        await scene.settle(tester);
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
+        await scene.tap(tester, find.byKey(const ValueKey('home-play')));
+        final navigator = Navigator.of(tester.element(find.byType(MapScreen)));
+        unawaited(
+          navigator.push(
+            MaterialPageRoute<void>(
+              settings: const RouteSettings(name: AppRoutes.game),
+              builder: (_) =>
+                  FirstExperienceScreen(repository: repo, levelNumber: 10),
+            ),
+          ),
+        );
+        await scene.settle(tester);
+        final flow = tester
+            .widget<TutorialJourney>(find.byType(TutorialJourney))
+            .flow;
+        expect(flow.gameIndex, 2);
+        await flow.resumeGame();
+        await flow.debugFillExceptOne();
+        final last = flow.boardValues.indexOf(null);
+        expect(last, greaterThanOrEqualTo(0));
+        flow.selectGameCell(last);
+        await flow.placeGameNumber(flow.puzzleDefinition!.solution[last]);
+        await scene.settle(tester);
+        expect(repo.quickPlayUnlocked, isTrue);
+        expect(
+          repo.shouldCelebrateQuickPlay,
+          isTrue,
+          reason: 'Home is still covered',
+        );
+        await scene.waitForAction(tester, scene.next);
+        await scene.tap(tester, scene.next);
+        expect(
+          find.byKey(const ValueKey('world-completion-recap')),
+          findsOneWidget,
+        );
+        await scene.tap(
+          tester,
+          find.byKey(
+            ValueKey(returnToMap ? 'world-recap-map' : 'world-recap-done'),
+          ),
+        );
+        if (returnToMap) {
+          expect(find.byType(MapScreen), findsOneWidget);
+          expect(find.byType(FirstExperienceScreen), findsNothing);
+          expect(repo.shouldCelebrateQuickPlay, isTrue);
+          Navigator.of(tester.element(find.byType(MapScreen))).pop();
+          await scene.settle(tester);
+        }
+        await repo.flush();
+        await scene.settle(tester);
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(MapScreen, skipOffstage: false), findsNothing);
+        expect(
+          Navigator.of(tester.element(find.byType(HomeScreen))).canPop(),
+          isFalse,
+        );
+        expect(find.text('¡Nuevo!'), findsOneWidget);
+        expect(
+          find.text('¡Elige la dificultad y sigue jugando!'),
+          findsNothing,
+        );
+        expect(repo.shouldCelebrateQuickPlay, isFalse);
+        expect(repo.quickPlayIsNew, isTrue);
+        await scene.capture(tester, 'home-quick-play-unlocked');
+        final quick = find.byKey(const ValueKey('home-quick-play'));
+        final adventure = find.byKey(const ValueKey('home-play'));
+        expect(
+          tester.getBottomLeft(quick).dy,
+          lessThan(tester.getTopLeft(adventure).dy),
+        );
+        await scene.tap(tester, quick);
+        expect(find.byType(QuickPlayScreen), findsOneWidget);
+        expect(repo.quickPlayIsNew, isFalse);
+        Navigator.of(tester.element(find.byType(QuickPlayScreen))).pop();
+        await scene.settle(tester);
+        expect(find.text('¡Nuevo!'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('home-quick-play-hint')),
+          findsNothing,
+        );
+        expect(
+          tester.getBottomLeft(quick).dy,
+          lessThan(tester.getTopLeft(adventure).dy),
+        );
+        await tester.pumpWidget(const SizedBox());
+        await scene.settle(tester);
+        await repo.close();
+      },
+    );
+  }
 
   testWidgets(
     'unlock pulse waits for arrival, runs once and respects reduced motion',

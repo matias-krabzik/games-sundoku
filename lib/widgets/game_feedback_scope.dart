@@ -12,12 +12,16 @@ class GameFeedbackScope extends InheritedWidget {
     this.onError,
     this.onToggle,
     this.onLevelCompleted,
+    this.onWorldGate,
+    this.onStopWorldGate,
     required super.child,
   });
 
   final VoidCallback onTap;
   final VoidCallback? onError;
   final VoidCallback? onLevelCompleted;
+  final void Function(WorldGateSound cue)? onWorldGate;
+  final VoidCallback? onStopWorldGate;
 
   static void levelCompleted(BuildContext context) => context
       .getInheritedWidgetOfExactType<GameFeedbackScope>()
@@ -47,7 +51,9 @@ class GameFeedbackScope extends InheritedWidget {
       onTap != oldWidget.onTap ||
       onError != oldWidget.onError ||
       onToggle != oldWidget.onToggle ||
-      onLevelCompleted != oldWidget.onLevelCompleted;
+      onLevelCompleted != oldWidget.onLevelCompleted ||
+      onWorldGate != oldWidget.onWorldGate ||
+      onStopWorldGate != oldWidget.onStopWorldGate;
 }
 
 class GameFeedbackHost extends StatefulWidget {
@@ -81,6 +87,9 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
   }
 
   void _syncMusic() {
+    if (!_foreground || !widget.repository.state.settings.sound) {
+      _stopWorldGate();
+    }
     final playing =
         _engaged && _foreground && widget.repository.state.settings.music;
     if (_playing == playing) return;
@@ -131,6 +140,18 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
     );
   }
 
+  void _worldGate(WorldGateSound cue) {
+    if (!_foreground) return;
+    unawaited(
+      widget.output.worldGate(
+        cue,
+        sound: widget.repository.state.settings.sound,
+      ),
+    );
+  }
+
+  void _stopWorldGate() => unawaited(widget.output.stopWorldGate());
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
@@ -151,6 +172,8 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
     onError: _error,
     onToggle: _toggle,
     onLevelCompleted: _levelCompleted,
+    onWorldGate: _worldGate,
+    onStopWorldGate: _stopWorldGate,
     child: Listener(onPointerDown: (_) => _engage(), child: widget.child),
   );
 }

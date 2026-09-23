@@ -89,6 +89,8 @@ flutter:
     - assets/audio/sfx/minimize.wav
     - assets/audio/sfx/maximize.wav
     - assets/audio/sfx/question.wav
+    - assets/audio/sfx/gate/ignite.wav
+    - assets/audio/sfx/gate/sparkle.wav
     - assets/audio/sfx/win/mixkit-completion-of-a-level-2063.wav
     - assets/fonts/OFL-Baloo2.txt
     - assets/licenses/

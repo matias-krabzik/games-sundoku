@@ -47,6 +47,7 @@ void main() {
         await progress.recordResult(level, 3);
       }
       if (completed == 5) await progress.recordResult(6, 1);
+      if (completed == 10) await progress.markGateCelebrated();
       var opened = 0;
       await tester.pumpWidget(
         MaterialApp(
@@ -145,6 +146,7 @@ void main() {
       for (var level = 1; level <= 10; level++) {
         await progress.recordResult(level, 3);
       }
+      await progress.markGateCelebrated();
       final navigatorKey = GlobalKey<NavigatorState>();
       await tester.pumpWidget(
         MaterialApp(

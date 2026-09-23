@@ -81,6 +81,7 @@ class GameRepository extends ChangeNotifier {
   GameSave get state => _save;
 
   static const _quickPlayDiscoveryKey = 'quickPlayDiscovery';
+  static const _worldGateCelebratedKey = 'world1GateCelebrated';
 
   bool get quickPlayUnlocked => initialLevelCatalog.values.every(
     (level) =>
@@ -95,6 +96,16 @@ class GameRepository extends ChangeNotifier {
   bool get quickPlayIsNew => quickPlayUnlocked && !_quickPlayFlag('opened');
   bool get shouldCelebrateQuickPlay =>
       quickPlayIsNew && !_quickPlayFlag('celebrationShown');
+
+  bool get shouldCelebrateWorldGate =>
+      quickPlayUnlocked && state.modules[_worldGateCelebratedKey] != true;
+
+  Future<void> markWorldGateCelebrated() => _update((save) {
+    if (!shouldCelebrateWorldGate) return save;
+    return save.copyWith(
+      modules: {...save.modules, _worldGateCelebratedKey: true},
+    );
+  });
 
   Future<void> markQuickPlayCelebrated() =>
       _markQuickPlayDiscovery('celebrationShown');
@@ -786,7 +797,9 @@ class GameRepository extends ChangeNotifier {
         activeSessionId: session.id,
         modules: {
           for (final entry in next.modules.entries)
-            if (entry.key != _quickPlayDiscoveryKey) entry.key: entry.value,
+            if (entry.key != _quickPlayDiscoveryKey &&
+                entry.key != _worldGateCelebratedKey)
+              entry.key: entry.value,
           moduleKey: {
             ...module,
             'step': 'playing',
@@ -916,7 +929,9 @@ class GameRepository extends ChangeNotifier {
     final modules = {...save.modules}
       ..removeWhere(
         (key, _) =>
-            (firstReset <= 10 && key == _quickPlayDiscoveryKey) ||
+            (firstReset <= 10 &&
+                (key == _quickPlayDiscoveryKey ||
+                    key == _worldGateCelebratedKey)) ||
             (firstReset <= 1 && key == 'firstExperience') ||
             (key.startsWith('generatedLevel/') &&
                 (int.tryParse(key.split('/').last) ?? 0) >= firstReset),

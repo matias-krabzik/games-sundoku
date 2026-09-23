@@ -235,7 +235,7 @@ class _AudioLicenses extends StatelessWidget {
             if (credit.licenseAsset != null) ...[
               const SizedBox(height: 14),
               IllustratedActionButton(
-                key: ValueKey('license-${credit.licenseAsset}'),
+                key: ValueKey('license-${credit.sourceUrl}'),
                 label: 'Ver licencia',
                 fontSize: 20,
                 compact: true,

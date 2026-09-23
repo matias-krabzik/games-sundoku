@@ -59,6 +59,18 @@ class _MapScreenState extends State<MapScreen>
   bool _checkQueued = false;
   bool _wasCurrent = false;
   bool _entryFocusPending = true;
+  bool _focusingGate = false;
+  bool _ignitingGate = false;
+  bool _gateCelebratedLocally = false;
+  ModalRoute<dynamic>? _route;
+
+  bool get _gatePending =>
+      _progress.gateCelebrationPending && !_gateCelebratedLocally;
+  bool get _routeArrived =>
+      (_route?.isCurrent ?? true) &&
+      (_route?.animation == null || _route!.animation!.isCompleted) &&
+      (_route?.secondaryAnimation == null ||
+          _route!.secondaryAnimation!.isDismissed);
 
   int? get _entryLevel =>
       kMap1Nodes.every(
@@ -92,14 +104,29 @@ class _MapScreenState extends State<MapScreen>
     super.didChangeDependencies();
     // Subscribe to route visibility: rewards must wait until the player returns.
     final current = ModalRoute.of(context)?.isCurrent != false;
+    final route = ModalRoute.of(context);
+    if (_route != route) {
+      _route?.animation?.removeStatusListener(_routeChanged);
+      _route?.secondaryAnimation?.removeStatusListener(_routeChanged);
+      _route = route;
+      _route?.animation?.addStatusListener(_routeChanged);
+      _route?.secondaryAnimation?.addStatusListener(_routeChanged);
+    }
     if (current && !_wasCurrent) _entryFocusPending = true;
     _wasCurrent = current;
     _queueRewards();
   }
 
+  void _routeChanged(AnimationStatus _) => _queueRewards();
+
   void _progressChanged() {
     if (!mounted) return;
     setState(() {
+      if (!_progress.gateCelebrationPending &&
+          kMap1Nodes.any((node) => _progress.lightsFor(node.level) < 3)) {
+        _gateCelebratedLocally = false;
+        _ignitingGate = false;
+      }
       for (final node in kMap1Nodes) {
         final saved = _progress.lightsFor(node.level);
         if (_preparingWorld ||
@@ -124,15 +151,74 @@ class _MapScreenState extends State<MapScreen>
   Future<void> _syncMapEntry() async {
     await _revealSavedRewards();
     if (!mounted ||
-        !_entryFocusPending ||
         _awardingLevel != null ||
         _openingLevel ||
         ModalRoute.of(context)?.isCurrent == false) {
       return;
     }
+    if (_gatePending && _worldComplete) {
+      await _prepareGateIgnition();
+      return;
+    }
+    if (!_entryFocusPending) return;
     _entryFocusPending = false;
     final level = _entryLevel;
     if (level != null) await _focusLevel(level);
+  }
+
+  Future<void> _prepareGateIgnition() async {
+    if (_focusingGate || _ignitingGate || !_routeArrived) return;
+    if (!_scroll.hasClients || !_scroll.position.hasContentDimensions) {
+      _queueRewards();
+      return;
+    }
+    final reduced =
+        MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context);
+    setState(() {
+      _focusingGate = true;
+      _entryFocusPending = false;
+      _activeLevel = kMap1Nodes.last.level;
+    });
+    if (reduced) {
+      _scroll.jumpTo(_gateOffset);
+    } else {
+      await _scroll.animateTo(
+        _gateOffset,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+    if (!mounted) return;
+    // A resize or interrupted scroll can finish animateTo before arrival.
+    // Reveal only after the sun is in its final visible position.
+    final arrived =
+        _scroll.hasClients && (_scroll.offset - _gateOffset).abs() < 1;
+    setState(() {
+      _focusingGate = false;
+      _ignitingGate =
+          arrived && _routeArrived && _gatePending && _worldComplete;
+    });
+    if (!arrived) _queueRewards();
+  }
+
+  double get _gateOffset =>
+      (mapWorldGateAnchor.dx * _worldWidth - _viewport.width / 2).clamp(
+        0.0,
+        _scroll.position.maxScrollExtent,
+      );
+
+  Future<void> _gateIgnited() async {
+    if (!mounted || !_worldComplete || !_ignitingGate) return;
+    setState(() {
+      _ignitingGate = false;
+      _gateCelebratedLocally = true;
+    });
+    try {
+      await _progress.markGateCelebrated();
+    } catch (_) {
+      // Keep this visit lit; an unsaved celebration remains pending on reopen.
+    }
   }
 
   Future<void> _revealSavedRewards() async {
@@ -307,6 +393,8 @@ class _MapScreenState extends State<MapScreen>
 
   @override
   void dispose() {
+    _route?.animation?.removeStatusListener(_routeChanged);
+    _route?.secondaryAnimation?.removeStatusListener(_routeChanged);
     _award.dispose();
     _progress.removeListener(_progressChanged);
     if (widget.progress == null) _progress.dispose();
@@ -321,7 +409,12 @@ class _MapScreenState extends State<MapScreen>
       );
 
   Future<void> _focusLevel(int level, {bool select = false}) async {
-    if (_awardingLevel != null || _openingLevel) return;
+    if (_awardingLevel != null ||
+        _openingLevel ||
+        _focusingGate ||
+        _ignitingGate) {
+      return;
+    }
     if (select && ModalRoute.of(context)?.isCurrent == false) return;
     final request = ++_focusRequest;
     final int target = level.clamp(1, kMap1Nodes.length);
@@ -428,8 +521,10 @@ class _MapScreenState extends State<MapScreen>
                 if (viewport != _viewport) {
                   _viewport = viewport;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && _scroll.hasClients) {
-                      _scroll.jumpTo(_offsetFor(_activeLevel));
+                    if (mounted && _scroll.hasClients && !_focusingGate) {
+                      _scroll.jumpTo(
+                        _ignitingGate ? _gateOffset : _offsetFor(_activeLevel),
+                      );
                     }
                   });
                 }
@@ -469,7 +564,10 @@ class _MapScreenState extends State<MapScreen>
                             key: const ValueKey('world-scroll'),
                             controller: _scroll,
                             scrollDirection: Axis.horizontal,
-                            physics: _awardingLevel == null
+                            physics:
+                                _awardingLevel == null &&
+                                    !_focusingGate &&
+                                    !_ignitingGate
                                 ? const ClampingScrollPhysics()
                                 : const NeverScrollableScrollPhysics(),
                             child: SizedBox(
@@ -488,6 +586,10 @@ class _MapScreenState extends State<MapScreen>
                                     child: MapWorldGate(
                                       key: const ValueKey('map-world-gate'),
                                       unlocked: _worldComplete,
+                                      ignitionPending: _gatePending,
+                                      ignite: _ignitingGate,
+                                      onIgnited: () =>
+                                          unawaited(_gateIgnited()),
                                       artworkSize: mapWorldGateArtworkSize(
                                         worldHeight,
                                       ),

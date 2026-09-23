@@ -40,6 +40,14 @@ const audioCredits = [
     licenseAsset: 'assets/licenses/CC0-1.0.txt',
   ),
   AudioCredit(
+    title: 'Celebración del sol',
+    author: 'Kenney (kenney.nl)',
+    license: 'CC0 1.0 Universal',
+    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    sourceUrl: 'https://kenney.nl/assets/music-jingles',
+    licenseAsset: 'assets/licenses/CC0-1.0.txt',
+  ),
+  AudioCredit(
     title: 'Sonido de victoria',
     author: 'Mixkit',
     license: 'Mixkit Sound Effects Free License',

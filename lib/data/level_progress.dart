@@ -33,6 +33,9 @@ class LevelProgress extends ChangeNotifier {
   int get latestUnlocked =>
       kMap1Nodes.lastWhere((node) => isUnlocked(node.level)).level;
 
+  bool get gateCelebrationPending => _repository.shouldCelebrateWorldGate;
+  Future<void> markGateCelebrated() => _repository.markWorldGateCelebrated();
+
   LevelRecord recordFor(int level) =>
       _repository.state.progress[_id(level)] ?? LevelRecord();
 

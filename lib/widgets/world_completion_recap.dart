@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../domain/models/player_profile.dart';
@@ -11,10 +13,12 @@ String worldCongratulations(PlayerProfile player) =>
     ? '¡Felicitaciones, ${player.name.trim()}!'
     : '¡Felicitaciones!';
 
-Future<bool?> showWorldCompletionRecap(
+enum WorldCompletionDestination { map, home }
+
+Future<WorldCompletionDestination?> showWorldCompletionRecap(
   BuildContext context,
   PlayerProfile player,
-) => showDialog<bool>(
+) => showDialog<WorldCompletionDestination>(
   context: context,
   barrierDismissible: false,
   builder: (context) => Dialog(
@@ -67,17 +71,7 @@ Future<bool?> showWorldCompletionRecap(
                   ),
                 ),
                 const SizedBox(height: 16),
-                SafeArea(
-                  top: false,
-                  child: IllustratedActionButton(
-                    key: const ValueKey('world-recap-done'),
-                    label: 'Ir al inicio',
-                    compact: true,
-                    fontSize: 22,
-                    showPlayIcon: false,
-                    onPressed: () => Navigator.of(context).pop(true),
-                  ),
-                ),
+                SafeArea(top: false, child: const _RecapActions()),
               ],
             ),
           ),
@@ -86,3 +80,80 @@ Future<bool?> showWorldCompletionRecap(
     ),
   ),
 );
+
+class _RecapActions extends StatelessWidget {
+  const _RecapActions();
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) {
+      final label = TextPainter(
+        text: TextSpan(text: 'Volver al mapa', style: homeText(22)),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 1,
+      )..layout();
+      final naturalWidth = math.max(224.0, label.width.ceilToDouble() + 99);
+      final height = math.max(70.0, label.height + 27);
+      label.dispose();
+      final width = bounds.maxWidth >= naturalWidth * 2 + 12
+          ? (bounds.maxWidth - 12) / 2
+          : bounds.maxWidth;
+      return Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 12,
+        runSpacing: 10,
+        children: [
+          SizedBox(
+            width: width,
+            height: height,
+            child: IllustratedActionButton(
+              key: const ValueKey('world-recap-map'),
+              label: 'Volver al mapa',
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              compact: true,
+              fontSize: 22,
+              leadingIcon: const HomeIcon(HomeGlyph.map, size: 34),
+              onPressed: () =>
+                  Navigator.of(context).pop(WorldCompletionDestination.map),
+            ),
+          ),
+          SizedBox(
+            width: width,
+            height: height,
+            child: IllustratedActionButton(
+              key: const ValueKey('world-recap-done'),
+              label: 'Ir al inicio',
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              compact: true,
+              secondary: true,
+              // Match the gold artwork's transparent outer margins.
+              artPadding: const EdgeInsets.symmetric(
+                horizontal: 3,
+                vertical: 4,
+              ),
+              fontSize: 22,
+              leadingIcon: const SizedBox.square(
+                dimension: 34,
+                child: Center(
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(homeNavy, BlendMode.srcIn),
+                    child: HomeIcon(HomeGlyph.sun, size: 26),
+                  ),
+                ),
+              ),
+              onPressed: () =>
+                  Navigator.of(context).pop(WorldCompletionDestination.home),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
