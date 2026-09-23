@@ -1,11 +1,13 @@
 # Superficies compartidas de la UI
 
+Los botones de la home usan dos iconos PNG RGBA independientes: `home/adventure-map.png` para Aventura (`HomeGlyph.map`) y `home/quick-play-bolt.png` para Partida rápida (`HomeGlyph.bolt`). `HomeIcon` conserva su proporción con `BoxFit.contain`; estos dibujos no usan nine-patch. El icono de play permanece en `home/icons.png` y sigue siendo el icono predeterminado de `IllustratedActionButton` para el resto de las acciones.
+
 `lib/widgets/ui_surface_art.dart` centraliza once superficies obtenidas de siete PNG reutilizables. `NineSliceArt` aplica `Image.centerSlice` al recorte del atlas: crecen el centro y los tramos rectos, conservando esquinas y biseles. Los PNG originales y su transparencia real permanecen intactos; no se generan archivos por botón ni por tamaño.
 
 | Superficie | PNG existente | Usos |
 | --- | --- | --- |
 | `goldButton` | `home/play-button.png` | Jugar, Vamos paso a paso, Siguiente, Listo y Guardar |
-| `blueButton` | `home/blue-button.png` | Acción secundaria «Nueva partida», con texto crema e icono de reinicio; nine-patch conserva los extremos y el borde dorado |
+| `blueButton` | `home/blue-button.png` | Acciones secundarias «Aventura» y «Nueva partida», con azul luminoso, borde crema/dorado suave y texto azul oscuro; nine-patch conserva los extremos y el bisel. PNG RGBA con transparencia real, renovado el 23-09-2026 |
 | `creamPanel` | `home/status-panel.png` | Estado de la home, tarjetas del mapa, modales y filas de ajustes |
 | `goldCreamPanel` | `tutorial/gold-cream-panel.png` | Encabezados, historia e instrucciones del tutorial con el borde dorado de la referencia |
 | `goldCreamCard` | `tutorial/gold-cream-panel.png` | Ronda actual en el resumen: comparte el mismo recorte nine-patch del panel y aplica un tinte amarillo suave en Flutter, conservando su alfa |

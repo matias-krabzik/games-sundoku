@@ -32,6 +32,7 @@ class TutorialJourney extends StatelessWidget {
     required this.header,
     this.navigation,
     required this.onExit,
+    this.onWorldCompleted,
     this.navigationBlocked = false,
     this.onLessonFinished,
     this.solutionTour = const AlwaysStoppedAnimation(1),
@@ -51,6 +52,7 @@ class TutorialJourney extends StatelessWidget {
   final Widget header;
   final Widget? navigation;
   final VoidCallback onExit;
+  final VoidCallback? onWorldCompleted;
   final bool navigationBlocked;
   final VoidCallback? onLessonFinished;
   final Animation<double> solutionTour;
@@ -255,7 +257,9 @@ class TutorialJourney extends StatelessWidget {
                   context,
                   flow.repository.state.player,
                 );
-                if (context.mounted && finished == true) onExit();
+                if (context.mounted && finished == true) {
+                  (onWorldCompleted ?? onExit)();
+                }
               }
             : _advance,
       );

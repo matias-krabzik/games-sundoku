@@ -84,6 +84,11 @@ Future<void> capture(
     for (final asset in {
       for (final surface in UiSurface.values) surface.spec.asset,
       'assets/images/home-background.png',
+      'assets/images/doku-home.png',
+      'assets/images/sundoku-logo.png',
+      'assets/images/home/icons.png',
+      'assets/images/home/adventure-map.png',
+      'assets/images/home/quick-play-bolt.png',
       'assets/images/tutorial/block-guide-atlas.png',
       'assets/images/tutorial/cleaning-brush.png',
       'assets/images/tutorial/lives-icons.png',
@@ -126,6 +131,7 @@ Future<void> show(
   bool showDeveloperControls = false,
   bool reviewOnly = false,
   GameFeedback feedback = const GameFeedback(),
+  Map<String, WidgetBuilder> routes = const {},
 }) async {
   await tester.pumpWidget(
     RepaintBoundary(
@@ -134,6 +140,7 @@ Future<void> show(
         repository: repo,
         output: feedback,
         child: MaterialApp(
+          routes: routes,
           theme: buildSunDokuTheme(),
           debugShowCheckedModeBanner: false,
           builder: (context, child) => MediaQuery(

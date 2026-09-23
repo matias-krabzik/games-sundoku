@@ -80,6 +80,41 @@ class GameRepository extends ChangeNotifier {
   bool _closed = false;
   GameSave get state => _save;
 
+  static const _quickPlayDiscoveryKey = 'quickPlayDiscovery';
+
+  bool get quickPlayUnlocked => initialLevelCatalog.values.every(
+    (level) =>
+        (state.progress[level.id]?.bestLights ?? 0) >= level.requiredLights,
+  );
+
+  bool _quickPlayFlag(String key) {
+    final discovery = state.modules[_quickPlayDiscoveryKey];
+    return discovery is Map && discovery[key] == true;
+  }
+
+  bool get quickPlayIsNew => quickPlayUnlocked && !_quickPlayFlag('opened');
+  bool get shouldCelebrateQuickPlay =>
+      quickPlayIsNew && !_quickPlayFlag('celebrationShown');
+
+  Future<void> markQuickPlayCelebrated() =>
+      _markQuickPlayDiscovery('celebrationShown');
+
+  Future<void> markQuickPlayOpened() => _markQuickPlayDiscovery('opened');
+
+  Future<void> _markQuickPlayDiscovery(String key) => _update((save) {
+    if (!quickPlayUnlocked || _quickPlayFlag(key)) return save;
+    final previous = save.modules[_quickPlayDiscoveryKey];
+    return save.copyWith(
+      modules: {
+        ...save.modules,
+        _quickPlayDiscoveryKey: {
+          if (previous is Map) ...jsonObject(previous),
+          key: true,
+        },
+      },
+    );
+  });
+
   Future<void> _update(GameSave Function(GameSave) change) {
     if (_closed) return Future.error(StateError('Repository is closed'));
     final operation = _tail.then((_) async {
@@ -750,7 +785,8 @@ class GameRepository extends ChangeNotifier {
         },
         activeSessionId: session.id,
         modules: {
-          ...next.modules,
+          for (final entry in next.modules.entries)
+            if (entry.key != _quickPlayDiscoveryKey) entry.key: entry.value,
           moduleKey: {
             ...module,
             'step': 'playing',
@@ -880,6 +916,7 @@ class GameRepository extends ChangeNotifier {
     final modules = {...save.modules}
       ..removeWhere(
         (key, _) =>
+            (firstReset <= 10 && key == _quickPlayDiscoveryKey) ||
             (firstReset <= 1 && key == 'firstExperience') ||
             (key.startsWith('generatedLevel/') &&
                 (int.tryParse(key.split('/').last) ?? 0) >= firstReset),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/data/repositories/game_repository.dart';
+import 'package:sundoku/routes.dart';
+import 'package:sundoku/screens/home_screen.dart';
 import 'package:sundoku/widgets/tutorial_story.dart';
 
 import 'tutorial_journey_widget_test.dart' as scene;
@@ -29,6 +31,7 @@ void main() {
         withParentRoute: true,
         levelNumber: 10,
         textScale: name == 'Luna' ? 1 : 2,
+        routes: {AppRoutes.home: (_) => const HomeScreen()},
       );
       await scene.tap(tester, find.text('Abrir tutorial'));
       await scene.waitForAction(tester, scene.next);
@@ -51,6 +54,8 @@ void main() {
       expect(text, contains('bloque de 3×3'));
       expect(text, contains('del 1 al 9 sin repetir'));
       expect(text, contains('¡No se cambian!'));
+      expect(story.tip, contains('¡Desbloqueaste Partida rápida!'));
+      expect(find.text('Ir al inicio'), findsOneWidget);
       for (final size in [
         const Size(320, 568),
         const Size(844, 390),
@@ -66,7 +71,12 @@ void main() {
       }
       await scene.tap(tester, find.byKey(const ValueKey('world-recap-done')));
       expect(recap, findsNothing);
-      expect(find.text('Abrir tutorial'), findsOneWidget);
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.text('Abrir tutorial'), findsNothing);
+      expect(
+        Navigator.of(tester.element(find.byType(HomeScreen))).canPop(),
+        isFalse,
+      );
       await tester.pumpWidget(const SizedBox());
       await scene.settle(tester);
     });

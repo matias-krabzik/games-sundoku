@@ -10,6 +10,7 @@ import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
 import '../widgets/juicy_press.dart';
 import '../widgets/parallax_background.dart';
+import '../widgets/quick_play_unlock_cue.dart';
 import '../widgets/settings_art.dart';
 import '../widgets/developer_floating_menu.dart';
 
@@ -25,6 +26,9 @@ class HomeScreen extends StatefulWidget {
     this.onReady,
     this.hasStarted = false,
     this.quickPlayUnlocked = false,
+    this.quickPlayIsNew = false,
+    this.celebrateQuickPlay = false,
+    this.onQuickPlayCelebrated,
     this.showDeveloperControls = kDebugMode,
     this.onResetAll,
   });
@@ -37,6 +41,9 @@ class HomeScreen extends StatefulWidget {
   final ValueChanged<BuildContext>? onReady;
   final bool hasStarted;
   final bool quickPlayUnlocked;
+  final bool quickPlayIsNew;
+  final bool celebrateQuickPlay;
+  final VoidCallback? onQuickPlayCelebrated;
   final bool showDeveloperControls;
   final Future<void> Function()? onResetAll;
 
@@ -95,118 +102,136 @@ class _HomeScreenState extends State<HomeScreen> {
                                 16,
                                 landscape ? 14 : (height * .045).clamp(18, 38),
                               ),
-                              child: Column(
-                                children: [
-                                  if (landscape)
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: LayoutBuilder(
-                                              builder: (context, space) =>
-                                                  Column(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Center(
-                                                          child: _AnimatedLogo(
-                                                            key: const ValueKey(
-                                                              'home-logo',
-                                                            ),
-                                                            width: math.min(
-                                                              space.maxWidth *
-                                                                  .96,
-                                                              480,
+                              child: _HomeContentViewport(
+                                minimumHeight:
+                                    landscape || !widget.quickPlayUnlocked
+                                    ? 0
+                                    : (widget.quickPlayIsNew ? 340 : 300) +
+                                          MediaQuery.textScalerOf(
+                                            context,
+                                          ).scale(
+                                            widget.quickPlayIsNew ? 120 : 100,
+                                          ),
+                                child: Column(
+                                  children: [
+                                    if (landscape)
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: LayoutBuilder(
+                                                builder: (context, space) =>
+                                                    Column(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Center(
+                                                            child: _AnimatedLogo(
+                                                              key:
+                                                                  const ValueKey(
+                                                                    'home-logo',
+                                                                  ),
+                                                              width: math.min(
+                                                                space.maxWidth *
+                                                                    .96,
+                                                                480,
+                                                              ),
                                                             ),
                                                           ),
                                                         ),
-                                                      ),
-                                                      const Expanded(
-                                                        child: _Doku(),
-                                                      ),
-                                                    ],
-                                                  ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 18),
-                                          Expanded(
-                                            child: Center(
-                                              child: _HomeActions(
-                                                onQuickPlay: widget.onQuickPlay,
-                                                onPlay: widget.onPlay,
-                                                availableLevel:
-                                                    widget.availableLevel,
-                                                unlockedLevels:
-                                                    widget.unlockedLevels,
-                                                compact: true,
-                                                horizontalActions:
-                                                    (!landscape &&
-                                                        viewport.maxWidth >=
-                                                            700) ||
-                                                    (landscape &&
-                                                        viewport.maxWidth >=
-                                                            1100),
-                                                hasStarted: widget.hasStarted,
-                                                quickPlayUnlocked:
-                                                    widget.quickPlayUnlocked,
+                                                        const Expanded(
+                                                          child: _Doku(),
+                                                        ),
+                                                      ],
+                                                    ),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else ...[
-                                    if (largeWindow)
-                                      Expanded(
-                                        child: Center(
-                                          child: LayoutBuilder(
-                                            builder: (_, _) => OverflowBox(
-                                              maxWidth: viewport.maxWidth - 32,
-                                              alignment: Alignment.center,
-                                              child: _AnimatedLogo(
-                                                key: const ValueKey(
-                                                  'home-logo',
+                                            const SizedBox(width: 18),
+                                            Expanded(
+                                              child: Center(
+                                                child: SingleChildScrollView(
+                                                  child: _HomeActions(
+                                                    onQuickPlay:
+                                                        widget.onQuickPlay,
+                                                    onPlay: widget.onPlay,
+                                                    availableLevel:
+                                                        widget.availableLevel,
+                                                    unlockedLevels:
+                                                        widget.unlockedLevels,
+                                                    compact: true,
+                                                    quickPlayIsNew:
+                                                        widget.quickPlayIsNew,
+                                                    celebrateQuickPlay: widget
+                                                        .celebrateQuickPlay,
+                                                    onQuickPlayCelebrated: widget
+                                                        .onQuickPlayCelebrated,
+                                                    hasStarted:
+                                                        widget.hasStarted,
+                                                    quickPlayUnlocked: widget
+                                                        .quickPlayUnlocked,
+                                                  ),
                                                 ),
-                                                width: math.min(
-                                                  viewport.maxWidth * .9,
-                                                  720,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else ...[
+                                      if (largeWindow)
+                                        Expanded(
+                                          child: Center(
+                                            child: LayoutBuilder(
+                                              builder: (_, _) => OverflowBox(
+                                                maxWidth:
+                                                    viewport.maxWidth - 32,
+                                                alignment: Alignment.center,
+                                                child: _AnimatedLogo(
+                                                  key: const ValueKey(
+                                                    'home-logo',
+                                                  ),
+                                                  width: math.min(
+                                                    viewport.maxWidth * .9,
+                                                    720,
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    if (!largeWindow) ...[
-                                      SizedBox(height: height < 650 ? 2 : 8),
-                                      LayoutBuilder(
-                                        builder: (context, space) =>
-                                            _AnimatedLogo(
-                                              key: const ValueKey('home-logo'),
-                                              width: math.min(
-                                                space.maxWidth * .94,
-                                                height * .46,
+                                      if (!largeWindow) ...[
+                                        SizedBox(height: height < 650 ? 2 : 8),
+                                        LayoutBuilder(
+                                          builder: (context, space) =>
+                                              _AnimatedLogo(
+                                                key: const ValueKey(
+                                                  'home-logo',
+                                                ),
+                                                width: math.min(
+                                                  space.maxWidth * .94,
+                                                  height * .46,
+                                                ),
                                               ),
-                                            ),
+                                        ),
+                                      ],
+                                      const Expanded(child: _Doku()),
+                                      const SizedBox(height: 8),
+                                      _HomeActions(
+                                        onQuickPlay: widget.onQuickPlay,
+                                        onPlay: widget.onPlay,
+                                        availableLevel: widget.availableLevel,
+                                        unlockedLevels: widget.unlockedLevels,
+                                        compact: height < 650,
+                                        quickPlayIsNew: widget.quickPlayIsNew,
+                                        celebrateQuickPlay:
+                                            widget.celebrateQuickPlay,
+                                        onQuickPlayCelebrated:
+                                            widget.onQuickPlayCelebrated,
+                                        hasStarted: widget.hasStarted,
+                                        quickPlayUnlocked:
+                                            widget.quickPlayUnlocked,
                                       ),
                                     ],
-                                    const Expanded(child: _Doku()),
-                                    const SizedBox(height: 8),
-                                    _HomeActions(
-                                      onQuickPlay: widget.onQuickPlay,
-                                      onPlay: widget.onPlay,
-                                      availableLevel: widget.availableLevel,
-                                      unlockedLevels: widget.unlockedLevels,
-                                      compact: height < 650,
-                                      horizontalActions:
-                                          (!landscape &&
-                                              viewport.maxWidth >= 700) ||
-                                          (landscape &&
-                                              viewport.maxWidth >= 1100),
-                                      hasStarted: widget.hasStarted,
-                                      quickPlayUnlocked:
-                                          widget.quickPlayUnlocked,
-                                    ),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),
@@ -237,6 +262,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     ),
+  );
+}
+
+class _HomeContentViewport extends StatelessWidget {
+  const _HomeContentViewport({
+    required this.minimumHeight,
+    required this.child,
+  });
+  final double minimumHeight;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, space) {
+      if (space.maxHeight >= minimumHeight) return child;
+      return SingleChildScrollView(
+        child: SizedBox(height: minimumHeight, child: child),
+      );
+    },
   );
 }
 
@@ -323,7 +367,9 @@ class _HomeActions extends StatelessWidget {
     required this.availableLevel,
     required this.unlockedLevels,
     required this.compact,
-    required this.horizontalActions,
+    required this.quickPlayIsNew,
+    required this.celebrateQuickPlay,
+    this.onQuickPlayCelebrated,
     required this.hasStarted,
     required this.quickPlayUnlocked,
     this.onPlay,
@@ -334,33 +380,28 @@ class _HomeActions extends StatelessWidget {
   final int availableLevel;
   final int unlockedLevels;
   final bool compact;
-  final bool horizontalActions;
+  final bool quickPlayIsNew;
+  final bool celebrateQuickPlay;
+  final VoidCallback? onQuickPlayCelebrated;
   final bool hasStarted;
   final bool quickPlayUnlocked;
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
-    constraints: BoxConstraints(maxWidth: horizontalActions ? 620 : 380),
+    constraints: const BoxConstraints(maxWidth: 380),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (quickPlayUnlocked && horizontalActions)
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: compact ? 9 : 12,
-            runSpacing: compact ? 9 : 12,
-            children: [
-              SizedBox(width: 224, child: _adventureButton(context)),
-              SizedBox(width: 280, child: _quickPlayButton()),
-            ],
-          )
-        else ...[
-          _adventureButton(context),
-          if (quickPlayUnlocked) ...[
-            SizedBox(height: compact ? 9 : 12),
-            _quickPlayButton(),
-          ],
+        if (quickPlayUnlocked) ...[
+          QuickPlayUnlockCue(
+            isNew: quickPlayIsNew,
+            celebrate: celebrateQuickPlay,
+            onCelebrated: onQuickPlayCelebrated,
+            child: _quickPlayButton(),
+          ),
+          SizedBox(height: compact ? 12 : 16),
         ],
+        _adventureButton(context),
         if (hasStarted) ...[
           SizedBox(height: compact ? 9 : 12),
           ConstrainedBox(
@@ -380,6 +421,9 @@ class _HomeActions extends StatelessWidget {
     key: const ValueKey('home-play'),
     label: 'Aventura',
     compact: compact,
+    leadingIcon: const HomeIcon(HomeGlyph.map, size: 34),
+    secondary: quickPlayUnlocked,
+    fontSize: quickPlayUnlocked ? 28 : 34,
     onPressed: onPlay ?? () => Navigator.of(context).pushNamed(AppRoutes.map),
   );
 
@@ -387,6 +431,7 @@ class _HomeActions extends StatelessWidget {
     key: const ValueKey('home-quick-play'),
     label: 'Partida rápida',
     compact: compact,
+    leadingIcon: const HomeIcon(HomeGlyph.bolt, size: 34),
     onPressed: onQuickPlay ?? () {},
   );
 }

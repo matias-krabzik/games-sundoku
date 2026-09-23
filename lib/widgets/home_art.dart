@@ -5,7 +5,7 @@ import 'ui_surface_art.dart';
 
 const homeNavy = Color(0xFF082A62);
 
-enum HomeGlyph { sun, world, play, user }
+enum HomeGlyph { sun, world, play, user, map, bolt }
 
 class HomeIcon extends StatelessWidget {
   const HomeIcon(this.glyph, {super.key, this.size = 36});
@@ -23,10 +23,19 @@ class HomeIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox.square(
     dimension: size,
-    child: SettingsArtRegion(
-      asset: 'assets/images/home/icons.png',
-      region: _regions[glyph.index],
-    ),
+    child: switch (glyph) {
+      HomeGlyph.map || HomeGlyph.bolt => Image.asset(
+        glyph == HomeGlyph.map
+            ? 'assets/images/home/adventure-map.png'
+            : 'assets/images/home/quick-play-bolt.png',
+        fit: BoxFit.contain,
+        excludeFromSemantics: true,
+      ),
+      _ => SettingsArtRegion(
+        asset: 'assets/images/home/icons.png',
+        region: _regions[glyph.index],
+      ),
+    },
   );
 }
 

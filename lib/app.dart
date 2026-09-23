@@ -48,6 +48,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
   );
 
   bool _openingPlay = false;
+  bool _openingQuickPlay = false;
   bool? _departingHomeHasStarted;
   bool _welcomeChecked = false;
 
@@ -62,7 +63,37 @@ class _SunDokuAppState extends State<SunDokuApp> {
   bool get _levelOneComplete =>
       _progress.lightsFor(1) >= LevelProgress.requiredLights;
 
-  bool get _quickPlayUnlocked => _levelOneComplete;
+  Future<void> _openQuickPlay(BuildContext context) async {
+    if (!_repository.quickPlayUnlocked || _openingQuickPlay) return;
+    _openingQuickPlay = true;
+    try {
+      await _repository.markQuickPlayOpened();
+      if (!context.mounted) return;
+      unawaited(Navigator.of(context).pushNamed(AppRoutes.quickPlay));
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos abrir la partida. Intenta de nuevo.'),
+          ),
+        );
+      }
+    } finally {
+      _openingQuickPlay = false;
+    }
+  }
+
+  Future<void> _quickPlayCelebrated(BuildContext context) async {
+    try {
+      await _repository.markQuickPlayCelebrated();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No pudimos guardar esta visita.')),
+        );
+      }
+    }
+  }
 
   Future<void> _welcome(BuildContext context) async {
     final route = ModalRoute.of(context);
@@ -234,12 +265,15 @@ class _SunDokuAppState extends State<SunDokuApp> {
               listenable: _progress,
               builder: (context, _) => HomeScreen(
                 onPlay: () => _play(context),
-                onQuickPlay: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.quickPlay),
+                onQuickPlay: () => unawaited(_openQuickPlay(context)),
+                onQuickPlayCelebrated: () =>
+                    unawaited(_quickPlayCelebrated(context)),
                 onReady: (homeContext) => unawaited(_welcome(homeContext)),
                 onResetAll: _repository.resetDebugSave,
                 hasStarted: _departingHomeHasStarted ?? _hasStarted,
-                quickPlayUnlocked: _quickPlayUnlocked,
+                quickPlayUnlocked: _repository.quickPlayUnlocked,
+                quickPlayIsNew: _repository.quickPlayIsNew,
+                celebrateQuickPlay: _repository.shouldCelebrateQuickPlay,
                 availableLevel: _progress.latestUnlocked,
                 unlockedLevels: _progress.unlockedCount,
                 playerName: _repository.state.player.nameChosen
@@ -249,15 +283,16 @@ class _SunDokuAppState extends State<SunDokuApp> {
             ),
           ),
           AppRoutes.map => _mapRoute(context, settings),
-          AppRoutes.quickPlay => WorldJourneyRoute(
-            settings: settings,
-            reduceMotion: WidgetsBinding
-                .instance
-                .platformDispatcher
-                .accessibilityFeatures
-                .disableAnimations,
-            builder: (_) => QuickPlayScreen(repository: _repository),
-          ),
+          AppRoutes.quickPlay when _repository.quickPlayUnlocked =>
+            WorldJourneyRoute(
+              settings: settings,
+              reduceMotion: WidgetsBinding
+                  .instance
+                  .platformDispatcher
+                  .accessibilityFeatures
+                  .disableAnimations,
+              builder: (_) => QuickPlayScreen(repository: _repository),
+            ),
           AppRoutes.firstExperience => WorldJourneyRoute(
             settings: settings,
             reduceMotion: WidgetsBinding

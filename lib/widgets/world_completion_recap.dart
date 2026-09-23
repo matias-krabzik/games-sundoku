@@ -60,7 +60,7 @@ Future<bool?> showWorldCompletionRecap(
                               'Antes de colocar un número, mira su fila, su columna y su bloque.',
                             ].join('\n\n'),
                           ],
-                          tip: '¡Tu atención, tu paciencia y tu práctica te trajeron hasta aquí! Sigue practicando en Partida rápida: elige una dificultad y prueba un nuevo sudoku. ¡Tú puedes!',
+                          tip: '¡Desbloqueaste Partida rápida!\n\nAhora puedes elegir la dificultad y jugar nuevos sudokus para seguir practicando.\n\n¡Encontrarás tu próximo desafío en el inicio!',
                         ),
                       ],
                     ),
@@ -71,7 +71,7 @@ Future<bool?> showWorldCompletionRecap(
                   top: false,
                   child: IllustratedActionButton(
                     key: const ValueKey('world-recap-done'),
-                    label: 'Volver al mapa',
+                    label: 'Ir al inicio',
                     compact: true,
                     fontSize: 22,
                     showPlayIcon: false,

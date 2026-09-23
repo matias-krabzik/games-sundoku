@@ -891,6 +891,14 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                                 Navigator.of(context).pop();
                               }
                             },
+                            onWorldCompleted: () {
+                              if (!_navigationBlocked) {
+                                Navigator.of(context).pushNamedAndRemoveUntil(
+                                  AppRoutes.home,
+                                  (_) => false,
+                                );
+                              }
+                            },
                           );
                         } else {
                           content = _blockLayout(cells, motion);

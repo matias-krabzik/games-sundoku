@@ -93,7 +93,7 @@ void main() {
           final quickPlay = tester.getRect(
             find.byKey(const ValueKey('home-quick-play')),
           );
-          expect(adventure.bottom, lessThan(quickPlay.top));
+          expect(quickPlay.bottom, lessThan(adventure.top));
           expect(adventure.center.dx, closeTo(quickPlay.center.dx, .1));
           expect(
             find.byKey(const ValueKey('home-play')).hitTestable(),
@@ -111,9 +111,7 @@ void main() {
     }
   });
 
-  testWidgets('quick play appears only after level one is complete', (
-    tester,
-  ) async {
+  testWidgets('quick play appears only when unlocked', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     expect(find.text('Aventura'), findsOneWidget);
     expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
@@ -130,30 +128,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  _desktopTestWidgets(
-    'large home places adventure and quick play side by side',
-    (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(768, 1024);
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: HomeScreen(hasStarted: true, quickPlayUnlocked: true),
-        ),
-      );
-      await tester.pump();
+  _desktopTestWidgets('large home keeps quick play above adventure', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(768, 1024);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: HomeScreen(hasStarted: true, quickPlayUnlocked: true),
+      ),
+    );
+    await tester.pump();
 
-      final adventure = tester.getRect(find.byKey(const ValueKey('home-play')));
-      final quickPlay = tester.getRect(
-        find.byKey(const ValueKey('home-quick-play')),
-      );
-      expect(adventure.top, closeTo(quickPlay.top, .1));
-      expect(adventure.right, lessThan(quickPlay.left));
-      expect(adventure.width, lessThan(quickPlay.width));
-      expect(adventure.width + quickPlay.width, lessThan(620));
-    },
-  );
+    final adventure = tester.getRect(find.byKey(const ValueKey('home-play')));
+    final quickPlay = tester.getRect(
+      find.byKey(const ValueKey('home-quick-play')),
+    );
+    expect(quickPlay.bottom, lessThan(adventure.top));
+    expect(adventure.center.dx, closeTo(quickPlay.center.dx, .1));
+    expect(adventure.width, lessThan(quickPlay.width));
+    expect(adventure.width, lessThanOrEqualTo(380));
+    expect(quickPlay.width, lessThanOrEqualTo(380));
+  });
 
   _desktopTestWidgets(
     'home controls stay reachable with long names and rotation',

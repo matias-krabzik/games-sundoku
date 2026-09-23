@@ -37,8 +37,7 @@ class IllustratedActionButton extends StatelessWidget {
           : compact
           ? const Size(224, 70)
           : const Size(244, 78);
-      final textStyle = homeText(fontSize)
-          .copyWith(color: secondary ? const Color(0xFFFFF3D3) : homeNavy);
+      final textStyle = homeText(fontSize);
       final hasIcon = leadingIcon != null || showPlayIcon;
       final textPainter = TextPainter(
         text: TextSpan(text: label, style: textStyle),
