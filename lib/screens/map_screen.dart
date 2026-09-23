@@ -9,7 +9,7 @@ import '../widgets/map_level_button.dart';
 import '../widgets/map_chrome.dart';
 import '../widgets/completed_level_popover.dart';
 import '../widgets/light_award_overlay.dart';
-import '../widgets/parallax_background.dart';
+import '../widgets/map_parallax_scene.dart';
 
 import '../data/level_node.dart';
 import '../widgets/app_toast.dart';
@@ -432,86 +432,83 @@ class _MapScreenState extends State<MapScreen>
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    SingleChildScrollView(
-                      key: const ValueKey('world-scroll'),
-                      controller: _scroll,
-                      scrollDirection: Axis.horizontal,
-                      physics: _awardingLevel == null
-                          ? const ClampingScrollPhysics()
-                          : const NeverScrollableScrollPhysics(),
-                      child: SizedBox(
-                        width: _worldWidth,
-                        height: viewport.height,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Positioned(
-                              left: 0,
-                              top: (viewport.height - worldHeight) / 2,
+                    MapParallaxScene(
+                      scroll: _scroll,
+                      worldSize: Size(_worldWidth, worldHeight),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          SingleChildScrollView(
+                            key: const ValueKey('world-scroll'),
+                            controller: _scroll,
+                            scrollDirection: Axis.horizontal,
+                            physics: _awardingLevel == null
+                                ? const ClampingScrollPhysics()
+                                : const NeverScrollableScrollPhysics(),
+                            child: SizedBox(
                               width: _worldWidth,
-                              height: worldHeight,
-                              child: ParallaxBackground(
-                                backgroundAsset:
-                                    'assets/images/world-1-horizontal.png',
-                                maxX: 8.0,
-                                maxY: 6.0,
-                                backgroundFit: BoxFit.fill,
-                                backgroundAlignment: Alignment.topCenter,
-                                mobileSensorEnabled: false,
-                                scaleBase: 1.04,
-                                child: const SizedBox.expand(),
+                              height: viewport.height,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  for (final node in kMap1Nodes)
+                                    Positioned(
+                                      left: node.x * _worldWidth - nodeSize / 2,
+                                      top:
+                                          node.y * worldHeight +
+                                          (viewport.height - worldHeight) / 2 -
+                                          nodeSize / 2,
+                                      width: nodeSize,
+                                      height: nodeSize + 22,
+                                      child: MapLevelButton(
+                                        level: node.level,
+                                        lights: _lightsFor(node.level),
+                                        unlocked: _unlocked(node.level),
+                                        active: node.level == _activeLevel,
+                                        onTap: () => _focusLevel(
+                                          node.level,
+                                          select: true,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            for (final node in kMap1Nodes)
-                              Positioned(
-                                left: node.x * _worldWidth - nodeSize / 2,
-                                top:
-                                    node.y * worldHeight +
-                                    (viewport.height - worldHeight) / 2 -
-                                    nodeSize / 2,
-                                width: nodeSize,
-                                height: nodeSize + 22,
-                                child: MapLevelButton(
-                                  level: node.level,
-                                  lights: _lightsFor(node.level),
-                                  unlocked: _unlocked(node.level),
-                                  active: node.level == _activeLevel,
-                                  onTap: () =>
-                                      _focusLevel(node.level, select: true),
-                                ),
+                          ),
+                          MapSelectionLight(
+                            level: _activeLevel,
+                            scoreLevels: {
+                              for (final node in kMap1Nodes)
+                                if (_unlocked(node.level)) node.level,
+                            },
+                            worldSize: Size(_worldWidth, worldHeight),
+                            nodeSize: nodeSize,
+                            scroll: _scroll,
+                          ),
+                          if (_awardingLevel != null)
+                            LightAwardOverlay(
+                              animation: _award,
+                              scroll: _scroll,
+                              variant: _awardVariant,
+                              source: Offset(
+                                kMap1Nodes[_awardingLevel! - 1].x * _worldWidth,
+                                kMap1Nodes[_awardingLevel! - 1].y *
+                                        worldHeight +
+                                    (viewport.height - worldHeight) / 2,
                               ),
-                          ],
-                        ),
+                              destination: Offset(
+                                kMap1Nodes[_awardingLevel! - 1].x *
+                                        _worldWidth +
+                                    mapScoreStarOffset(_socket, nodeSize).dx,
+                                kMap1Nodes[_awardingLevel! - 1].y *
+                                        worldHeight +
+                                    (viewport.height - worldHeight) / 2 +
+                                    mapScoreStarOffset(_socket, nodeSize).dy,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    MapSelectionLight(
-                      level: _activeLevel,
-                      scoreLevels: {
-                        for (final node in kMap1Nodes)
-                          if (_unlocked(node.level)) node.level,
-                      },
-                      worldSize: Size(_worldWidth, worldHeight),
-                      nodeSize: nodeSize,
-                      scroll: _scroll,
-                    ),
-                    if (_awardingLevel != null)
-                      LightAwardOverlay(
-                        animation: _award,
-                        scroll: _scroll,
-                        variant: _awardVariant,
-                        source: Offset(
-                          kMap1Nodes[_awardingLevel! - 1].x * _worldWidth,
-                          kMap1Nodes[_awardingLevel! - 1].y * worldHeight +
-                              (viewport.height - worldHeight) / 2,
-                        ),
-                        destination: Offset(
-                          kMap1Nodes[_awardingLevel! - 1].x * _worldWidth +
-                              mapScoreStarOffset(_socket, nodeSize).dx,
-                          kMap1Nodes[_awardingLevel! - 1].y * worldHeight +
-                              (viewport.height - worldHeight) / 2 +
-                              mapScoreStarOffset(_socket, nodeSize).dy,
-                        ),
-                      ),
                     SafeArea(
                       bottom: false,
                       child: Padding(

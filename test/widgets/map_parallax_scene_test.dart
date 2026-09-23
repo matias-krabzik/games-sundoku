@@ -1,0 +1,395 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/widgets/map_parallax_scene.dart';
+
+class _Sensors extends SensorsPlatform {
+  int listeners = 0;
+  late final events = StreamController<AccelerometerEvent>.broadcast(
+    onListen: () => listeners++,
+    onCancel: () => listeners--,
+  );
+  @override
+  Stream<AccelerometerEvent> accelerometerEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) => events.stream;
+}
+
+Future<void> frames(WidgetTester tester, [int count = 50]) async {
+  for (var i = 0; i < count; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+}
+
+void main() {
+  test('path camera is continuous and bounded throughout the panorama', () {
+    const world = Size(2172, 724);
+    for (final viewport in [const Size(390, 724), const Size(1600, 724)]) {
+      var previous = mapPathCameraOffset(0, viewport, world);
+      for (var x = 1.0; x <= world.width - viewport.width; x++) {
+        final next = mapPathCameraOffset(x, viewport, world);
+        expect(next.abs(), lessThanOrEqualTo(world.height * .025));
+        expect((next - previous).abs(), lessThan(.3));
+        previous = next;
+      }
+    }
+  });
+
+  Widget scene(
+    ScrollController scroll, {
+    bool reduced = false,
+    bool visible = true,
+    bool landscape = false,
+  }) => MaterialApp(
+    home: MediaQuery(
+      data: MediaQueryData(
+        disableAnimations: reduced,
+        size: landscape ? const Size(800, 400) : const Size(400, 800),
+      ),
+      child: TickerMode(
+        enabled: visible,
+        child: MapParallaxScene(
+          scroll: scroll,
+          worldSize: const Size(1800, 600),
+          child: SingleChildScrollView(
+            controller: scroll,
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 1800,
+              height: 600,
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 350,
+                    top: 400,
+                    child: GestureDetector(
+                      key: const ValueKey('marker'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      child: const SizedBox(width: 50, height: 50),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  testWidgets(
+    'terrain and markers share hover and scroll, reduced motion stops ticks',
+    (tester) async {
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      await tester.pumpWidget(scene(scroll));
+      await frames(tester, 2);
+      final marker = find.byKey(const ValueKey('marker'));
+      final terrain = find.byWidgetPredicate(
+        (w) =>
+            w is Image &&
+            (w.image as AssetImage).assetName.endsWith('/terrain.png'),
+      );
+      final startMarker = tester.getTopLeft(marker);
+      final startTerrain = tester.getTopLeft(terrain);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: const Offset(790, 590));
+      await frames(tester);
+      scroll.jumpTo(100);
+      await frames(tester);
+      expect(
+        ((tester.getTopLeft(marker) - startMarker) -
+                (tester.getTopLeft(terrain) - startTerrain))
+            .distance,
+        lessThan(.001),
+      );
+      expect(marker.hitTestable(), findsOneWidget);
+      await tester.pumpWidget(scene(scroll, reduced: true));
+      await tester.pump();
+      expect(tester.binding.transientCallbackCount, 0);
+      final transform = tester.widget<Transform>(
+        find.byKey(const ValueKey('map-terrain-transform')),
+      );
+      expect(transform.transform.storage[12], 0);
+      expect(transform.transform.storage[13], 0);
+      await mouse.removePointer();
+      await tester.pumpWidget(scene(scroll, visible: false));
+      await frames(tester);
+      expect(tester.binding.transientCallbackCount, 0);
+      await tester.pumpWidget(const SizedBox());
+    },
+    variant: TargetPlatformVariant({TargetPlatform.macOS}),
+  );
+
+  testWidgets(
+    'horizontal scroll visibly separates depth and covers viewport edges',
+    (tester) async {
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      Finder layer(String name) => find.byWidgetPredicate(
+        (w) =>
+            w is Image &&
+            (w.image as AssetImage).assetName.endsWith('/$name.png'),
+      );
+      await tester.pumpWidget(scene(scroll));
+      await frames(tester, 2);
+      final names = ['sky', 'mountains', 'distance', 'terrain', 'foreground'];
+      final before = {
+        for (final name in names) name: tester.getTopLeft(layer(name)).dx,
+      };
+      scroll.jumpTo(400);
+      await frames(tester, 2);
+      final moved = {
+        for (final name in names)
+          name: tester.getTopLeft(layer(name)).dx - before[name]!,
+      };
+      expect(moved['terrain'], closeTo(-400, .001));
+      expect(moved['sky']!, greaterThan(moved['mountains']!));
+      expect(moved['mountains']!, greaterThan(moved['distance']!));
+      expect(moved['distance']!, greaterThan(moved['terrain']!));
+      expect(moved['terrain']!, greaterThan(moved['foreground']!));
+      // A 400 px pan must separate mountains and terrain by at least 120 px.
+      // Merely ordering the speeds allowed an imperceptible 4% difference.
+      expect(moved['mountains']!.abs(), lessThanOrEqualTo(280));
+      expect(moved['mountains']!.abs(), greaterThanOrEqualTo(200));
+      expect(moved['distance']!.abs(), inInclusiveRange(300, 350));
+      expect(moved['foreground']!.abs(), greaterThanOrEqualTo(420));
+      expect(moved['sky']! - moved['foreground']!, greaterThan(180));
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: const Offset(790, 590));
+      await frames(tester);
+      for (final offset in [0.0, scroll.position.maxScrollExtent]) {
+        scroll.jumpTo(offset);
+        await frames(tester, 2);
+        for (final name in [...names, 'clouds']) {
+          final rect = tester.getRect(layer(name));
+          expect(rect.left, lessThanOrEqualTo(0), reason: name);
+          expect(rect.top, lessThanOrEqualTo(0), reason: name);
+          expect(rect.right, greaterThanOrEqualTo(800), reason: name);
+          expect(rect.bottom, greaterThanOrEqualTo(600), reason: name);
+        }
+      }
+      await mouse.removePointer();
+      await tester.pumpWidget(const SizedBox());
+    },
+    variant: TargetPlatformVariant({TargetPlatform.macOS}),
+  );
+
+  testWidgets(
+    'clouds drift visibly without moving markers and pause offscreen',
+    (tester) async {
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      await tester.pumpWidget(scene(scroll));
+      await frames(tester, 2);
+      final clouds = find.byWidgetPredicate(
+        (w) =>
+            w is Image &&
+            (w.image as AssetImage).assetName.endsWith('/clouds.png'),
+      );
+      final marker = find.byKey(const ValueKey('marker'));
+      final markerStart = tester.getTopLeft(marker);
+      final cloudStart = tester.getTopLeft(clouds);
+      await frames(tester, 60);
+      final drift = (tester.getTopLeft(clouds) - cloudStart).distance;
+      expect(drift, greaterThan(6));
+      expect(drift, lessThan(10));
+      expect(tester.getTopLeft(marker), markerStart);
+      await tester.pumpWidget(scene(scroll, visible: false));
+      await tester.pump();
+      final paused = tester.getTopLeft(clouds);
+      await frames(tester);
+      expect(tester.getTopLeft(clouds), paused);
+      expect(tester.binding.transientCallbackCount, 0);
+      await tester.pumpWidget(scene(scroll, reduced: true));
+      await frames(tester);
+      expect(tester.binding.transientCallbackCount, 0);
+      await tester.pumpWidget(const SizedBox());
+    },
+    variant: TargetPlatformVariant({TargetPlatform.macOS}),
+  );
+
+  testWidgets(
+    'sensor calibrates on rotation, stops hidden and handles unavailable hardware',
+    (tester) async {
+      final previous = SensorsPlatform.instance;
+      final sensors = _Sensors();
+      SensorsPlatform.instance = sensors;
+      addTearDown(() async {
+        SensorsPlatform.instance = previous;
+        await sensors.events.close();
+      });
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      await tester.pumpWidget(scene(scroll));
+      await tester.pump();
+      expect(sensors.listeners, 1);
+      sensors.events.add(AccelerometerEvent(0, 8, 3, DateTime.now()));
+      await frames(tester, 2);
+      sensors.events.add(AccelerometerEvent(3, 6, 3, DateTime.now()));
+      await frames(tester);
+      var transform = tester.widget<Transform>(
+        find.byKey(const ValueKey('map-terrain-transform')),
+      );
+      expect(transform.transform.storage[12].abs(), greaterThan(0));
+      await tester.pumpWidget(scene(scroll, visible: false));
+      await tester.pump();
+      expect(sensors.listeners, 0);
+      expect(tester.binding.transientCallbackCount, 0);
+      await tester.pumpWidget(scene(scroll, landscape: true));
+      await tester.pump();
+      expect(sensors.listeners, 1);
+      sensors.events.add(AccelerometerEvent(8, 0, 3, DateTime.now()));
+      await frames(tester);
+      transform = tester.widget<Transform>(
+        find.byKey(const ValueKey('map-terrain-transform')),
+      );
+      expect(transform.transform.storage[12], 0);
+      sensors.events.addError(StateError('Sensor unavailable'));
+      await frames(tester, 2);
+      expect(sensors.listeners, 0);
+      scroll.jumpTo(250);
+      await frames(tester, 2);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+    variant: TargetPlatformVariant({TargetPlatform.iOS}),
+  );
+
+  testWidgets('map renders the separated landscape on phone and tablet', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final capture = Platform.environment['MAP_CAPTURE_DIR'];
+    if (capture != null) {
+      final font = FontLoader('Baloo2')
+        ..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'));
+      await font.load();
+      final icons = FontLoader('MaterialIcons')
+        ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+      await icons.load();
+    }
+    for (final size in [
+      const Size(390, 844),
+      const Size(1194, 834),
+      const Size(844, 390),
+    ]) {
+      tester.view.physicalSize = size;
+      final key = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RepaintBoundary(
+            key: key,
+            child: const MapScreen(showDeveloperControls: false),
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        final context = tester.element(find.byType(MapScreen));
+        final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+        for (final path in manifest.listAssets().where(
+          (path) =>
+              path.startsWith('assets/images/map/') ||
+              path.startsWith('assets/images/home/') ||
+              path.startsWith('assets/images/ui/'),
+        )) {
+          await precacheImage(AssetImage(path), context);
+        }
+      });
+      await frames(tester);
+      expect(find.byType(MapParallaxScene), findsOneWidget);
+      final layerAssets = tester
+          .widgetList<Image>(
+            find.descendant(
+              of: find.byType(MapParallaxScene),
+              matching: find.byType(Image),
+            ),
+          )
+          .map((image) => image.image)
+          .whereType<AssetImage>()
+          .map((asset) => asset.assetName)
+          .where((path) => path.startsWith('assets/images/map/layers/'));
+      expect(
+        layerAssets,
+        unorderedEquals([
+          'assets/images/map/layers/sky.png',
+          'assets/images/map/layers/clouds.png',
+          'assets/images/map/layers/mountains.png',
+          'assets/images/map/layers/distance.png',
+          'assets/images/map/layers/terrain.png',
+          'assets/images/map/layers/foreground.png',
+        ]),
+      );
+      expect(tester.takeException(), isNull);
+      final map = tester.widget<MapParallaxScene>(
+        find.byType(MapParallaxScene),
+      );
+      final viewport = tester.getRect(find.byType(MapParallaxScene));
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(
+        location: viewport.bottomRight - const Offset(1, 1),
+      );
+      await frames(tester);
+      for (final position in [
+        (name: 'start', fraction: 0.0),
+        (name: 'middle', fraction: .5),
+        (name: 'end', fraction: 1.0),
+      ]) {
+        map.scroll.jumpTo(
+          map.scroll.position.maxScrollExtent * position.fraction,
+        );
+        await frames(tester, 2);
+        for (final asset in layerAssets) {
+          final rect = tester.getRect(
+            find.byWidgetPredicate(
+              (w) =>
+                  w is Image &&
+                  w.image is AssetImage &&
+                  (w.image as AssetImage).assetName == asset,
+            ),
+          );
+          final reason = '$asset at ${position.name}, $size';
+          expect(rect.left, lessThanOrEqualTo(viewport.left), reason: reason);
+          expect(rect.top, lessThanOrEqualTo(viewport.top), reason: reason);
+          expect(
+            rect.right,
+            greaterThanOrEqualTo(viewport.right),
+            reason: reason,
+          );
+          expect(
+            rect.bottom,
+            greaterThanOrEqualTo(viewport.bottom),
+            reason: reason,
+          );
+        }
+        expect(tester.takeException(), isNull);
+        if (capture != null) {
+          final boundary =
+              key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+          await tester.runAsync(() async {
+            final image = await boundary.toImage();
+            final data = await image.toByteData(format: ui.ImageByteFormat.png);
+            await Directory(capture).create(recursive: true);
+            await File(
+              '$capture/map-${size.width.toInt()}-${position.name}.png',
+            ).writeAsBytes(data!.buffer.asUint8List());
+            image.dispose();
+          });
+        }
+      }
+      await mouse.removePointer();
+      await tester.pumpWidget(const SizedBox());
+    }
+  }, variant: TargetPlatformVariant({TargetPlatform.macOS}));
+}

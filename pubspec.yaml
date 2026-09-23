@@ -73,6 +73,12 @@ flutter:
     - assets/images/settings/icons.png
     - assets/images/home/
     - assets/images/map/
+    - assets/images/map/layers/sky.png
+    - assets/images/map/layers/clouds.png
+    - assets/images/map/layers/mountains.png
+    - assets/images/map/layers/distance.png
+    - assets/images/map/layers/terrain.png
+    - assets/images/map/layers/foreground.png
     - assets/images/quick-play/
     - assets/images/tutorial/
     - assets/audio/soft-tap.wav
