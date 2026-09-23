@@ -5,6 +5,7 @@ import 'package:sundoku/data/level_node.dart';
 import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/map_level_button.dart';
+import 'package:sundoku/widgets/map_parallax_scene.dart';
 
 Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 15; i++) {
@@ -62,10 +63,15 @@ void main() {
       final expected = completed == 10 ? 1 : completed + 1;
       expect(activeLevel(tester), expected);
       final position = scroll(tester);
-      final expectedOffset = (kMap1Nodes[expected - 1].x * 844 * 3 - 195).clamp(
-        0.0,
-        position.position.maxScrollExtent,
-      );
+      // The footer takes part of the screen; use the actual map viewport.
+      final scene = find.byType(MapParallaxScene);
+      final worldWidth = tester.widget<MapParallaxScene>(scene).worldSize.width;
+      final viewportWidth = tester.getSize(scene).width;
+      final expectedOffset =
+          (kMap1Nodes[expected - 1].x * worldWidth - viewportWidth / 2).clamp(
+            0.0,
+            position.position.maxScrollExtent,
+          );
       expect(position.offset, closeTo(expectedOffset, .1));
       expect(opened, 0);
       expect(tester.takeException(), isNull);

@@ -19,11 +19,13 @@ class MapWorldHeader extends StatelessWidget {
     required this.onBack,
     this.onViewTutorial,
     this.compact = false,
+    this.groupActions = false,
   });
 
   final VoidCallback onBack;
   final VoidCallback? onViewTutorial;
   final bool compact;
+  final bool groupActions;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -46,7 +48,7 @@ class MapWorldHeader extends StatelessWidget {
           onPressed: onViewTutorial,
         ),
       ],
-      const Spacer(),
+      if (groupActions) const SizedBox(width: 8) else const Spacer(),
       _MapRoundButton(
         key: const ValueKey('map-settings'),
         label: 'Ajustes',
@@ -54,6 +56,7 @@ class MapWorldHeader extends StatelessWidget {
         size: compact ? 50 : 54,
         onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
       ),
+      if (groupActions) const Spacer(),
     ],
   );
 }

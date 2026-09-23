@@ -10,6 +10,7 @@ import '../widgets/map_chrome.dart';
 import '../widgets/completed_level_popover.dart';
 import '../widgets/light_award_overlay.dart';
 import '../widgets/map_parallax_scene.dart';
+import '../widgets/map_world_gate.dart';
 
 import '../data/level_node.dart';
 import '../widgets/app_toast.dart';
@@ -26,6 +27,7 @@ class MapScreen extends StatefulWidget {
     this.onViewTutorial,
     this.onReplayIntroduction,
     this.onOpenLevel,
+    this.onNextWorld,
   });
 
   final LevelProgress? progress;
@@ -34,6 +36,9 @@ class MapScreen extends StatefulWidget {
   final VoidCallback? onViewTutorial;
   final Future<void> Function()? onReplayIntroduction;
   final Future<void> Function(int)? onOpenLevel;
+
+  /// Connect when the next world exists. Completion alone illuminates the sun.
+  final FutureOr<void> Function()? onNextWorld;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -65,6 +70,9 @@ class _MapScreenState extends State<MapScreen>
   int _lightsFor(int level) => _visibleLights[level]!;
   bool _unlocked(int level) =>
       _progress.isUnlocked(level) && (level == 1 || _lightsFor(level - 1) >= 3);
+  bool get _worldComplete => kMap1Nodes.every(
+    (node) => _lightsFor(node.level) >= LevelProgress.requiredLights,
+  );
 
   int? _awardingLevel;
   int _socket = 0;
@@ -428,6 +436,15 @@ class _MapScreenState extends State<MapScreen>
                 final double nodeSize = compact
                     ? 68
                     : (viewport.width * .24).clamp(82, 106);
+                final gateSize = mapWorldGateTouchSize(worldHeight);
+                final gateRect = Rect.fromCenter(
+                  center: Offset(
+                    mapWorldGateAnchor.dx * _worldWidth,
+                    mapWorldGateAnchor.dy * worldHeight,
+                  ),
+                  width: gateSize,
+                  height: gateSize,
+                );
 
                 return Stack(
                   fit: StackFit.expand,
@@ -436,6 +453,7 @@ class _MapScreenState extends State<MapScreen>
                       scroll: _scroll,
                       worldSize: Size(_worldWidth, worldHeight),
                       protectedWorldRects: [
+                        gateRect.inflate(8),
                         for (final node in kMap1Nodes)
                           Rect.fromLTWH(
                             node.x * _worldWidth - nodeSize / 2,
@@ -460,6 +478,24 @@ class _MapScreenState extends State<MapScreen>
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
+                                  Positioned(
+                                    left: gateRect.left,
+                                    top:
+                                        gateRect.top +
+                                        (viewport.height - worldHeight) / 2,
+                                    width: gateSize,
+                                    height: gateSize,
+                                    child: MapWorldGate(
+                                      key: const ValueKey('map-world-gate'),
+                                      unlocked: _worldComplete,
+                                      artworkSize: mapWorldGateArtworkSize(
+                                        worldHeight,
+                                      ),
+                                      onPressed: _awardingLevel == null
+                                          ? widget.onNextWorld
+                                          : null,
+                                    ),
+                                  ),
                                   for (final node in kMap1Nodes)
                                     Positioned(
                                       left: node.x * _worldWidth - nodeSize / 2,
@@ -532,6 +568,9 @@ class _MapScreenState extends State<MapScreen>
                             MapWorldHeader(
                               onViewTutorial: widget.onViewTutorial,
                               compact: compact,
+                              // The gate sits near the top-right corner when
+                              // the whole panorama fits in a short window.
+                              groupActions: compact && viewport.width >= 700,
                               onBack: () => Navigator.of(context).pop(),
                             ),
                             const Spacer(),

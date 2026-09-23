@@ -223,12 +223,16 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
             animation: Listenable.merge([widget.scroll, _frame]),
             child: widget.child,
             builder: (context, child) {
-              final scroll = widget.scroll.hasClients
-                  ? widget.scroll.offset
-                  : 0.0;
+              final maxScroll = math.max(0.0, world.width - viewport.width);
+              // New layout dimensions arrive before the scroll position is
+              // clamped. Keep artwork aligned during rotation/resizing too.
+              final scroll =
+                  (widget.scroll.hasClients ? widget.scroll.offset : 0.0).clamp(
+                    0.0,
+                    maxScroll,
+                  );
               final enabled = !_reduceMotion;
               final tilt = enabled ? _tilt * math.min(1.0, scale) : Offset.zero;
-              final maxScroll = math.max(0.0, world.width - viewport.width);
               // Relative horizontal speeds, centered to share overscan at both
               // ends. Far layers travel slower; foreground travels faster.
               final depthScroll = scroll - maxScroll / 2;
