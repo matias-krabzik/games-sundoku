@@ -79,6 +79,8 @@ flutter:
     - assets/images/map/layers/distance.png
     - assets/images/map/layers/terrain.png
     - assets/images/map/layers/foreground.png
+    - assets/images/map/ambient/leaf.png
+    - assets/images/map/ambient/bee.png
     - assets/images/quick-play/
     - assets/images/tutorial/
     - assets/audio/soft-tap.wav

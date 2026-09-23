@@ -7,6 +7,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../data/level_node.dart';
+import '../models/map_ambient_motion.dart';
+import 'map_ambient_painter.dart';
 
 const _sourceSize = Size(2172, 724);
 // Margins match layer_geometry.py and the foreground outpaint exporter.
@@ -27,11 +29,13 @@ class MapParallaxScene extends StatefulWidget {
     required this.scroll,
     required this.worldSize,
     required this.child,
+    this.protectedWorldRects = const [],
   });
 
   final ScrollController scroll;
   final Size worldSize;
   final Widget child;
+  final List<Rect> protectedWorldRects;
 
   @override
   State<MapParallaxScene> createState() => _MapParallaxSceneState();
@@ -41,6 +45,8 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker = createTicker(_tick);
   final ValueNotifier<double> _frame = ValueNotifier(0);
+  final MapAmbientMotion _ambient = MapAmbientMotion();
+  final MapAmbientArt _ambientArt = MapAmbientArt();
   StreamSubscription<AccelerometerEvent>? _sensor;
   Offset? _neutral;
   Offset _filtered = Offset.zero;
@@ -71,6 +77,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_ambientArt.load());
   }
 
   @override
@@ -154,6 +161,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
         : ((elapsed - _lastFrame!).inMicroseconds / 1000000).clamp(0.0, .05);
     _lastFrame = elapsed;
     _seconds += dt;
+    _ambient.advance(dt);
     _tilt = Offset.lerp(_tilt, _target, 1 - math.exp(-dt * 7))!;
     if ((_target - _tilt).distance < .001) {
       _tilt = _target;
@@ -183,6 +191,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
     unawaited(_sensor?.cancel());
     _ticker.dispose();
     _frame.dispose();
+    _ambientArt.dispose();
     super.dispose();
   }
 
@@ -228,6 +237,44 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
                   : 0.0;
               final terrain = Offset(tilt.dx * 5, camera + tilt.dy * 3.5);
               final top = (viewport.height - world.height) / 2;
+              final foregroundDelta = enabled
+                  ? Offset(-depthScroll * .08 + tilt.dx * 14, tilt.dy * 10)
+                  : Offset.zero;
+              final terrainOrigin = Offset(-scroll, top) + terrain;
+              final foregroundOrigin = terrainOrigin + foregroundDelta;
+              final protectedRects = [
+                for (final rect in widget.protectedWorldRects)
+                  rect.shift(terrainOrigin),
+              ];
+              if (enabled && scale > 0) {
+                _ambient.setView(
+                  Rect.fromLTWH(
+                    -foregroundOrigin.dx / scale,
+                    -foregroundOrigin.dy / scale,
+                    viewport.width / scale,
+                    viewport.height / scale,
+                  ),
+                );
+              }
+              Widget atmosphere(MapLeafDepth depth) => Positioned.fill(
+                child: IgnorePointer(
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: MapAmbientPainter(
+                        motion: _ambient,
+                        art: _ambientArt,
+                        depth: depth,
+                        origin: depth == MapLeafDepth.foreground
+                            ? foregroundOrigin
+                            : terrainOrigin,
+                        scale: scale,
+                        protectedRects: protectedRects,
+                        time: _seconds,
+                      ),
+                    ),
+                  ),
+                ),
+              );
               Widget plane(int index, Offset delta) {
                 final horizontalPadding =
                     _layers[index].horizontalPadding * scale;
@@ -241,65 +288,74 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
                 );
               }
 
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  plane(
-                    0,
-                    enabled
-                        ? Offset(
-                            depthScroll * .45 - tilt.dx * 8,
-                            -camera * .30 - tilt.dy * 4,
-                          )
-                        : Offset.zero,
-                  ),
-                  plane(
-                    1,
-                    enabled
-                        ? Offset(
-                            depthScroll * .40 -
-                                tilt.dx * 7 +
-                                math.sin(_seconds * .20) * 40 * scale,
-                            -camera * .25 -
-                                tilt.dy * 4 +
-                                math.sin(_seconds * .16) * 2 * scale,
-                          )
-                        : Offset.zero,
-                  ),
-                  plane(
-                    2,
-                    enabled
-                        ? Offset(
-                            depthScroll * .35 - tilt.dx * 5,
-                            -camera * .18 - tilt.dy * 3,
-                          )
-                        : Offset.zero,
-                  ),
-                  plane(
-                    3,
-                    enabled
-                        ? Offset(
-                            depthScroll * .18 - tilt.dx * 3,
-                            -camera * .08 - tilt.dy * 2,
-                          )
-                        : Offset.zero,
-                  ),
-                  plane(4, Offset.zero),
-                  Transform.translate(
-                    key: const ValueKey('map-terrain-transform'),
-                    offset: terrain,
-                    child: child,
-                  ),
-                  plane(
-                    5,
-                    enabled
-                        ? Offset(
-                            -depthScroll * .08 + tilt.dx * 14,
-                            tilt.dy * 10,
-                          )
-                        : Offset.zero,
-                  ),
-                ],
+              return GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                excludeFromSemantics: true,
+                onTapUp: !enabled
+                    ? null
+                    : (details) {
+                        if (!_active || scale <= 0) return;
+                        _ambient.puff(
+                          (details.localPosition - foregroundOrigin) / scale,
+                          canopyPosition:
+                              (details.localPosition - terrainOrigin) / scale,
+                        );
+                      },
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    plane(
+                      0,
+                      enabled
+                          ? Offset(
+                              depthScroll * .45 - tilt.dx * 8,
+                              -camera * .30 - tilt.dy * 4,
+                            )
+                          : Offset.zero,
+                    ),
+                    plane(
+                      1,
+                      enabled
+                          ? Offset(
+                              depthScroll * .40 -
+                                  tilt.dx * 7 +
+                                  math.sin(_seconds * .20) * 40 * scale,
+                              -camera * .25 -
+                                  tilt.dy * 4 +
+                                  math.sin(_seconds * .16) * 2 * scale,
+                            )
+                          : Offset.zero,
+                    ),
+                    plane(
+                      2,
+                      enabled
+                          ? Offset(
+                              depthScroll * .35 - tilt.dx * 5,
+                              -camera * .18 - tilt.dy * 3,
+                            )
+                          : Offset.zero,
+                    ),
+                    plane(
+                      3,
+                      enabled
+                          ? Offset(
+                              depthScroll * .18 - tilt.dx * 3,
+                              -camera * .08 - tilt.dy * 2,
+                            )
+                          : Offset.zero,
+                    ),
+                    if (enabled) atmosphere(MapLeafDepth.behindTrees),
+                    plane(4, Offset.zero),
+                    if (enabled) atmosphere(MapLeafDepth.air),
+                    Transform.translate(
+                      key: const ValueKey('map-terrain-transform'),
+                      offset: terrain,
+                      child: child,
+                    ),
+                    plane(5, foregroundDelta),
+                    if (enabled) atmosphere(MapLeafDepth.foreground),
+                  ],
+                ),
               );
             },
           ),

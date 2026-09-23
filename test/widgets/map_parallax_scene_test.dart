@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/models/map_ambient_motion.dart';
+import 'package:sundoku/widgets/map_ambient_painter.dart';
 import 'package:sundoku/widgets/map_parallax_scene.dart';
 
 class _Sensors extends SensorsPlatform {
@@ -48,6 +50,7 @@ void main() {
     bool reduced = false,
     bool visible = true,
     bool landscape = false,
+    VoidCallback? onMarkerTap,
   }) => MaterialApp(
     home: MediaQuery(
       data: MediaQueryData(
@@ -73,7 +76,7 @@ void main() {
                     child: GestureDetector(
                       key: const ValueKey('marker'),
                       behavior: HitTestBehavior.opaque,
-                      onTap: () {},
+                      onTap: onMarkerTap ?? () {},
                       child: const SizedBox(width: 50, height: 50),
                     ),
                   ),
@@ -84,6 +87,106 @@ void main() {
         ),
       ),
     ),
+  );
+
+  MapAmbientPainter ambientPainter(WidgetTester tester, MapLeafDepth depth) =>
+      tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((w) => w.painter)
+          .whereType<MapAmbientPainter>()
+          .firstWhere((painter) => painter.depth == depth);
+
+  testWidgets(
+    'ambient tap preserves level taps and horizontal drags; motion pauses',
+    (tester) async {
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      var selected = 0;
+      await tester.pumpWidget(scene(scroll, onMarkerTap: () => selected++));
+      await frames(tester, 2);
+      var painter = ambientPainter(tester, MapLeafDepth.foreground);
+      final motion = painter.motion;
+      // Decoding begins in the widget's fake-async zone. Pump its continuations
+      // between real IO turns instead of awaiting that future in runAsync.
+      for (var i = 0; i < 50 && painter.art.bee == null; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump();
+      }
+      expect(painter.art.leaf, isNotNull);
+      expect(painter.art.bee, isNotNull);
+      await tester.tapAt(const Offset(740, 200));
+      await tester.pump();
+      expect(motion.gustCount, 1);
+      await tester.tap(find.byKey(const ValueKey('marker')));
+      await tester.pump();
+      expect(selected, 1);
+      expect(motion.gustCount, 1);
+      final startOrigin = painter.origin;
+      final startAir = ambientPainter(tester, MapLeafDepth.air).origin;
+      await tester.dragFrom(const Offset(650, 280), const Offset(-220, 0));
+      await frames(tester, 5);
+      expect(scroll.offset, greaterThan(150));
+      expect(motion.gustCount, 1);
+      painter = ambientPainter(tester, MapLeafDepth.foreground);
+      expect(
+        painter.origin.dx - startOrigin.dx,
+        closeTo(-scroll.offset * 1.08, .01),
+      );
+      expect(
+        ambientPainter(tester, MapLeafDepth.air).origin.dx - startAir.dx,
+        closeTo(-scroll.offset, .01),
+      );
+      await tester.pumpWidget(scene(scroll, visible: false));
+      await tester.pump();
+      final pausedTime = motion.time;
+      final pausedBee = motion.bees.first.position;
+      await frames(tester, 100);
+      expect(motion.time, pausedTime);
+      expect(motion.bees.first.position, pausedBee);
+      expect(tester.binding.transientCallbackCount, 0);
+      await tester.pumpWidget(scene(scroll, reduced: true));
+      await frames(tester, 10);
+      expect(motion.time, pausedTime);
+      expect(
+        tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .where((w) => w.painter is MapAmbientPainter),
+        isEmpty,
+      );
+      await tester.pumpWidget(scene(scroll));
+      await frames(tester, 5);
+      expect(motion.time - pausedTime, lessThan(.2));
+      expect(motion.time, greaterThan(pausedTime));
+
+      final context = tester.element(find.byType(MapParallaxScene));
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (_) => const AlertDialog(content: Text('Pausa')),
+        ),
+      );
+      await frames(tester, 20);
+      final modalTime = motion.time;
+      await frames(tester, 30);
+      expect(motion.time, modalTime);
+      Navigator.of(context).pop();
+      await frames(tester, 20);
+      expect(motion.time, greaterThan(modalTime));
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      final backgroundTime = motion.time;
+      await frames(tester, 20);
+      expect(motion.time, backgroundTime);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await frames(tester, 5);
+      expect(motion.time, greaterThan(backgroundTime));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+    variant: TargetPlatformVariant({TargetPlatform.macOS}),
   );
 
   testWidgets(
@@ -375,6 +478,16 @@ void main() {
         }
         expect(tester.takeException(), isNull);
         if (capture != null) {
+          final art = ambientPainter(tester, MapLeafDepth.foreground).art;
+          for (var i = 0; i < 50 && art.bee == null; i++) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 10)),
+            );
+            await tester.pump();
+          }
+          expect(art.leaf, isNotNull);
+          expect(art.bee, isNotNull);
+          await frames(tester, 130);
           final boundary =
               key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
           await tester.runAsync(() async {
@@ -386,6 +499,34 @@ void main() {
             ).writeAsBytes(data!.buffer.asUint8List());
             image.dispose();
           });
+          if (Platform.environment['MAP_CAPTURE_MOTION'] == '1' &&
+              ((size.width == 390 && position.name == 'start') ||
+                  (size.width == 1194 && position.name == 'middle'))) {
+            for (var frame = 0; frame < 160; frame++) {
+              await tester.pump(const Duration(milliseconds: 50));
+              if (frame == 50) {
+                final painter = ambientPainter(tester, MapLeafDepth.foreground);
+                final bee = painter.motion.bees.last;
+                await tester.tapAt(
+                  painter.origin + bee.position * painter.scale,
+                );
+              }
+              await tester.runAsync(() async {
+                final image = await boundary.toImage();
+                final data = await image.toByteData(
+                  format: ui.ImageByteFormat.png,
+                );
+                final folder = Directory(
+                  '$capture/motion-${size.width.toInt()}',
+                );
+                await folder.create(recursive: true);
+                await File(
+                  '${folder.path}/${frame.toString().padLeft(3, '0')}.png',
+                ).writeAsBytes(data!.buffer.asUint8List());
+                image.dispose();
+              });
+            }
+          }
         }
       }
       await mouse.removePointer();

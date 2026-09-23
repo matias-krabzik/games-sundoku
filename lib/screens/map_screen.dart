@@ -435,6 +435,15 @@ class _MapScreenState extends State<MapScreen>
                     MapParallaxScene(
                       scroll: _scroll,
                       worldSize: Size(_worldWidth, worldHeight),
+                      protectedWorldRects: [
+                        for (final node in kMap1Nodes)
+                          Rect.fromLTWH(
+                            node.x * _worldWidth - nodeSize / 2,
+                            node.y * worldHeight - nodeSize / 2,
+                            nodeSize,
+                            nodeSize + 22,
+                          ).inflate(8),
+                      ],
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
