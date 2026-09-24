@@ -101,7 +101,7 @@ class MapAmbientPainter extends CustomPainter {
     for (final bee in motion.bees) {
       final point = origin + bee.position * scale;
       if (!bounds.contains(point)) continue;
-      final width = (29 * scale).clamp(18.0, 40.0);
+      final width = bee.paintedWidth(scale);
       // Bees stay visible over the map, including level markers. Only leaves
       // fade near controls; IgnorePointer keeps the bees from blocking taps.
       const opacity = 1.0;
@@ -116,7 +116,7 @@ class MapAmbientPainter extends CustomPainter {
         canvas.translate(-width * .12, -width * .12);
         final flutter = bee.perched
             ? .35
-            : math.sin(time * 65 + bee.phase + i * .8);
+            : math.sin(time * (bee.startled ? 105 : 65) + bee.phase + i * .8);
         canvas.rotate(-.35 - i * .5 + flutter * .55);
         final wing = Rect.fromLTWH(
           -width * .25,

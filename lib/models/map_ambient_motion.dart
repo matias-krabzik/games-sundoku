@@ -34,7 +34,20 @@ class MapBee {
   double duration = 5;
   double rest = 0;
   double facing = 1;
+  bool startled = false;
+  double _startleScale = 1;
   bool get perched => rest > 0;
+
+  double get visualScale {
+    if (!startled) return 1;
+    final pulse =
+        math.sin(flight * math.pi) *
+        (.32 + .62 * math.sin(flight * math.pi * 4));
+    return 1 + pulse + (_startleScale - 1) * math.pow(1 - flight, 3);
+  }
+
+  double paintedWidth(double scale) =>
+      (29 * scale).clamp(18.0, 40.0) * visualScale;
 }
 
 class _Gust {
@@ -140,11 +153,53 @@ class MapAmbientMotion {
     bee.flower = flower;
     bee.flight = 0;
     bee.rest = 0;
+    bee.startled = false;
     bee.duration =
         3.5 +
         (bee.destination - bee.origin).distance / 65 +
         _random.nextDouble();
     bee.facing = bee.destination.dx >= bee.origin.dx ? 1 : -1;
+  }
+
+  /// A direct touch sends just the nearest bee darting across the visible map.
+  /// Hit areas follow the painted size, with at least a 44 logical-pixel target.
+  bool startleBeeAt(Offset position, {required double scale}) {
+    if (_view.isEmpty || scale <= 0 || !scale.isFinite) return false;
+    MapBee? target;
+    var nearest = double.infinity;
+    for (final bee in bees) {
+      final distance = (bee.position - position).distance;
+      final radius = math.max(22.0, bee.paintedWidth(scale) * .7) / scale;
+      if (distance <= radius && distance < nearest) {
+        target = bee;
+        nearest = distance;
+      }
+    }
+    if (target == null) return false;
+    final area = _view.intersect(const Rect.fromLTRB(24, 280, 2148, 680));
+    if (area.isEmpty) return false;
+    final bounds = area.deflate(math.min(24.0, area.shortestSide * .1));
+    final direction = target.position.dx < bounds.center.dx ? 1 : -1;
+    final destination = Offset(
+      (target.position.dx + direction * (180 + _random.nextDouble() * 140))
+          .clamp(bounds.left, bounds.right),
+      (target.position.dy - 70 - _random.nextDouble() * 90).clamp(
+        bounds.top,
+        bounds.bottom,
+      ),
+    );
+    // Retapping in flight starts from the current position and size.
+    final currentScale = target.visualScale;
+    _flyTo(
+      target,
+      _nearbyFlower(destination.dx, excluding: target.flower),
+      destination: destination,
+    );
+    target
+      ..startled = true
+      .._startleScale = currentScale
+      ..duration = .85 + _random.nextDouble() * .2;
+    return true;
   }
 
   /// A short puff from a free-map tap, never a permanent wind acceleration.
@@ -153,6 +208,7 @@ class MapAmbientMotion {
     if (_gusts.length == maxGusts) _gusts.removeAt(0);
     _gusts.add(_Gust(position, canopyPosition ?? position));
     for (final bee in bees) {
+      if (bee.startled) continue;
       final delta = bee.position - position;
       if (delta.distance > 130) continue;
       final away = delta.distance < 1
@@ -238,16 +294,22 @@ class MapAmbientMotion {
       }
       bee.flight = math.min(1, bee.flight + dt / bee.duration);
       final t = bee.flight;
-      final ease = t * t * (3 - 2 * t);
+      final ease = bee.startled
+          ? 1 - math.pow(1 - t, 3).toDouble()
+          : t * t * (3 - 2 * t);
       final arc = math.sin(t * math.pi);
       final wind = windAt(bee.position, foreground: true);
       bee.position =
           Offset.lerp(bee.origin, bee.destination, ease)! +
           Offset(
             (math.sin(time * 2 + bee.phase) * 7 + wind.dx * .32) * arc,
-            (-35 + math.sin(time * 3.4 + bee.phase) * 4 + wind.dy * .15) * arc,
+            ((bee.startled ? -55 : -35) +
+                    math.sin(time * 3.4 + bee.phase) * 4 +
+                    wind.dy * .15) *
+                arc,
           );
       if (t >= 1) {
+        bee.startled = false;
         // After avoiding a touch, return to the flower before resting.
         if ((bee.destination - (flowers[bee.flower] - const Offset(0, 8)))
                 .distance >

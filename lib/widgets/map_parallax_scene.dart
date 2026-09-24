@@ -299,8 +299,14 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
                     ? null
                     : (details) {
                         if (!_active || scale <= 0) return;
+                        final position =
+                            (details.localPosition - foregroundOrigin) / scale;
+                        if (_ambientArt.bee != null &&
+                            _ambient.startleBeeAt(position, scale: scale)) {
+                          return;
+                        }
                         _ambient.puff(
-                          (details.localPosition - foregroundOrigin) / scale,
+                          position,
                           canopyPosition:
                               (details.localPosition - terrainOrigin) / scale,
                         );
