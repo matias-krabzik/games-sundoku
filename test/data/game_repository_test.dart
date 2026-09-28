@@ -164,6 +164,7 @@ void main() {
       mapLevelId(1),
       definitions: levelPuzzles(),
     );
+    await repo.debugEnableNotes(session.id);
     await solve(repo, session.id, session.puzzles.first.puzzleId);
     await repo.saveModule('firstExperience', {'gameIndex': 1});
     final before = repo.state;
@@ -212,6 +213,7 @@ void main() {
         mapLevelId(1),
         definitions: levelPuzzles(),
       );
+      await repo.debugEnableNotes(session.id);
       final puzzle = session.nextPuzzleId!;
       await repo.activatePuzzle(session.id, puzzle);
       await repo.setCell(session.id, puzzle, 0, 4);
@@ -279,6 +281,7 @@ void main() {
     await repo.updateSettings(sound: false, music: false);
     await repo.registerPuzzles(mapLevelId(1), levelPuzzles());
     final session = await repo.startOrResumeLevel(mapLevelId(1));
+    await repo.debugEnableNotes(session.id);
     final puzzle = session.nextPuzzleId!;
     await repo.activatePuzzle(session.id, puzzle);
     await repo.setCell(session.id, puzzle, 0, 4);
@@ -372,6 +375,7 @@ void main() {
       addTearDown(repo.close);
       await repo.registerPuzzles(mapLevelId(1), levelPuzzles());
       final session = await repo.startOrResumeLevel(mapLevelId(1));
+      await repo.debugEnableNotes(session.id);
       final puzzle = session.nextPuzzleId!;
       await repo.setCell(session.id, puzzle, 0, 1);
       final before = repo.state.toJson();
@@ -425,6 +429,7 @@ void main() {
     await repo.registerPuzzles(mapLevelId(1), puzzles);
     await expectLater(repo.startOrResumeLevel(mapLevelId(2)), throwsStateError);
     final session = await repo.startOrResumeLevel(mapLevelId(1));
+    await repo.debugEnableNotes(session.id);
     final id = session.nextPuzzleId!;
     await expectLater(repo.setCell(session.id, id, 2, 1), throwsStateError);
     await expectLater(

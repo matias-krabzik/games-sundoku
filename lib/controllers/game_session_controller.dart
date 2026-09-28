@@ -33,6 +33,8 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   Object? lastError;
 
   bool get isRunning => _clock.isRunning;
+  bool get acceptingInput =>
+      _wantsToPlay && _foreground && _puzzleId != null && !_disposed;
   bool get isPaused => _sessionId != null && _puzzleId != null && !_wantsToPlay;
   int get elapsedMs {
     final boards = repository.state.sessions[_sessionId]?.puzzles;
@@ -139,6 +141,19 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
           repository.setNotes(session, puzzle, index, snapshot),
     );
   }
+
+  Future<void> toggleNote(int index, int number) => _input(
+    (session, puzzle) => repository.toggleNote(session, puzzle, index, number),
+  );
+
+  Future<void> setInputState({bool? notesMode, int? selectedIndex}) => _input(
+    (session, puzzle) => repository.setPuzzleInputState(
+      session,
+      puzzle,
+      notesMode: notesMode,
+      selectedIndex: selectedIndex,
+    ),
+  );
 
   Future<void> debugFillExceptCell(int emptyIndex) => _input(
     (session, puzzle) =>

@@ -17,10 +17,14 @@ class TutorialNumberTray extends StatelessWidget {
     this.horizontal = false,
     this.showGuide = true,
     this.buttonExtent,
+    this.notesMode = false,
+    this.selectedNotes = const [],
   });
   final bool horizontal;
   final bool showGuide;
   final double? buttonExtent;
+  final bool notesMode;
+  final List<int> selectedNotes;
   final List<int> available;
   final ValueChanged<int>? onSelected;
 
@@ -45,6 +49,8 @@ class TutorialNumberTray extends StatelessWidget {
                   width: width,
                   child: _NumberButton(
                     number: number,
+                    notesMode: notesMode,
+                    noteSelected: selectedNotes.contains(number),
                     placed: !available.contains(number),
                     onSelected: onSelected,
                   ),
@@ -111,6 +117,8 @@ class TutorialNumberTray extends StatelessWidget {
       for (var number = 1; number <= 9; number++)
         _NumberButton(
           number: number,
+          notesMode: notesMode,
+          noteSelected: selectedNotes.contains(number),
           placed: !available.contains(number),
           onSelected: onSelected,
         ),
@@ -123,16 +131,25 @@ class _NumberButton extends StatelessWidget {
     required this.number,
     required this.placed,
     required this.onSelected,
+    this.notesMode = false,
+    this.noteSelected = false,
   });
   final int number;
   final bool placed;
+  final bool notesMode;
+  final bool noteSelected;
   final ValueChanged<int>? onSelected;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (_, bounds) => JuicyPress(
       key: ValueKey('intro-number-$number'),
-      label: placed ? '$number ya colocado' : 'Colocar $number',
+      label: notesMode
+          ? '${noteSelected ? 'Quitar anotación' : 'Anotar'} $number'
+          : placed
+          ? '$number ya colocado'
+          : 'Colocar $number',
+      toggled: notesMode ? noteSelected : null,
       onPressed: placed || onSelected == null
           ? null
           : () => onSelected!(number),
@@ -146,6 +163,16 @@ class _NumberButton extends StatelessWidget {
               child: SudokuDigit(number, size: bounds.maxWidth * .55),
             ),
           ),
+          if (notesMode && noteSelected)
+            Positioned(
+              right: 3,
+              top: 3,
+              child: Icon(
+                Icons.check,
+                size: bounds.maxWidth * .24,
+                color: homeNavy,
+              ),
+            ),
         ],
       ),
     ),

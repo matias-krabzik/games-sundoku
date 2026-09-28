@@ -36,6 +36,7 @@ void main() {
           mapLevelId(1),
           definitions: definitions,
         );
+        await repo.debugEnableNotes(session.id);
         final puzzle = session.nextPuzzleId!;
         await repo.setCell(session.id, puzzle, 0, 1);
         expect(repo.state.sessions[session.id]!.points, 64 * entry.value);
@@ -73,6 +74,7 @@ void main() {
         mapLevelId(1),
         definitions: definitions,
       );
+      await repo.debugEnableNotes(session.id);
       final puzzle = session.nextPuzzleId!;
       for (final (position, index) in [0, 5, 10, 15, 1].indexed) {
         await repo.setCell(session.id, puzzle, index, smallSolution[index]);
@@ -112,6 +114,7 @@ void main() {
           mapLevelId(1),
           definitions: definitions,
         );
+        await repo.debugEnableNotes(session.id);
         final puzzle = session.nextPuzzleId!;
         await repo.setCell(session.id, puzzle, 0, 1);
         expect(repo.state.sessions[session.id]!.points, 704);
@@ -139,6 +142,7 @@ void main() {
         mapLevelId(1),
         definitions: levelPuzzles(),
       );
+      await repo.debugEnableNotes(session.id);
       for (final board in session.puzzles) {
         await repo.useHint(session.id, board.puzzleId, 0);
         await repo.useHint(session.id, board.puzzleId, 1);
@@ -171,6 +175,7 @@ void main() {
       mapLevelId(1),
       definitions: levelPuzzles(),
     );
+    await repo.debugEnableNotes(session.id);
     store.failNext = true;
     await expectLater(
       repo.setCell(session.id, session.nextPuzzleId!, 0, 1),

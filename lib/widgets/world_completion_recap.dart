@@ -17,8 +17,9 @@ enum WorldCompletionDestination { map, home }
 
 Future<WorldCompletionDestination?> showWorldCompletionRecap(
   BuildContext context,
-  PlayerProfile player,
-) => showDialog<WorldCompletionDestination>(
+  PlayerProfile player, {
+  String worldId = 'world-1',
+}) => showDialog<WorldCompletionDestination>(
   context: context,
   barrierDismissible: false,
   builder: (context) => Dialog(
@@ -56,15 +57,25 @@ Future<WorldCompletionDestination?> showWorldCompletionRecap(
                           lines: [
                             [
                               worldCongratulations(player),
-                              'Completaste el Valle del Sol. ¡Mira todo lo que aprendiste!',
-                              'En cada fila, de lado a lado, van los números del 1 al 9 sin repetir.',
-                              'En cada columna, de arriba abajo, también van del 1 al 9 sin repetir.',
-                              'En cada bloque de 3×3, los nueve números aparecen una sola vez.',
-                              'Los números que ya estaban en el tablero son tus pistas. ¡No se cambian!',
-                              'Antes de colocar un número, mira su fila, su columna y su bloque.',
+                              if (worldId == 'world-2') ...[
+                                'Completaste el Bosque de la Cumbre. ¡Tu lápiz te acompañó hasta el final!',
+                                'Las anotaciones guardan los números que podrían ir en una casilla. Todavía no son respuestas.',
+                                'Cada nota tiene su lugar en la pequeña cuadrícula.',
+                                'Al colocar un número, vuelve a mirar tus notas. Borra las que ya no pueden ir en su fila, columna o bloque.',
+                                'Cuando solo queda una posibilidad, apaga el lápiz y coloca tu respuesta.',
+                              ] else ...[
+                                'Completaste el Valle del Sol. ¡Mira todo lo que aprendiste!',
+                                'En cada fila, de lado a lado, van los números del 1 al 9 sin repetir.',
+                                'En cada columna, de arriba abajo, también van del 1 al 9 sin repetir.',
+                                'En cada bloque de 3×3, los nueve números aparecen una sola vez.',
+                                'Los números que ya estaban en el tablero son tus pistas. ¡No se cambian!',
+                                'Antes de colocar un número, mira su fila, su columna y su bloque.',
+                              ],
                             ].join('\n\n'),
                           ],
-                          tip: '¡Desbloqueaste Partida rápida!\n\nAhora puedes elegir la dificultad y jugar nuevos sudokus para seguir practicando.\n\n¡Encontrarás tu próximo desafío en el inicio!',
+                          tip: worldId == 'world-2'
+                              ? '¡Sigue practicando en Partida rápida! Puedes elegir la dificultad y usar tus anotaciones cuando quieras.'
+                              : '¡Desbloqueaste Partida rápida!\n\nAhora puedes elegir la dificultad y jugar nuevos sudokus para seguir practicando.\n\n¡Encontrarás tu próximo desafío en el inicio!',
                         ),
                       ],
                     ),

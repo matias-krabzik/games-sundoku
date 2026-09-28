@@ -1,0 +1,9 @@
+# Lápiz para la propuesta visual
+
+Generado con la herramienta integrada ImageGen el 24 de septiembre de 2026. Referencia de estilo: `assets/images/home/quick-play-bolt.png`. Recurso de diseño, todavía no integrado al juego.
+
+Use case: ui-mockup, individual reusable icon for a SunDoku concept preview.
+Input image is a STYLE REFERENCE ONLY: the existing SunDoku glossy blue lightning icon. Match its cobalt/navy palette, rounded chunky sculpted volume, soft bevels, small warm highlights and simple readable silhouette.
+Generate exactly ONE small-pencil icon, isolated, pointing diagonally down-left, with a thick glossy cobalt-blue body, rounded blue rear, a short warm ivory wooden tip and dark navy graphite point. Friendly children's puzzle game art. Compact and bold enough to read at 32 pixels. Keep the pencil straight, not a pen, crayon, wand or lightning bolt. Front-facing icon with subtle three-dimensional material, centered, full object with 10% empty margin. No sparks, no cast backdrop, no other objects, no button, no panel, no drawn writing.
+Genuine transparent RGBA PNG background. Every pixel outside the requested foreground artwork must have zero alpha, including gaps between elements. No opaque background, no painted checkerboard, no scenery, no replacement backdrop, no wide halo. Preserve the foreground artwork and its clean antialiased edges.
+Extract or generate only the requested individual reusable UI artwork, never a complete screen or a flattened modal. Keep modal, card, panel and button surfaces blank, with no text, lettering, captions, labels or variable values. All UI text will be rendered separately with Flutter Text widgets. Reuse existing yellow buttons, cards and panels; do not redraw them as part of this asset. Keep the artwork independent from layout so Flutter can center the content and place yellow action buttons in the bottom action area.

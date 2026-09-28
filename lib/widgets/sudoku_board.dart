@@ -6,6 +6,7 @@ import '../domain/models/sudoku_completion.dart';
 
 import 'home_art.dart';
 import 'sudoku_digit.dart';
+import 'sudoku_notes.dart';
 import 'sudoku_help.dart';
 import 'sudoku_help_trails.dart';
 import '../domain/help/sudoku_help_motion.dart';
@@ -17,6 +18,8 @@ class SudokuBoard extends StatefulWidget {
   const SudokuBoard({
     super.key,
     required this.cells,
+    this.notes = const {},
+    this.notesMode = false,
     this.selectedIndex,
     this.helpFocusIndices = const {},
     this.helpEmphasizedNumber,
@@ -41,6 +44,8 @@ class SudokuBoard extends StatefulWidget {
        );
 
   final List<int?> cells;
+  final Map<int, List<int>> notes;
+  final bool notesMode;
   final int? selectedIndex;
   final Set<int> helpFocusIndices;
   final int? helpEmphasizedNumber;
@@ -615,6 +620,11 @@ class _SudokuBoardState extends State<SudokuBoard>
                                     builder: (context, progress, _) => _SudokuCell(
                                       index: index,
                                       value: cells[index],
+                                      notes: widget.notes[index] ?? const [],
+                                      showNotesGrid:
+                                          widget.notesMode &&
+                                          selectedIndex == index &&
+                                          !fixedIndices.contains(index),
                                       muted:
                                           widget.emphasizedNumber != null &&
                                           cells[index] !=
@@ -785,6 +795,8 @@ class _SudokuCell extends StatelessWidget {
   const _SudokuCell({
     required this.index,
     required this.value,
+    this.notes = const [],
+    this.showNotesGrid = false,
     required this.selected,
     required this.onSelect,
     required this.fixed,
@@ -801,6 +813,8 @@ class _SudokuCell extends StatelessWidget {
 
   final int index;
   final int? value;
+  final List<int> notes;
+  final bool showNotesGrid;
   final bool selected;
   final ValueChanged<int>? onSelect;
   final bool fixed;
@@ -817,7 +831,7 @@ class _SudokuCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     label:
-        'Fila ${index ~/ 9 + 1}, columna ${index % 9 + 1}, ${value ?? 'vacía'}${fixed ? ', pista fija' : ''}${conflict ? ', número por corregir' : ''}',
+        'Fila ${index ~/ 9 + 1}, columna ${index % 9 + 1}, ${value ?? 'vacía'}${fixed ? ', pista fija' : ''}${value == null && notes.isNotEmpty ? ', anotaciones ${describeNotes(notes)}' : ''}${conflict ? ', número por corregir' : ''}',
     button: true,
     enabled: onSelect != null,
     selected: selected,
@@ -922,7 +936,9 @@ class _SudokuCell extends StatelessWidget {
                       focusColor: const Color(0x50082A62),
                       hoverColor: const Color(0x20F8B516),
                       child: value == null
-                          ? const SizedBox.expand()
+                          ? notes.isNotEmpty || showNotesGrid
+                                ? SudokuNotes(notes: notes, selected: selected)
+                                : const SizedBox.expand()
                           : Center(
                               child: TweenAnimationBuilder<double>(
                                 key: ValueKey(value),

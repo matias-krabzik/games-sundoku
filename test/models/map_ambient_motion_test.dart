@@ -10,6 +10,189 @@ void advance(MapAmbientMotion motion, double seconds) {
 }
 
 void main() {
+  test('pink leaves start at the flowering tree and drift away from it', () {
+    const canopy = Offset(295, 265);
+    final motion = MapAmbientMotion(
+      seed: 8,
+      pinkCanopy: canopy,
+      sourceSize: const Size(2052, 644),
+    )..setView(const Rect.fromLTWH(0, 0, 620, 644));
+    final pink = motion.leaves.where((leaf) => leaf.kind == MapLeafKind.pink);
+    expect(pink, isNotEmpty);
+    expect(
+      pink.every((leaf) => (leaf.position - canopy).distance < 150),
+      isTrue,
+    );
+    final first = pink.first;
+    final start = first.position;
+    advance(motion, 4);
+    expect((first.position - start).distance, greaterThan(30));
+
+    motion.setView(const Rect.fromLTWH(1400, 0, 600, 644));
+    advance(motion, 26);
+    expect(
+      motion.leaves.where((leaf) => leaf.kind == MapLeafKind.pink),
+      isEmpty,
+    );
+  });
+
+  test('maps without a flowering tree never emit pink leaves', () {
+    final motion = MapAmbientMotion(seed: 8)
+      ..setView(const Rect.fromLTWH(0, 0, 620, 724));
+    advance(motion, 25);
+    expect(
+      motion.leaves.where((leaf) => leaf.kind == MapLeafKind.pink),
+      isEmpty,
+    );
+  });
+
+  test(
+    'leaves stay visible in flight and leave only after reaching ground',
+    () {
+      final motion = MapAmbientMotion(
+        seed: 8,
+        pinkCanopy: const Offset(295, 265),
+        sourceSize: const Size(2052, 644),
+      )..setView(const Rect.fromLTWH(0, 0, 620, 644));
+      final leaf = motion.leaves.firstWhere(
+        (leaf) => leaf.kind == MapLeafKind.pink,
+      );
+      leaf.age = 100;
+      leaf.position = Offset(leaf.position.dx, leaf.bottom - 2);
+      motion.setView(const Rect.fromLTWH(1400, 0, 600, 644));
+      motion.advance(1 / 60);
+      expect(motion.leaves, contains(leaf));
+      expect(leaf.opacity, 1);
+
+      leaf.position = Offset(leaf.position.dx, leaf.bottom);
+      motion.advance(1 / 60);
+      expect(motion.leaves, isNot(contains(leaf)));
+    },
+  );
+
+  test('a touched bee grows in place, then shrinks as it flies away', () {
+    final motion = MapAmbientMotion(seed: 4);
+    const view = Rect.fromLTWH(0, 0, 600, 724);
+    motion.setView(view);
+    final bee = motion.bees.first;
+    for (var i = 0; i < 1000 && !bee.perched; i++) {
+      motion.advance(1 / 60);
+    }
+    final origin = bee.position;
+    final flower = bee.flower;
+    final otherDestination = motion.bees.last.destination;
+    expect(motion.startleBeeAt(origin, scale: 1), isTrue);
+    expect(bee.perched, isFalse);
+    expect(bee.flower, isNot(flower));
+    expect(view.contains(bee.destination), isTrue);
+    expect(motion.bees.last.destination, otherDestination);
+    advance(motion, .15);
+    expect(bee.position, origin);
+    expect(bee.visualScale, greaterThan(1.5));
+    advance(motion, .3);
+    expect((bee.position - origin).distance, greaterThan(50));
+    final departingScale = bee.visualScale;
+    advance(motion, .2);
+    expect(bee.visualScale, lessThan(departingScale));
+    advance(motion, .5);
+    expect((bee.position - origin).distance, greaterThan(100));
+    expect(bee.startled, isFalse);
+    expect(bee.visualScale, lessThanOrEqualTo(1));
+    for (var i = 0; i < 1000 && !bee.perched; i++) {
+      motion.advance(1 / 60);
+    }
+    expect(bee.perched, isTrue);
+    expect(bee.flower, isNot(flower));
+    expect(
+      bee.position,
+      MapAmbientMotion.flowers[bee.flower] - const Offset(0, 8),
+    );
+  });
+
+  test(
+    'retapping a flying bee preserves its position and size at map edges',
+    () {
+      for (final left in [0.0, 1812.0]) {
+        final motion = MapAmbientMotion(seed: 4);
+        final view = Rect.fromLTWH(left, 250, 360, 400);
+        motion.setView(view);
+        final bee = motion.bees.first;
+        for (var i = 0; i < 10; i++) {
+          final position = bee.position;
+          final size = bee.visualScale;
+          expect(motion.startleBeeAt(position, scale: .6), isTrue);
+          expect(bee.position, position);
+          expect(bee.visualScale, closeTo(size, .00001));
+          expect(view.contains(bee.destination), isTrue);
+          advance(motion, .4);
+          // A nearby map puff must not cancel the direct-touch reaction.
+          motion.puff(bee.position + const Offset(50, 0));
+          expect(bee.startled, isTrue);
+        }
+      }
+    },
+  );
+
+  test('escape headings vary in all directions from the same position', () {
+    final directions = <String>{};
+    for (var seed = 0; seed < 60; seed++) {
+      final motion = MapAmbientMotion(seed: seed)
+        ..setView(const Rect.fromLTWH(400, 100, 800, 600));
+      final bee = motion.bees.first..position = const Offset(800, 470);
+      motion.startleBeeAt(bee.position, scale: 1);
+      final delta = bee.destination - bee.origin;
+      directions.add(delta.dx < 0 ? 'left' : 'right');
+      directions.add(delta.dy < 0 ? 'up' : 'down');
+    }
+    expect(directions, containsAll(['left', 'right', 'up', 'down']));
+  });
+
+  test('bees stay small on distant flowers and grow again when touched', () {
+    var distantLandings = 0;
+    for (var seed = 0; seed < 20; seed++) {
+      final motion = MapAmbientMotion(seed: seed)
+        ..setView(const Rect.fromLTWH(0, 0, 900, 724));
+      final bee = motion.bees.first;
+      motion.startleBeeAt(bee.position, scale: 1);
+      if (bee.flower < MapAmbientMotion.foregroundFlowerCount ||
+          bee.destination !=
+              MapAmbientMotion.flowers[bee.flower] - const Offset(0, 8)) {
+        continue;
+      }
+      advance(motion, .3);
+      var previousScale = bee.visualScale;
+      for (var frame = 0; frame < 90 && !bee.perched; frame++) {
+        motion.advance(1 / 60);
+        expect(bee.visualScale, lessThanOrEqualTo(previousScale + .00001));
+        previousScale = bee.visualScale;
+      }
+      expect(bee.perched, isTrue);
+      expect(bee.visualScale, closeTo(.42, .00001));
+      final landing = bee.position;
+      // Terrain movement carries perched bees and their finger-sized targets.
+      motion.setView(
+        const Rect.fromLTWH(0, 0, 900, 724),
+        terrainOffset: const Offset(50, -10),
+      );
+      expect(motion.beePosition(bee), landing + const Offset(50, -10));
+      advance(motion, .3);
+      expect(bee.position, landing);
+      expect(bee.visualScale, closeTo(.42, .00001));
+      expect(
+        motion.startleBeeAt(
+          motion.beePosition(bee) + const Offset(23, 0),
+          scale: 1,
+        ),
+        isTrue,
+      );
+      advance(motion, .15);
+      expect(bee.position, landing);
+      expect(bee.visualScale, greaterThan(1.5));
+      distantLandings++;
+    }
+    expect(distantLandings, greaterThan(0));
+  });
+
   test(
     'long play, repeated taps and scrolling keep finite bounded populations',
     () {

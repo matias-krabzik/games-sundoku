@@ -12,6 +12,7 @@ import 'gameplay_status_bar.dart';
 import 'illustrated_action_button.dart';
 import 'sudoku_board.dart';
 import 'sudoku_help.dart';
+import 'sudoku_notes.dart';
 import 'sudoku_time_summary.dart';
 import 'tutorial_celebration.dart';
 import 'tutorial_story.dart';
@@ -109,7 +110,9 @@ class TutorialJourney extends StatelessWidget {
       }
       if (flow.step == FirstExperienceStep.complete) {
         return flow.isLastLevel
-            ? '${worldCongratulations(flow.repository.state.player)} Completaste todos los juegos del Valle del Sol. ¡Vamos a recordar lo que aprendiste!'
+            ? '${worldCongratulations(flow.repository.state.player)} Completaste ${flow.world.name}. ¡Vamos a recordar lo que aprendiste!'
+            : flow.worldId == 'world-2' && flow.levelNumber == 1
+            ? '¡Anotaciones desbloqueadas! El lápiz ya es tuyo. Puedes usarlo en cualquier juego y en Partida rápida. ¡Tus notas te ayudarán a pensar!'
             : '¡Conseguiste las tres estrellas! El siguiente juego ya está desbloqueado.';
       }
       if (flow.gameIndex == 0) {
@@ -256,6 +259,7 @@ class TutorialJourney extends StatelessWidget {
                 final destination = await showWorldCompletionRecap(
                   context,
                   flow.repository.state.player,
+                  worldId: flow.worldId,
                 );
                 if (!context.mounted) return;
                 switch (destination) {
@@ -386,6 +390,8 @@ class TutorialJourney extends StatelessWidget {
                                       showGuide: !desktopPlay,
                                       buttonExtent: boardCellSize,
                                       available: flow.availableGameNumbers,
+                                      notesMode: flow.notesMode,
+                                      selectedNotes: flow.selectedNotes,
                                       onSelected:
                                           !navigationBlocked &&
                                               flow.readyToPlay &&
@@ -414,18 +420,28 @@ class TutorialJourney extends StatelessWidget {
                                                 surface: UiSurface.creamTile,
                                                 onPressed:
                                                     !navigationBlocked &&
-                                                        flow.readyToPlay &&
-                                                        flow.gameCell != null &&
-                                                        !flow.fixedIndices
-                                                            .contains(
-                                                              flow.gameCell,
-                                                            ) &&
-                                                        flow.boardValues[flow
-                                                                .gameCell!] !=
-                                                            null
+                                                        flow.canClearGameCell
                                                     ? flow.clearGameCell
                                                     : null,
                                               ),
+                                              if (flow.notesAvailable)
+                                                SudokuNotesButton(
+                                                  key: const ValueKey(
+                                                    'game-notes',
+                                                  ),
+                                                  active: flow.notesMode,
+                                                  dimension: boardCellSize,
+                                                  sound: flow
+                                                      .repository
+                                                      .state
+                                                      .settings
+                                                      .sound,
+                                                  onPressed:
+                                                      !navigationBlocked &&
+                                                          flow.readyToPlay
+                                                      ? flow.toggleNotesMode
+                                                      : null,
+                                                ),
                                               SudokuHelpButton(
                                                 key: const ValueKey(
                                                   'game-help',
@@ -445,6 +461,14 @@ class TutorialJourney extends StatelessWidget {
                                         ),
                                       ),
                                     ),
+                                    if (flow.notesAvailable &&
+                                        flow.gameCell != null &&
+                                        flow.boardValues[flow.gameCell!] ==
+                                            null)
+                                      SudokuNotesReading(
+                                        notes: flow.selectedNotes,
+                                        active: flow.notesMode,
+                                      ),
                                   ] else if (!_celebrating && wide == false)
                                     const SizedBox(height: 12),
                                   if (flow.step ==

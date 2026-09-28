@@ -106,6 +106,7 @@ class PuzzleProgress {
     int? points,
     ScoreProgress? scoring,
     DateTime? completedAt,
+    Json? extra,
   }) => PuzzleProgress(
     puzzleId: puzzleId,
     cells: cells ?? this.cells,
@@ -116,7 +117,7 @@ class PuzzleProgress {
     points: points ?? this.points,
     scoring: scoring ?? this.scoring,
     completedAt: completedAt ?? this.completedAt,
-    extra: extra,
+    extra: extra ?? this.extra,
   );
 
   factory PuzzleProgress.fromJson(Json json) => PuzzleProgress(

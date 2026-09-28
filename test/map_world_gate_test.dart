@@ -226,11 +226,11 @@ void main() {
         GameFeedbackScope(
           onTap: () {},
           onWorldGate: (cue) {
-            // On phones the gate center is near the far edge of the map.
-            expect(
-              map.scroll(tester).offset,
-              closeTo(map.scroll(tester).position.maxScrollExtent, 1),
+            // The camera centers the sun before the reveal starts.
+            final viewport = tester.getRect(
+              find.byKey(const ValueKey('world-scroll')),
             );
+            expect(tester.getCenter(_gate).dx, closeTo(viewport.center.dx, 1));
             expect(
               tester
                   .getRect(find.byKey(const ValueKey('world-scroll')))

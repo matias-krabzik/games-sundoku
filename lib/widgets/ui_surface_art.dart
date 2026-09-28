@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'horizontal_slice_art.dart';
 import 'nine_slice_art.dart';
 
 /// Reusable skins, never one image per button or screen.
@@ -13,6 +14,10 @@ enum UiSurface {
   creamPanel,
   goldCreamPanel,
   goldCreamCard,
+  mapProgressPanel,
+  mapProgressRound,
+  mapProgressTrack,
+  mapProgressFill,
   goldTile,
   creamTile,
   creamPill,
@@ -102,6 +107,34 @@ extension UiSurfaceCatalog on UiSurface {
       Rect.fromLTRB(.16, .475, .84, .490),
       Size(340, 86),
     ),
+    UiSurface.mapProgressPanel => const UiSurfaceSpec(
+      'assets/images/map/progress-card-panel.png',
+      Size(1920, 819),
+      Rect.fromLTRB(.0375, .0940, .9635, .8791),
+      Rect.fromLTRB(.1667, .3541, .8333, .6227),
+      Size(530, 204),
+    ),
+    UiSurface.mapProgressRound => const UiSurfaceSpec(
+      'assets/images/map/progress-card-round.png',
+      Size(1254, 1254),
+      Rect.fromLTRB(.0606, .0606, .9394, .9370),
+      Rect.fromLTRB(.49, .49, .51, .51),
+      Size(48, 48),
+    ),
+    UiSurface.mapProgressTrack => const UiSurfaceSpec(
+      'assets/images/map/progress-card-track.png',
+      Size(1407, 1118),
+      Rect.fromLTRB(.0334, .4544, .9659, .5456),
+      Rect.fromLTRB(.0711, .4920, .9290, .5100),
+      Size(364, 30),
+    ),
+    UiSurface.mapProgressFill => const UiSurfaceSpec(
+      'assets/images/map/progress-card-fill.png',
+      Size(2084, 754),
+      Rect.fromLTRB(.0581, .3634, .9420, .6326),
+      Rect.fromLTRB(.1128, .4907, .8872, .5066),
+      Size(220, 27),
+    ),
     UiSurface.creamPill => const UiSurfaceSpec(
       'assets/images/home/header-surfaces.png',
       Size(1254, 1254),
@@ -160,7 +193,9 @@ class UiSurfaceArt extends StatelessWidget {
       if (bounds.biggest.isEmpty) return const SizedBox.expand();
       final spec = surface.spec;
       var reference = referenceSize ?? spec.referenceSize;
-      if (surface == UiSurface.creamRound || surface == UiSurface.goldRound) {
+      if (surface == UiSurface.creamRound ||
+          surface == UiSurface.goldRound ||
+          surface == UiSurface.mapProgressRound) {
         // Square controls stay circular at every touch-target size.
         reference = Size.square(bounds.biggest.shortestSide);
       } else if (referenceSize == null &&
@@ -173,19 +208,28 @@ class UiSurfaceArt extends StatelessWidget {
         );
         reference = Size.square(side);
       } else if (surface == UiSurface.progressTrack ||
-          surface == UiSurface.progressFill) {
+          surface == UiSurface.progressFill ||
+          surface == UiSurface.mapProgressTrack ||
+          surface == UiSurface.mapProgressFill) {
         reference = Size(
           spec.referenceSize.aspectRatio * bounds.maxHeight,
           bounds.maxHeight,
         );
       }
-      final art = NineSliceArt(
-        asset: spec.asset,
-        imageSize: spec.imageSize,
-        region: spec.region,
-        centerSlice: spec.centerSlice,
-        referenceSize: reference,
-      );
+      final art = surface == UiSurface.mapProgressFill
+          ? HorizontalSliceArt(
+              asset: spec.asset,
+              region: spec.region,
+              centerSlice: spec.centerSlice,
+              referenceSize: reference,
+            )
+          : NineSliceArt(
+              asset: spec.asset,
+              imageSize: spec.imageSize,
+              region: spec.region,
+              centerSlice: spec.centerSlice,
+              referenceSize: reference,
+            );
       if (surface == UiSurface.goldCreamCard) {
         return ColorFiltered(
           colorFilter: const ColorFilter.mode(
@@ -287,7 +331,9 @@ class UiSurfaceArt extends StatelessWidget {
         );
       }
       return surface == UiSurface.progressTrack ||
-              surface == UiSurface.progressFill
+              surface == UiSurface.progressFill ||
+              surface == UiSurface.mapProgressTrack ||
+              surface == UiSurface.mapProgressFill
           ? ClipRRect(borderRadius: BorderRadius.circular(999), child: art)
           : art;
     },

@@ -73,6 +73,7 @@ flutter:
     - assets/images/settings/icons.png
     - assets/images/home/
     - assets/images/map/
+    - assets/images/map/spring-forest/
     - assets/images/map/layers/sky.png
     - assets/images/map/layers/clouds.png
     - assets/images/map/layers/mountains.png

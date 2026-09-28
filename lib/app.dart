@@ -5,9 +5,15 @@ import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'controllers/first_experience_controller.dart';
 import 'data/level_progress.dart';
+import 'screens/notes_tutorial_screen.dart';
+import 'widgets/home_art.dart';
+import 'widgets/settings_art.dart';
+import 'widgets/illustrated_action_button.dart';
 import 'data/repositories/game_repository.dart';
 import 'data/services/game_feedback.dart';
 import 'data/services/device_game_feedback.dart';
+import 'data/services/world_navigation_service.dart';
+import 'data/services/mock_world_navigation_service.dart';
 import 'widgets/game_feedback_scope.dart';
 import 'widgets/music_route_observer.dart';
 import 'widgets/modal_sound_observer.dart';
@@ -21,13 +27,20 @@ import 'screens/map_screen.dart';
 import 'screens/first_experience_screen.dart';
 import 'widgets/sundoku_cursor.dart';
 import 'widgets/world_journey_route.dart';
+import 'widgets/developer_floating_menu.dart';
 
 /// Root of the app. Wires the theme and the top-level route table.
 class SunDokuApp extends StatefulWidget {
-  const SunDokuApp({super.key, this.repository, this.feedback});
+  const SunDokuApp({
+    super.key,
+    this.repository,
+    this.feedback,
+    this.worldNavigation,
+  });
 
   final GameRepository? repository;
   final GameFeedback? feedback;
+  final WorldNavigationService? worldNavigation;
 
   @override
   State<SunDokuApp> createState() => _SunDokuAppState();
@@ -37,7 +50,13 @@ class _SunDokuAppState extends State<SunDokuApp> {
   late final GameRepository _repository =
       widget.repository ?? GameRepository.memory();
   late final LevelProgress _progress = LevelProgress(repository: _repository);
+  late final LevelProgress _forestProgress = LevelProgress(
+    repository: _repository,
+    worldId: 'world-2',
+  );
   late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
+  late final WorldNavigationService _worldNavigation =
+      widget.worldNavigation ?? MockWorldNavigationService(_repository);
 
   late final _musicObserver = MusicRouteObserver(_feedback);
 
@@ -49,6 +68,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
 
   bool _openingPlay = false;
   bool _openingQuickPlay = false;
+  bool _switchingWorld = false;
   bool? _departingHomeHasStarted;
   bool _welcomeChecked = false;
 
@@ -59,6 +79,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
         _repository.state.sessions.isNotEmpty ||
         _levelOneComplete;
   }
+
+  LevelProgress get _adventureProgress =>
+      _repository.lastAdventureWorld == 'world-2' ? _forestProgress : _progress;
 
   bool get _levelOneComplete =>
       _progress.lightsFor(1) >= LevelProgress.requiredLights;
@@ -140,6 +163,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
         context,
         const RouteSettings(name: AppRoutes.map),
         showClouds: !firstVisit,
+        worldId: _repository.lastAdventureWorld,
       );
       unawaited(navigator.push(route));
       if (firstVisit) {
@@ -187,6 +211,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
     BuildContext context,
     RouteSettings settings, {
     bool showClouds = true,
+    String worldId = 'world-1',
   }) => WorldJourneyRoute(
     settings: settings,
     showClouds: showClouds,
@@ -198,32 +223,204 @@ class _SunDokuAppState extends State<SunDokuApp> {
             .accessibilityFeatures
             .disableAnimations,
     builder: (context) => MapScreen(
-      progress: _progress,
-      onViewTutorial: () =>
-          Navigator.of(context).pushNamed(AppRoutes.tutorialReview),
-      onOpenIntroduction: () =>
-          Navigator.of(context).pushNamed(AppRoutes.firstExperience),
-      onReplayIntroduction: () => _replayPractice(context),
-      onOpenLevel: (number) async {
-        await _repository.startGeneratedLevel(number);
-        if (!context.mounted) return;
-        await Navigator.of(context).push(
-          WorldJourneyRoute(
-            settings: const RouteSettings(name: AppRoutes.game),
-            reduceMotion: MediaQuery.disableAnimationsOf(context),
-            builder: (_) => FirstExperienceScreen(
-              repository: _repository,
-              levelNumber: number,
-            ),
+      key: ValueKey(worldId),
+      progress: worldId == 'world-2' ? _forestProgress : _progress,
+      worldNavigation: _worldNavigation,
+      onSelectWorld: (selected) => unawaited(_switchWorld(context, selected)),
+      onNextWorld: worldId == 'world-1'
+          ? () => _switchWorld(context, 'world-2')
+          : null,
+      onReady: worldId == 'world-2' ? () => _forestReady(context) : null,
+      onReturn: () => showNotesUnlock(context, _repository),
+      onViewTutorial: () => unawaited(_agenda(context)),
+      onOpenIntroduction: worldId == 'world-1'
+          ? () => Navigator.of(context).pushNamed(AppRoutes.firstExperience)
+          : null,
+      onReplayIntroduction: worldId == 'world-1'
+          ? () => _replayPractice(context)
+          : null,
+      onOpenLevel: (number) => _openAdventureGame(context, worldId, number),
+      developerActions: [
+        if (worldId == 'world-1')
+          DeveloperMenuAction(
+            key: const ValueKey('dev-prepare-forest'),
+            label: 'Preparar entrada al bosque',
+            icon: Icons.forest,
+            onPressed: () async {
+              await _repository.prepareDebugForest();
+              if (context.mounted) await _switchWorld(context, 'world-2');
+            },
           ),
-        );
-      },
+        if (worldId == 'world-2')
+          DeveloperMenuAction(
+            key: const ValueKey('dev-notes-lesson'),
+            label: 'Repetir entrada con lápiz',
+            icon: Icons.edit_note,
+            onPressed: () async {
+              await _repository.resetDebugNotesTutorial();
+              if (context.mounted) await _forestReady(context);
+            },
+          ),
+      ],
     ),
   );
+
+  bool _openingForestLesson = false;
+  Future<void> _openAdventureGame(
+    BuildContext context,
+    String worldId,
+    int number, {
+    bool replace = false,
+  }) async {
+    if (worldId == 'world-2' && !_repository.notesTutorialCompleted) {
+      await _forestReady(context);
+      return;
+    }
+    await _repository.startGeneratedLevel(number, worldId: worldId);
+    if (!context.mounted) return;
+    final route = WorldJourneyRoute(
+      settings: const RouteSettings(name: AppRoutes.game),
+      reduceMotion: MediaQuery.disableAnimationsOf(context),
+      builder: (_) => FirstExperienceScreen(
+        repository: _repository,
+        worldId: worldId,
+        levelNumber: number,
+      ),
+    );
+    if (replace) {
+      unawaited(Navigator.of(context).pushReplacement(route));
+    } else {
+      await Navigator.of(context).push(route);
+      if (context.mounted) await showNotesUnlock(context, _repository);
+    }
+  }
+
+  Future<void> _forestReady(BuildContext context) async {
+    if (!_repository.forestUnlocked || _openingForestLesson) return;
+    await _repository.visitWorld('world-2');
+    if (!context.mounted) return;
+    if (_repository.notesTutorialCompleted) {
+      await showNotesUnlock(context, _repository);
+      return;
+    }
+    _openingForestLesson = true;
+    try {
+      await Navigator.of(context).push(
+        WorldJourneyRoute(
+          settings: const RouteSettings(name: AppRoutes.tutorialReview),
+          reduceMotion: MediaQuery.disableAnimationsOf(context),
+          builder: (lessonContext) => NotesTutorialScreen(
+            repository: _repository,
+            onFinished: () async {
+              if (_repository.notesUnlocked) {
+                Navigator.of(lessonContext).pop();
+                return;
+              }
+              await _openAdventureGame(
+                lessonContext,
+                'world-2',
+                1,
+                replace: true,
+              );
+            },
+          ),
+        ),
+      );
+      if (context.mounted && ModalRoute.of(context)?.isCurrent == true) {
+        await showNotesUnlock(context, _repository);
+      }
+    } finally {
+      _openingForestLesson = false;
+    }
+  }
+
+  Future<void> _switchWorld(BuildContext context, String worldId) async {
+    if (_switchingWorld) return;
+    _switchingWorld = true;
+    try {
+      await _worldNavigation.enterWorld(worldId);
+      if (!context.mounted) return;
+      unawaited(
+        Navigator.of(context).pushReplacement(
+          _mapRoute(
+            context,
+            const RouteSettings(name: AppRoutes.map),
+            worldId: worldId,
+          ),
+        ),
+      );
+    } finally {
+      _switchingWorld = false;
+    }
+  }
+
+  Future<void> _agenda(BuildContext context) async {
+    if (!_repository.forestUnlocked) {
+      await Navigator.of(context).pushNamed(AppRoutes.tutorialReview);
+      return;
+    }
+    final notes = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SettingsPanelSurface(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Tu cuaderno', style: homeText(28)),
+                  const SizedBox(height: 16),
+                  IllustratedActionButton(
+                    label: 'Las reglas',
+                    fontSize: 22,
+                    compact: true,
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  const SizedBox(height: 12),
+                  IllustratedActionButton(
+                    label: 'Las anotaciones',
+                    fontSize: 22,
+                    compact: true,
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cerrar'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (notes == null || !context.mounted) return;
+    if (!notes) {
+      await Navigator.of(context).pushNamed(AppRoutes.tutorialReview);
+      return;
+    }
+    await Navigator.of(context).push(
+      WorldJourneyRoute(
+        settings: const RouteSettings(name: AppRoutes.tutorialReview),
+        reduceMotion: MediaQuery.disableAnimationsOf(context),
+        builder: (context) => NotesTutorialScreen(
+          repository: _repository,
+          replay: true,
+          onFinished: () async {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
     _progress.dispose();
+    _forestProgress.dispose();
     if (widget.repository == null) unawaited(_repository.close());
     super.dispose();
   }
@@ -274,8 +471,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
                 quickPlayUnlocked: _repository.quickPlayUnlocked,
                 quickPlayIsNew: _repository.quickPlayIsNew,
                 celebrateQuickPlay: _repository.shouldCelebrateQuickPlay,
-                availableLevel: _progress.latestUnlocked,
-                unlockedLevels: _progress.unlockedCount,
+                worldId: _repository.lastAdventureWorld,
+                availableLevel: _adventureProgress.latestUnlocked,
+                unlockedLevels: _adventureProgress.unlockedCount,
                 playerName: _repository.state.player.nameChosen
                     ? _repository.state.player.name
                     : 'Jugador',

@@ -8,6 +8,11 @@ import '../models/map_ambient_motion.dart';
 
 /// Two small decoded sprites, shared by every depth in one map scene.
 class MapAmbientArt extends ChangeNotifier {
+  MapAmbientArt({String? leafAsset, String? beeAsset})
+    : leafAsset = leafAsset ?? 'assets/images/map/ambient/leaf.png',
+      beeAsset = beeAsset ?? 'assets/images/map/ambient/bee.png';
+  final String leafAsset;
+  final String beeAsset;
   ui.Image? leaf;
   ui.Image? bee;
   bool _disposed = false;
@@ -19,7 +24,7 @@ class MapAmbientArt extends ChangeNotifier {
     for (final name in ['leaf', 'bee']) {
       try {
         final data = await rootBundle.load(
-          'assets/images/map/ambient/$name.png',
+          name == 'leaf' ? leafAsset : beeAsset,
         );
         final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
         final frame = await codec.getNextFrame();
@@ -59,6 +64,30 @@ class MapAmbientArt extends ChangeNotifier {
 }
 
 class MapAmbientPainter extends CustomPainter {
+  // Match the flowering tree's pale pink while keeping the leaf's shading.
+  static const _pinkLeafFilter = ColorFilter.matrix(<double>[
+    0,
+    .40,
+    0,
+    0,
+    155,
+    0,
+    .36,
+    0,
+    0,
+    117,
+    0,
+    .34,
+    0,
+    0,
+    145,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
+
   MapAmbientPainter({
     required this.motion,
     required this.art,
@@ -86,24 +115,36 @@ class MapAmbientPainter extends CustomPainter {
         if (leaf.depth != depth) continue;
         final point = origin + leaf.position * scale;
         if (!bounds.contains(point)) continue;
-        final width = (leaf.size * scale).clamp(6.0, 26.0);
-        final opacity = leaf.opacity * _clearance(point, width);
+        final width = (leaf.size * scale).clamp(
+          leaf.kind == MapLeafKind.pink ? 4.0 : 6.0,
+          26.0,
+        );
+        final opacity = leaf.opacity;
         if (opacity <= .01) continue;
         canvas.save();
         canvas.translate(point.dx, point.dy);
         canvas.rotate(leaf.angle);
         canvas.scale(.3 + .7 * math.cos(time * 2 + leaf.phase).abs(), 1);
-        _sprite(canvas, leafArt, width, opacity);
+        _sprite(
+          canvas,
+          leafArt,
+          width,
+          opacity,
+          colorFilter: leaf.kind == MapLeafKind.pink ? _pinkLeafFilter : null,
+        );
         canvas.restore();
       }
     }
-    if (depth != MapLeafDepth.foreground || art.bee == null) return;
+    if (depth == MapLeafDepth.behindTrees || art.bee == null) return;
+    final foreground = depth == MapLeafDepth.foreground;
     for (final bee in motion.bees) {
-      final point = origin + bee.position * scale;
+      if ((bee.depth < .5) != foreground) continue;
+      final point =
+          origin + motion.beePosition(bee, foreground: foreground) * scale;
       if (!bounds.contains(point)) continue;
       final width = bee.paintedWidth(scale);
-      // Bees stay visible over the map, including level markers. Only leaves
-      // fade near controls; IgnorePointer keeps the bees from blocking taps.
+      // Distant bees share the terrain plane and sit behind the foreground.
+      // IgnorePointer keeps both planes from blocking level taps and drags.
       const opacity = 1.0;
       canvas.save();
       canvas.translate(point.dx, point.dy);
@@ -146,23 +187,13 @@ class MapAmbientPainter extends CustomPainter {
     }
   }
 
-  double _clearance(Offset point, double width) {
-    var opacity = 1.0;
-    for (final rect in protectedRects) {
-      final expanded = rect.inflate(width * .65);
-      final nearest = Offset(
-        point.dx.clamp(expanded.left, expanded.right),
-        point.dy.clamp(expanded.top, expanded.bottom),
-      );
-      opacity = math.min(
-        opacity,
-        ((point - nearest).distance / 18).clamp(0, 1),
-      );
-    }
-    return opacity;
-  }
-
-  void _sprite(Canvas canvas, ui.Image image, double width, double opacity) {
+  void _sprite(
+    Canvas canvas,
+    ui.Image image,
+    double width,
+    double opacity, {
+    ColorFilter? colorFilter,
+  }) {
     canvas.drawImageRect(
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
@@ -173,6 +204,7 @@ class MapAmbientPainter extends CustomPainter {
       ),
       Paint()
         ..color = Colors.white.withValues(alpha: opacity)
+        ..colorFilter = colorFilter
         ..filterQuality = FilterQuality.medium,
     );
   }

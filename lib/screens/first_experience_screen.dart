@@ -42,13 +42,17 @@ class FirstExperienceScreen extends StatefulWidget {
     this.showDeveloperControls = kDebugMode,
     this.reviewOnly = false,
     this.levelNumber = 1,
+    this.worldId = 'world-1',
     this.quickPlayDifficulty,
+    this.notesEnabled = false,
   });
 
   final GameRepository repository;
   final bool reviewOnly;
   final int levelNumber;
+  final String worldId;
   final QuickPlayDifficulty? quickPlayDifficulty;
+  final bool notesEnabled;
   final bool showDeveloperControls;
 
   @override
@@ -62,7 +66,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     widget.repository,
     reviewOnly: widget.reviewOnly,
     levelNumber: widget.levelNumber,
+    worldId: widget.worldId,
     quickPlayDifficulty: widget.quickPlayDifficulty,
+    notesEnabled: widget.notesEnabled,
   );
   // Preserve the board and focus when the responsive layout changes parents.
   final _stageKey = GlobalKey();
@@ -522,6 +528,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   bool get _needsBriefing =>
       !_flow.isQuickPlay &&
       !widget.reviewOnly &&
+      widget.worldId == 'world-1' &&
       widget.levelNumber == 1 &&
       _flow.gameIndex == 0 &&
       (widget.repository.state.modules[FirstExperienceController.moduleKey]
@@ -987,6 +994,17 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       _flow.readyToPlay &&
                       !_flow.reviewOnly)
                     DeveloperMenuAction(
+                      key: const ValueKey('dev-notes'),
+                      label: _flow.notesAvailable
+                          ? 'Ocultar lápiz de prueba'
+                          : 'Probar anotaciones',
+                      icon: Icons.edit_note_rounded,
+                      onPressed: _flow.debugToggleNotes,
+                    ),
+                  if (!_navigationBlocked &&
+                      _flow.readyToPlay &&
+                      !_flow.reviewOnly)
+                    DeveloperMenuAction(
                       key: const ValueKey('dev-fill-except-one'),
                       label: 'Completar menos 1',
                       icon: Icons.grid_on_rounded,
@@ -1018,9 +1036,15 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   int? get _nextLevelNumber {
     if (_flow.isQuickPlay) return null;
     final number = widget.levelNumber + 1;
-    if (number > 10 ||
-        !widget.repository.state.isUnlocked(mapLevelId(number)) ||
-        (widget.repository.state.progress[mapLevelId(number)]?.bestLights ??
+    if (number > _flow.world.nodes.length ||
+        !widget.repository.state.isUnlocked(
+          mapLevelId(number, worldId: widget.worldId),
+        ) ||
+        (widget
+                    .repository
+                    .state
+                    .progress[mapLevelId(number, worldId: widget.worldId)]
+                    ?.bestLights ??
                 0) >=
             3) {
       return null;
@@ -1035,7 +1059,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     setState(() => _openingNextLevel = true);
     try {
       await _flow.pauseGame();
-      await widget.repository.startGeneratedLevel(number);
+      await widget.repository.startGeneratedLevel(
+        number,
+        worldId: widget.worldId,
+      );
       if (!mounted) return;
       unawaited(
         Navigator.of(context).pushReplacement<void, void>(
@@ -1045,6 +1072,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
             builder: (_) => FirstExperienceScreen(
               repository: widget.repository,
               levelNumber: number,
+              worldId: widget.worldId,
               showDeveloperControls: widget.showDeveloperControls,
             ),
           ),
@@ -1330,6 +1358,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       _ => SudokuBoardReveal.none,
                     },
                     cells: cells,
+                    notes: _flow.boardNotes,
+                    notesMode:
+                        _flow.notesMode &&
+                        _flow.step == FirstExperienceStep.playing,
                     emphasizedNumber:
                         _flow.step == FirstExperienceStep.solvedExample
                         ? TutorialSolutionTour.number

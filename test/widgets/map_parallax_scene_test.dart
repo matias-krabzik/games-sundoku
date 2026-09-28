@@ -138,6 +138,31 @@ void main() {
         ambientPainter(tester, MapLeafDepth.air).origin.dx - startAir.dx,
         closeTo(-scroll.offset, .01),
       );
+      // A tiny distant bee retains a finger-sized target in the terrain plane.
+      // A drag on the same bee still belongs to the horizontal scroll view.
+      final bee = motion.bees.first;
+      final terrainOrigin = ambientPainter(tester, MapLeafDepth.air).origin;
+      bee
+        ..position = (const Offset(550, 360) - terrainOrigin) / painter.scale
+        ..depth = 1
+        ..rest = 10;
+      final beforePop = bee.position;
+      await tester.tapAt(const Offset(573, 360));
+      await tester.pump();
+      expect(bee.startled, isTrue);
+      expect(motion.gustCount, 1);
+      await frames(tester, 8);
+      expect(bee.visualScale, greaterThan(1));
+      expect(bee.position, beforePop);
+      painter = ambientPainter(tester, MapLeafDepth.foreground);
+      final beforeDrag = scroll.offset;
+      await tester.dragFrom(
+        painter.origin + motion.beePosition(bee) * painter.scale,
+        const Offset(-100, 0),
+      );
+      await frames(tester, 5);
+      expect(scroll.offset, greaterThan(beforeDrag + 50));
+      expect(motion.gustCount, 1);
       await tester.pumpWidget(scene(scroll, visible: false));
       await tester.pump();
       final pausedTime = motion.time;

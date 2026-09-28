@@ -44,9 +44,30 @@ Widget firstRowPreview() =>
 Widget firstGamePreview() =>
     const _FirstExperiencePreview(step: FirstExperienceStep.playing);
 
+@Preview(name: 'Anotaciones · teléfono', group: 'SunDoku', size: Size(390, 844))
+@Preview(
+  name: 'Anotaciones · horizontal',
+  group: 'SunDoku',
+  size: Size(844, 390),
+)
+@Preview(
+  name: 'Anotaciones · texto grande',
+  group: 'SunDoku',
+  size: Size(320, 568),
+  textScaleFactor: 2,
+)
+Widget notesGamePreview() => const _FirstExperiencePreview(
+  step: FirstExperienceStep.playing,
+  notes: true,
+);
+
 class _FirstExperiencePreview extends StatefulWidget {
-  const _FirstExperiencePreview({this.step = FirstExperienceStep.welcome});
+  const _FirstExperiencePreview({
+    this.step = FirstExperienceStep.welcome,
+    this.notes = false,
+  });
   final FirstExperienceStep step;
+  final bool notes;
 
   @override
   State<_FirstExperiencePreview> createState() =>
@@ -69,12 +90,24 @@ class _FirstExperiencePreviewState extends State<_FirstExperiencePreview> {
           : List<int?>.filled(9, null),
     };
     if (widget.step == FirstExperienceStep.playing) {
-      await _repository.startOrResumeLevel(
+      final session = await _repository.startOrResumeLevel(
         mapLevelId(1),
         definitions: TutorialSudokus.create(center),
         moduleKey: FirstExperienceController.moduleKey,
         moduleData: module,
       );
+      if (widget.notes) {
+        final puzzle = session.nextPuzzleId!;
+        final index = _repository.state.puzzles[puzzle]!.initial.indexOf(null);
+        await _repository.debugEnableNotes(session.id);
+        await _repository.setNotes(session.id, puzzle, index, [2, 7]);
+        await _repository.setPuzzleInputState(
+          session.id,
+          puzzle,
+          notesMode: true,
+          selectedIndex: index,
+        );
+      }
     } else {
       await _repository.saveModule(FirstExperienceController.moduleKey, module);
     }
@@ -98,6 +131,7 @@ class _FirstExperiencePreviewState extends State<_FirstExperiencePreview> {
           : FirstExperienceScreen(
               repository: _repository,
               showDeveloperControls: false,
+              notesEnabled: widget.notes,
             ),
     ),
   );

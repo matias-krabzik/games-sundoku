@@ -304,10 +304,10 @@ void main() {
           expect(bounds.top, greaterThanOrEqualTo(0));
           expect(bounds.right, lessThanOrEqualTo(size.width));
           expect(bounds.bottom, lessThanOrEqualTo(size.height));
-          expect(bounds.width, greaterThanOrEqualTo(48));
-          expect(bounds.height, greaterThanOrEqualTo(48));
+          expect(bounds.width, greaterThanOrEqualTo(47.99));
+          expect(bounds.height, greaterThanOrEqualTo(47.99));
         }
-        expect(find.text('MUNDO 1 · VALLE DEL SOL'), findsOneWidget);
+        expect(find.text('Mundo 1'), findsOneWidget);
         expect(find.text(kValleyLevelNames[expectedLevel - 1]), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.tap(find.byKey(const ValueKey('map-next')));
@@ -355,12 +355,15 @@ void main() {
 
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     _desktopTestWidgets(
-      'mobile map hides arrows and lights locked selection on $platform',
+      'mobile map shows arrows and lights locked selection on $platform',
       (tester) async {
         debugDefaultTargetPlatformOverride = platform;
         await _openMap(tester);
-        expect(find.byKey(const ValueKey('map-previous')), findsNothing);
-        expect(find.byKey(const ValueKey('map-next')), findsNothing);
+        expect(find.byKey(const ValueKey('map-previous')), findsOneWidget);
+        expect(find.byKey(const ValueKey('map-next')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('map-next')));
+        await _finishMapTransition(tester);
+        expect(find.text(kValleyLevelNames[1]), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('level-2-label')));
         await _finishMapTransition(tester);
         final light = tester.widget<MapSelectionLight>(

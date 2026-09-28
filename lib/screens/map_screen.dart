@@ -5,19 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import '../data/level_progress.dart';
+import '../data/services/world_navigation_service.dart';
 import '../widgets/map_level_button.dart';
 import '../widgets/map_chrome.dart';
 import '../widgets/completed_level_popover.dart';
 import '../widgets/light_award_overlay.dart';
 import '../widgets/map_parallax_scene.dart';
+import '../models/world_map_definition.dart';
 import '../widgets/map_world_gate.dart';
+import '../widgets/map_layout.dart';
 
 import '../data/level_node.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/map_selection_light.dart';
 import '../widgets/developer_floating_menu.dart';
 
-/// A horizontally scrollable world with ten touch targets on the painted path.
+/// Shared adventure map; artwork and level layout come from the world catalog.
 class MapScreen extends StatefulWidget {
   const MapScreen({
     super.key,
@@ -28,9 +31,19 @@ class MapScreen extends StatefulWidget {
     this.onReplayIntroduction,
     this.onOpenLevel,
     this.onNextWorld,
+    this.worldNavigation,
+    this.onSelectWorld,
+    this.onChooseWorld,
+    this.onReady,
+    this.onReturn,
+    this.developerActions = const [],
   });
 
+  final List<DeveloperMenuAction> developerActions;
   final LevelProgress? progress;
+  final VoidCallback? onChooseWorld;
+  final Future<void> Function()? onReady;
+  final Future<void> Function()? onReturn;
   final bool showDeveloperControls;
   final VoidCallback? onOpenIntroduction;
   final VoidCallback? onViewTutorial;
@@ -39,6 +52,8 @@ class MapScreen extends StatefulWidget {
 
   /// Connect when the next world exists. Completion alone illuminates the sun.
   final FutureOr<void> Function()? onNextWorld;
+  final WorldNavigationService? worldNavigation;
+  final ValueChanged<String>? onSelectWorld;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -52,8 +67,11 @@ class _MapScreenState extends State<MapScreen>
     duration: const Duration(milliseconds: 750),
   );
   late final Map<int, int> _visibleLights = {
-    for (final node in kMap1Nodes) node.level: _progress.lightsFor(node.level),
+    for (final node in _nodes) node.level: _progress.lightsFor(node.level),
   };
+  List<LevelNode> get _nodes => _progress.world.nodes;
+  WorldMapDefinition get _definition => _progress.world.map;
+  bool _readyChecked = false;
   bool _replaying = false;
   bool _openingLevel = false;
   bool _checkQueued = false;
@@ -65,7 +83,9 @@ class _MapScreenState extends State<MapScreen>
   ModalRoute<dynamic>? _route;
 
   bool get _gatePending =>
-      _progress.gateCelebrationPending && !_gateCelebratedLocally;
+      _definition.gate != null &&
+      _progress.gateCelebrationPending &&
+      !_gateCelebratedLocally;
   bool get _routeArrived =>
       (_route?.isCurrent ?? true) &&
       (_route?.animation == null || _route!.animation!.isCompleted) &&
@@ -73,7 +93,7 @@ class _MapScreenState extends State<MapScreen>
           _route!.secondaryAnimation!.isDismissed);
 
   int? get _entryLevel =>
-      kMap1Nodes.every(
+      _nodes.every(
         (node) =>
             _progress.lightsFor(node.level) >= LevelProgress.requiredLights,
       )
@@ -82,7 +102,7 @@ class _MapScreenState extends State<MapScreen>
   int _lightsFor(int level) => _visibleLights[level]!;
   bool _unlocked(int level) =>
       _progress.isUnlocked(level) && (level == 1 || _lightsFor(level - 1) >= 3);
-  bool get _worldComplete => kMap1Nodes.every(
+  bool get _worldComplete => _nodes.every(
     (node) => _lightsFor(node.level) >= LevelProgress.requiredLights,
   );
 
@@ -95,7 +115,11 @@ class _MapScreenState extends State<MapScreen>
   void initState() {
     super.initState();
     _visibleLights;
-    _activeLevel = _entryLevel ?? _activeLevel;
+    _activeLevel =
+        _entryLevel ??
+        (_definition.focusLastWhenCompleted
+            ? _nodes.last.level
+            : _nodes.first.level);
     _progress.addListener(_progressChanged);
   }
 
@@ -123,11 +147,11 @@ class _MapScreenState extends State<MapScreen>
     if (!mounted) return;
     setState(() {
       if (!_progress.gateCelebrationPending &&
-          kMap1Nodes.any((node) => _progress.lightsFor(node.level) < 3)) {
+          _nodes.any((node) => _progress.lightsFor(node.level) < 3)) {
         _gateCelebratedLocally = false;
         _ignitingGate = false;
       }
-      for (final node in kMap1Nodes) {
+      for (final node in _nodes) {
         final saved = _progress.lightsFor(node.level);
         if (_preparingWorld ||
             saved < _lightsFor(node.level) ||
@@ -149,6 +173,22 @@ class _MapScreenState extends State<MapScreen>
   }
 
   Future<void> _syncMapEntry() async {
+    if (!_readyChecked && widget.onReady != null) {
+      if (!_routeArrived) return;
+      _readyChecked = true;
+      try {
+        await widget.onReady!();
+      } catch (_) {
+        _readyChecked = false;
+        if (mounted) {
+          showToast(
+            context,
+            'No pudimos abrir el mundo. Toca su primer juego para reintentar.',
+          );
+        }
+      }
+      if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
+    }
     await _revealSavedRewards();
     if (!mounted ||
         _awardingLevel != null ||
@@ -161,7 +201,10 @@ class _MapScreenState extends State<MapScreen>
       return;
     }
     if (!_entryFocusPending) return;
+    if (widget.onReturn != null && !_routeArrived) return;
     _entryFocusPending = false;
+    if (widget.onReturn != null) await widget.onReturn!();
+    if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
     final level = _entryLevel;
     if (level != null) await _focusLevel(level);
   }
@@ -178,7 +221,7 @@ class _MapScreenState extends State<MapScreen>
     setState(() {
       _focusingGate = true;
       _entryFocusPending = false;
-      _activeLevel = kMap1Nodes.last.level;
+      _activeLevel = _nodes.last.level;
     });
     if (reduced) {
       _scroll.jumpTo(_gateOffset);
@@ -203,7 +246,7 @@ class _MapScreenState extends State<MapScreen>
   }
 
   double get _gateOffset =>
-      (mapWorldGateAnchor.dx * _worldWidth - _viewport.width / 2).clamp(
+      (_definition.gate!.anchor.dx * _worldWidth - _viewport.width / 2).clamp(
         0.0,
         _scroll.position.maxScrollExtent,
       );
@@ -225,7 +268,7 @@ class _MapScreenState extends State<MapScreen>
     if (_awardingLevel != null || ModalRoute.of(context)?.isCurrent == false) {
       return;
     }
-    final pending = kMap1Nodes
+    final pending = _nodes
         .where(
           (node) => _progress.lightsFor(node.level) > _lightsFor(node.level),
         )
@@ -273,7 +316,7 @@ class _MapScreenState extends State<MapScreen>
               _progress.lightsFor(level),
             ),
           );
-          if (_lightsFor(level) == 3 && level < kMap1Nodes.length) {
+          if (_lightsFor(level) == 3 && level < _nodes.length) {
             nextLevel = level + 1;
           }
         }
@@ -317,7 +360,7 @@ class _MapScreenState extends State<MapScreen>
           height: 360,
           child: ListView(
             children: [
-              for (final node in kMap1Nodes)
+              for (final node in _nodes)
                 ListTile(
                   key: ValueKey('dev-reset-level-${node.level}'),
                   title: Text('Nivel ${node.level}'),
@@ -373,7 +416,7 @@ class _MapScreenState extends State<MapScreen>
     try {
       await _progress.completeWorldExceptLastPuzzle();
       if (!mounted) return;
-      await _focusLevel(kMap1Nodes.last.level);
+      await _focusLevel(_nodes.last.level);
       if (mounted) {
         showToast(context, 'Mundo listo: falta la ronda 3 del último juego.');
       }
@@ -403,7 +446,7 @@ class _MapScreenState extends State<MapScreen>
   }
 
   double _offsetFor(int level) =>
-      (kMap1Nodes[level - 1].x * _worldWidth - _viewport.width / 2).clamp(
+      (_nodes[level - 1].x * _worldWidth - _viewport.width / 2).clamp(
         0,
         math.max(0, _worldWidth - _viewport.width),
       );
@@ -417,7 +460,7 @@ class _MapScreenState extends State<MapScreen>
     }
     if (select && ModalRoute.of(context)?.isCurrent == false) return;
     final request = ++_focusRequest;
-    final int target = level.clamp(1, kMap1Nodes.length);
+    final int target = level.clamp(1, _nodes.length);
     setState(() => _activeLevel = target);
     if (_scroll.hasClients) {
       if (MediaQuery.disableAnimationsOf(context)) {
@@ -442,10 +485,14 @@ class _MapScreenState extends State<MapScreen>
     }
     if (select) {
       if (_progress.isUnlocked(target)) {
-        final replayPractice = target == 1 && _progress.lightsFor(target) >= 3;
+        final replayPractice =
+            widget.onReplayIntroduction != null &&
+            target == 1 &&
+            _progress.lightsFor(target) >= 3;
         final continueGame = await Navigator.of(context).push<bool>(
           LevelSummaryRoute(
             level: target,
+            worldId: _progress.worldId,
             lights: _progress.lightsFor(target),
             session: _progress.sessionFor(target),
             record: _progress.recordFor(target),
@@ -471,7 +518,7 @@ class _MapScreenState extends State<MapScreen>
   Future<void> _openSelectedLevel(int level) async {
     _openingLevel = true;
     try {
-      if (level == 1) {
+      if (level == 1 && widget.onOpenIntroduction != null) {
         widget.onOpenIntroduction?.call();
       } else if (widget.onOpenLevel != null) {
         await widget.onOpenLevel!(level);
@@ -503,231 +550,261 @@ class _MapScreenState extends State<MapScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF78C8F6),
-      body: Column(
-        children: [
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final Size viewport = constraints.biggest;
-                final bool compact = viewport.height < 520;
-                final bool largeWindow =
-                    viewport.width >= 700 || viewport.height >= 900;
-                final double worldHeight = math.max(
-                  viewport.height,
-                  viewport.width / 3,
+      backgroundColor: _definition.backgroundColor,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final Size viewport = constraints.biggest;
+          final bool compact = viewport.height < 520;
+          final bool compactCard =
+              viewport.height < 700 || viewport.width < 350;
+          final bool largeWindow =
+              viewport.width >= 700 || viewport.height >= 900;
+          final layout = MapLayout(viewport, _definition, _nodes);
+          final worldHeight = layout.worldSize.height;
+          final worldTop = layout.worldTop;
+          _worldWidth = layout.worldSize.width;
+          if (viewport != _viewport) {
+            _viewport = viewport;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _scroll.hasClients && !_focusingGate) {
+                _scroll.jumpTo(
+                  _ignitingGate ? _gateOffset : _offsetFor(_activeLevel),
                 );
-                _worldWidth = worldHeight * 3;
-                if (viewport != _viewport) {
-                  _viewport = viewport;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && _scroll.hasClients && !_focusingGate) {
-                      _scroll.jumpTo(
-                        _ignitingGate ? _gateOffset : _offsetFor(_activeLevel),
-                      );
-                    }
-                  });
-                }
-                final double nodeSize = compact
-                    ? 68
-                    : (viewport.width * .24).clamp(82, 106);
-                final gateSize = mapWorldGateTouchSize(worldHeight);
-                final gateRect = Rect.fromCenter(
-                  center: Offset(
-                    mapWorldGateAnchor.dx * _worldWidth,
-                    mapWorldGateAnchor.dy * worldHeight,
-                  ),
-                  width: gateSize,
-                  height: gateSize,
-                );
-
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    MapParallaxScene(
-                      scroll: _scroll,
-                      worldSize: Size(_worldWidth, worldHeight),
-                      protectedWorldRects: [
-                        gateRect.inflate(8),
-                        for (final node in kMap1Nodes)
-                          Rect.fromLTWH(
-                            node.x * _worldWidth - nodeSize / 2,
-                            node.y * worldHeight - nodeSize / 2,
-                            nodeSize,
-                            nodeSize + 22,
-                          ).inflate(8),
-                      ],
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          SingleChildScrollView(
-                            key: const ValueKey('world-scroll'),
-                            controller: _scroll,
-                            scrollDirection: Axis.horizontal,
-                            physics:
-                                _awardingLevel == null &&
-                                    !_focusingGate &&
-                                    !_ignitingGate
-                                ? const ClampingScrollPhysics()
-                                : const NeverScrollableScrollPhysics(),
-                            child: SizedBox(
-                              width: _worldWidth,
-                              height: viewport.height,
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Positioned(
-                                    left: gateRect.left,
-                                    top:
-                                        gateRect.top +
-                                        (viewport.height - worldHeight) / 2,
-                                    width: gateSize,
-                                    height: gateSize,
-                                    child: MapWorldGate(
-                                      key: const ValueKey('map-world-gate'),
-                                      unlocked: _worldComplete,
-                                      ignitionPending: _gatePending,
-                                      ignite: _ignitingGate,
-                                      onIgnited: () =>
-                                          unawaited(_gateIgnited()),
-                                      artworkSize: mapWorldGateArtworkSize(
-                                        worldHeight,
-                                      ),
-                                      onPressed: _awardingLevel == null
-                                          ? widget.onNextWorld
-                                          : null,
-                                    ),
-                                  ),
-                                  for (final node in kMap1Nodes)
-                                    Positioned(
-                                      left: node.x * _worldWidth - nodeSize / 2,
-                                      top:
-                                          node.y * worldHeight +
-                                          (viewport.height - worldHeight) / 2 -
-                                          nodeSize / 2,
-                                      width: nodeSize,
-                                      height: nodeSize + 22,
-                                      child: MapLevelButton(
-                                        level: node.level,
-                                        lights: _lightsFor(node.level),
-                                        unlocked: _unlocked(node.level),
-                                        active: node.level == _activeLevel,
-                                        onTap: () => _focusLevel(
-                                          node.level,
-                                          select: true,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          MapSelectionLight(
-                            level: _activeLevel,
-                            scoreLevels: {
-                              for (final node in kMap1Nodes)
-                                if (_unlocked(node.level)) node.level,
-                            },
-                            worldSize: Size(_worldWidth, worldHeight),
-                            nodeSize: nodeSize,
-                            scroll: _scroll,
-                          ),
-                          if (_awardingLevel != null)
-                            LightAwardOverlay(
-                              animation: _award,
-                              scroll: _scroll,
-                              variant: _awardVariant,
-                              source: Offset(
-                                kMap1Nodes[_awardingLevel! - 1].x * _worldWidth,
-                                kMap1Nodes[_awardingLevel! - 1].y *
-                                        worldHeight +
-                                    (viewport.height - worldHeight) / 2,
-                              ),
-                              destination: Offset(
-                                kMap1Nodes[_awardingLevel! - 1].x *
-                                        _worldWidth +
-                                    mapScoreStarOffset(_socket, nodeSize).dx,
-                                kMap1Nodes[_awardingLevel! - 1].y *
-                                        worldHeight +
-                                    (viewport.height - worldHeight) / 2 +
-                                    mapScoreStarOffset(_socket, nodeSize).dy,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          largeWindow ? 32 : 16,
-                          compact ? 8 : (largeWindow ? 24 : 16),
-                          largeWindow ? 32 : 16,
-                          12,
-                        ),
-                        child: Column(
-                          children: [
-                            MapWorldHeader(
-                              onViewTutorial: widget.onViewTutorial,
-                              compact: compact,
-                              // The gate sits near the top-right corner when
-                              // the whole panorama fits in a short window.
-                              groupActions: compact && viewport.width >= 700,
-                              onBack: () => Navigator.of(context).pop(),
-                            ),
-                            const Spacer(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (kDebugMode && widget.showDeveloperControls)
-                      DeveloperFloatingMenu(
-                        actions: [
-                          DeveloperMenuAction(
-                            key: const ValueKey(
-                              'dev-complete-world-except-last',
-                            ),
-                            label: 'Completar mundo menos última ronda',
-                            icon: Icons.flag_outlined,
-                            onPressed: _completeWorldExceptLastPuzzle,
-                          ),
-                          DeveloperMenuAction(
-                            key: const ValueKey('dev-reset-world'),
-                            label: 'Resetear mundo',
-                            icon: Icons.public_outlined,
-                            onPressed: _resetWorld,
-                          ),
-                          DeveloperMenuAction(
-                            key: const ValueKey('dev-reset-specific-level'),
-                            label: 'Resetear nivel específico',
-                            icon: Icons.restart_alt_rounded,
-                            onPressed: _chooseLevelToReset,
-                          ),
-                          DeveloperMenuAction(
-                            key: const ValueKey('dev-complete-random-level'),
-                            label: 'Completar nivel $_activeLevel al azar',
-                            icon: Icons.casino_outlined,
-                            onPressed: _completeActiveLevel,
-                          ),
-                        ],
-                      ),
-                  ],
-                );
-              },
+              }
+            });
+          }
+          final nodeSize = layout.nodeSize;
+          final gate = _definition.gate;
+          final gateArtworkSize = gate == null
+              ? 0.0
+              : gate.sourceDiameter *
+                    worldHeight /
+                    _definition.sourceSize.height;
+          final gateSize = math.max(48.0, gateArtworkSize);
+          final gateRect = Rect.fromCenter(
+            center: Offset(
+              (gate?.anchor.dx ?? 0) * _worldWidth,
+              (gate?.anchor.dy ?? 0) * worldHeight,
             ),
-          ),
-          MapStatusCard(
-            compact: MediaQuery.sizeOf(context).height < 520,
-            level: _activeLevel,
-            points: _progress.worldPoints,
-            onPrevious: _awardingLevel == null && _activeLevel > 1
-                ? () => _focusLevel(_activeLevel - 1)
-                : null,
-            onNext: _awardingLevel == null && _activeLevel < kMap1Nodes.length
-                ? () => _focusLevel(_activeLevel + 1)
-                : null,
-          ),
-        ],
+            width: gateSize,
+            height: gateSize,
+          );
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              MapParallaxScene(
+                key: ValueKey(_progress.worldId),
+                definition: _definition,
+                worldTop: worldTop,
+                focusY: _nodes[_activeLevel - 1].y,
+                scroll: _scroll,
+                worldSize: Size(_worldWidth, worldHeight),
+                protectedWorldRects: [
+                  if (gate != null) gateRect.inflate(8),
+                  for (final node in _nodes)
+                    Rect.fromLTWH(
+                      node.x * _worldWidth - nodeSize / 2,
+                      node.y * worldHeight - nodeSize / 2,
+                      nodeSize,
+                      nodeSize + 22,
+                    ).inflate(8),
+                ],
+                child: const SizedBox.shrink(),
+                childBuilder: (verticalPan) {
+                  final worldTop = layout.worldTop + verticalPan;
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      SingleChildScrollView(
+                        key: const ValueKey('world-scroll'),
+                        controller: _scroll,
+                        scrollDirection: Axis.horizontal,
+                        physics:
+                            _awardingLevel == null &&
+                                !_focusingGate &&
+                                !_ignitingGate
+                            ? const ClampingScrollPhysics()
+                            : const NeverScrollableScrollPhysics(),
+                        child: SizedBox(
+                          width: _worldWidth,
+                          height: viewport.height,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              if (gate != null)
+                                Positioned(
+                                  left: gateRect.left,
+                                  top: gateRect.top + worldTop,
+                                  width: gateSize,
+                                  height: gateSize,
+                                  child: MapWorldGate(
+                                    key: const ValueKey('map-world-gate'),
+                                    assetPath: gate.asset,
+                                    worldNumber: _progress.world.number,
+                                    unlocked: _worldComplete,
+                                    ignitionPending: _gatePending,
+                                    ignite: _ignitingGate,
+                                    onIgnited: () => unawaited(_gateIgnited()),
+                                    artworkSize: gateArtworkSize,
+                                    onPressed: _awardingLevel == null
+                                        ? widget.onNextWorld
+                                        : null,
+                                  ),
+                                ),
+                              for (final node in _nodes)
+                                Positioned(
+                                  left: node.x * _worldWidth - nodeSize / 2,
+                                  top:
+                                      node.y * worldHeight +
+                                      worldTop -
+                                      nodeSize / 2,
+                                  width: nodeSize,
+                                  height: nodeSize + 22,
+                                  child: MapLevelButton(
+                                    level: node.level,
+                                    textNumber: !_definition.numberAssets
+                                        .containsKey(node.level),
+                                    numberAsset:
+                                        _definition.numberAssets[node.level],
+                                    lights: _lightsFor(node.level),
+                                    unlocked: _unlocked(node.level),
+                                    active: node.level == _activeLevel,
+                                    onTap: () =>
+                                        _focusLevel(node.level, select: true),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      MapSelectionLight(
+                        nodes: _nodes,
+                        worldTop: worldTop,
+                        level: _activeLevel,
+                        scoreLevels: {
+                          for (final node in _nodes)
+                            if (_unlocked(node.level)) node.level,
+                        },
+                        worldSize: Size(_worldWidth, worldHeight),
+                        nodeSize: nodeSize,
+                        scroll: _scroll,
+                      ),
+                      if (_awardingLevel != null)
+                        LightAwardOverlay(
+                          animation: _award,
+                          scroll: _scroll,
+                          variant: _awardVariant,
+                          source: Offset(
+                            _nodes[_awardingLevel! - 1].x * _worldWidth,
+                            _nodes[_awardingLevel! - 1].y * worldHeight +
+                                worldTop,
+                          ),
+                          destination: Offset(
+                            _nodes[_awardingLevel! - 1].x * _worldWidth +
+                                mapScoreStarOffset(_socket, nodeSize).dx,
+                            _nodes[_awardingLevel! - 1].y * worldHeight +
+                                worldTop +
+                                mapScoreStarOffset(_socket, nodeSize).dy,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    largeWindow ? 32 : 16,
+                    compact ? 8 : (largeWindow ? 24 : 16),
+                    largeWindow ? 32 : 16,
+                    12,
+                  ),
+                  child: Column(
+                    children: [
+                      MapWorldHeader(
+                        onChooseWorld: widget.onChooseWorld,
+                        onViewTutorial: widget.onViewTutorial,
+                        compact: compact,
+                        // The gate sits near the top-right corner when
+                        // the whole panorama fits in a short window.
+                        groupActions: compact && viewport.width >= 700,
+                        onBack: () => Navigator.of(context).pop(),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      12,
+                      0,
+                      12,
+                      compactCard ? 6 : 18,
+                    ),
+                    child: Center(
+                      heightFactor: 1,
+                      child: MapStatusCard(
+                        worldId: _progress.worldId,
+                        compact: compactCard,
+                        level: _activeLevel,
+                        unlockedLevels: _progress.unlockedCount,
+                        worldNavigation: widget.worldNavigation,
+                        onSelectWorld: widget.onSelectWorld,
+                        onPrevious: _awardingLevel == null && _activeLevel > 1
+                            ? () => _focusLevel(_activeLevel - 1)
+                            : null,
+                        onNext:
+                            _awardingLevel == null &&
+                                _activeLevel < _nodes.length
+                            ? () => _focusLevel(_activeLevel + 1)
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (kDebugMode && widget.showDeveloperControls)
+                DeveloperFloatingMenu(
+                  actions: [
+                    ...widget.developerActions,
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-complete-world-except-last'),
+                      label: 'Completar mundo menos última ronda',
+                      icon: Icons.flag_outlined,
+                      onPressed: _completeWorldExceptLastPuzzle,
+                    ),
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-reset-world'),
+                      label: 'Resetear mundo',
+                      icon: Icons.public_outlined,
+                      onPressed: _resetWorld,
+                    ),
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-reset-specific-level'),
+                      label: 'Resetear nivel específico',
+                      icon: Icons.restart_alt_rounded,
+                      onPressed: _chooseLevelToReset,
+                    ),
+                    DeveloperMenuAction(
+                      key: const ValueKey('dev-complete-random-level'),
+                      label: 'Completar nivel $_activeLevel al azar',
+                      icon: Icons.casino_outlined,
+                      onPressed: _completeActiveLevel,
+                    ),
+                  ],
+                ),
+            ],
+          );
+        },
       ),
     );
   }

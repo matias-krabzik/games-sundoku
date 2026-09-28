@@ -26,9 +26,13 @@ class MapWorldGate extends StatefulWidget {
     this.ignitionPending = false,
     this.ignite = false,
     this.onIgnited,
+    this.assetPath = asset,
+    this.worldNumber = 1,
   });
 
   final bool unlocked;
+  final String assetPath;
+  final int worldNumber;
   final double artworkSize;
   final FutureOr<void> Function()? onPressed;
   final bool ignitionPending;
@@ -231,7 +235,7 @@ class _MapWorldGateState extends State<MapWorldGate>
   Widget build(BuildContext context) {
     final artworkSize = widget.artworkSize;
     final artwork = Image.asset(
-      MapWorldGate.asset,
+      widget.assetPath,
       width: artworkSize,
       height: artworkSize,
       fit: BoxFit.contain,
@@ -239,8 +243,8 @@ class _MapWorldGateState extends State<MapWorldGate>
     );
     return Semantics(
       value: widget.unlocked
-          ? 'Mundo 1 completado'
-          : 'Completa todas las rondas del mundo 1',
+          ? 'Mundo ${widget.worldNumber} completado'
+          : 'Completa todas las rondas del mundo ${widget.worldNumber}',
       child: JuicyPress(
         label: 'Próximo mundo',
         onPressed: widget.unlocked && !widget.ignitionPending

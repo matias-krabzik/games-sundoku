@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../data/world_catalog.dart';
 import '../data/level_catalog.dart';
 import '../data/repositories/game_repository.dart';
 import '../domain/models/game_session.dart';
@@ -31,13 +32,28 @@ class FirstExperienceController extends ChangeNotifier {
     Random? random,
     this.reviewOnly = false,
     this.levelNumber = 1,
+    this.worldId = 'world-1',
     this.quickPlayDifficulty,
+    this.notesEnabled = false,
     this.helpEngine = const SudokuHelpEngine(),
   }) : _random = random ?? Random() {
-    RangeError.checkValueInInterval(levelNumber, 1, 10, 'levelNumber');
+    RangeError.checkValueInInterval(
+      levelNumber,
+      1,
+      adventureWorld(worldId).nodes.length,
+      'levelNumber',
+    );
+    if (worldId == 'world-2' &&
+        (!repository.forestUnlocked ||
+            !repository.notesTutorialCompleted ||
+            session == null)) {
+      throw StateError('Enter the forest through its notes lesson first');
+    }
     final saved = _module;
     _paused = isGeneratedLevel && saved['started'] == true;
-    _gameCell = saved['selectedCell'] as int?;
+    _gameCell =
+        puzzleProgress?.extra['selectedCell'] as int? ??
+        saved['selectedCell'] as int?;
     _cells = _readCells(saved['cells']);
     _savedStep = FirstExperienceStep.values.firstWhere(
       (step) => step.name == saved['step'],
@@ -53,13 +69,19 @@ class FirstExperienceController extends ChangeNotifier {
 
   static const moduleKey = 'firstExperience';
   final int levelNumber;
+  final String worldId;
+  AdventureWorld get world => adventureWorld(worldId);
   final QuickPlayDifficulty? quickPlayDifficulty;
+
+  /// Supplied by the adventure unlock/practice flow once that world is available.
+  final bool notesEnabled;
   bool get isQuickPlay => quickPlayDifficulty != null;
   int get roundCount => isQuickPlay ? 1 : 3;
-  bool get isGeneratedLevel => isQuickPlay || levelNumber > 1;
+  bool get isGeneratedLevel =>
+      isQuickPlay || worldId != 'world-1' || levelNumber > 1;
   String get storageKey =>
       quickPlayDifficulty?.storageKey ??
-      (isGeneratedLevel ? 'generatedLevel/$levelNumber' : moduleKey);
+      adventureModuleKey(worldId, levelNumber);
   bool _paused = false;
   bool get isPaused =>
       step == FirstExperienceStep.playing &&
@@ -124,11 +146,10 @@ class FirstExperienceController extends ChangeNotifier {
   TutorialLesson? get lesson => lessonFor(step, exampleCenter);
   int get storyIndex => tutorialStorySteps.indexOf(step);
   int get storyCount => tutorialStorySteps.length;
-  bool get isLastLevel =>
-      !isQuickPlay &&
-      !initialLevelCatalog.containsKey(mapLevelId(levelNumber + 1));
+  bool get isLastLevel => !isQuickPlay && levelNumber == world.nodes.length;
   bool get isFirstSudokuVictory =>
       !isQuickPlay &&
+      worldId == 'world-1' &&
       levelNumber == 1 &&
       gameIndex == 0 &&
       session != null &&
@@ -139,7 +160,56 @@ class FirstExperienceController extends ChangeNotifier {
   bool get readyToPlay =>
       step == FirstExperienceStep.playing &&
       !_isBusy &&
-      _play?.isRunning == true;
+      _play?.acceptingInput == true;
+  bool get notesAvailable =>
+      !reviewOnly &&
+      (repository.notesAllowedFor(session?.levelId) ||
+          notesEnabled ||
+          (kDebugMode && _module['debugNotes'] == true));
+  bool get notesMode =>
+      notesAvailable && puzzleProgress?.extra['notesMode'] == true;
+  Map<int, List<int>> get boardNotes => !hasGameBoard || isStory
+      ? {}
+      : {
+          for (var i = 0; i < (puzzleProgress?.cells.length ?? 0); i++)
+            if (puzzleProgress!.cells[i].notes.isNotEmpty)
+              i: puzzleProgress!.cells[i].notes,
+        };
+  List<int> get selectedNotes =>
+      _gameCell == null ? const [] : boardNotes[_gameCell] ?? const [];
+  bool get canClearGameCell =>
+      readyToPlay &&
+      _gameCell != null &&
+      !fixedIndices.contains(_gameCell) &&
+      (boardValues[_gameCell!] != null || selectedNotes.isNotEmpty);
+
+  Future<void> toggleNotesMode() async {
+    if (!readyToPlay || !notesAvailable) return;
+    await _run(() async {
+      await _player.setInputState(
+        notesMode: !notesMode,
+        selectedIndex: _gameCell,
+      );
+      _completion = null;
+      _feedback =
+          notesMode && _gameCell != null && boardValues[_gameCell!] != null
+          ? 'Elige una casilla vacía para anotar.'
+          : null;
+    });
+  }
+
+  Future<void> debugToggleNotes() async {
+    if (!kDebugMode || !readyToPlay || reviewOnly) return;
+    await _run(() async {
+      final enabled = _module['debugNotes'] != true;
+      if (!enabled) await _player.setInputState(notesMode: false);
+      await repository.saveModule(storageKey, {
+        ..._module,
+        'debugNotes': enabled,
+      });
+    });
+  }
+
   int? get gameCell => _gameCell;
   bool get canShowHelp =>
       readyToPlay && _gameCell != null && boardValues[_gameCell!] == null;
@@ -185,6 +255,7 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   List<int> get availableGameNumbers {
+    if (notesMode) return List.generate(9, (index) => index + 1);
     final board = boardValues;
     final solution = puzzleDefinition?.solution;
     final correctCounts = List<int>.filled(10, 0);
@@ -363,6 +434,9 @@ class FirstExperienceController extends ChangeNotifier {
       if (!isGeneratedLevel) await _prepareGames();
       return;
     }
+    if (kDebugMode && notesEnabled && session != null) {
+      await repository.debugEnableNotes(session!.id);
+    }
     await _run(() async {
       if (isGeneratedLevel) {
         await repository.saveModule(storageKey, {..._module, 'started': true});
@@ -389,16 +463,12 @@ class FirstExperienceController extends ChangeNotifier {
     RangeError.checkValueInInterval(index, 0, 80, 'index');
     if (!readyToPlay) return;
     _gameCell = index;
-    if (isGeneratedLevel) {
-      unawaited(
-        repository
-            .saveModule(storageKey, {..._module, 'selectedCell': index})
-            .catchError((Object _) {
-              _error = 'No pudimos guardar tu selección. Intenta de nuevo.';
-              if (!_disposed) notifyListeners();
-            }),
-      );
-    }
+    unawaited(
+      _player.setInputState(selectedIndex: index).catchError((Object _) {
+        _error = 'No pudimos guardar tu selección. Intenta de nuevo.';
+        if (!_disposed) notifyListeners();
+      }),
+    );
     _helpVisible = false;
     _feedback = null;
     notifyListeners();
@@ -412,6 +482,23 @@ class FirstExperienceController extends ChangeNotifier {
     }
     dismissHelp();
     final board = boardValues;
+    if (notesMode) {
+      if (board[index] != null) {
+        _feedback = 'Elige una casilla vacía para anotar.';
+        notifyListeners();
+        return;
+      }
+      _completion = null;
+      _feedback = null;
+      _error = null;
+      try {
+        await _player.toggleNote(index, number);
+      } catch (_) {
+        _error = 'No pudimos guardar tu anotación. Intenta de nuevo.';
+      }
+      if (!_disposed) notifyListeners();
+      return;
+    }
     if (board[index] == number) {
       if (conflicts.contains(index)) {
         _attention++;
@@ -454,14 +541,15 @@ class FirstExperienceController extends ChangeNotifier {
 
   Future<void> clearGameCell() async {
     final index = _gameCell;
-    if (!readyToPlay ||
-        index == null ||
-        fixedIndices.contains(index) ||
-        boardValues[index] == null) {
+    if (!canClearGameCell || index == null) {
       return;
     }
     await _run(() async {
-      await _player.setCell(index, null);
+      if (boardValues[index] == null) {
+        await _player.setNotes(index, const []);
+      } else {
+        await _player.setCell(index, null);
+      }
       _feedback = null;
       _completion = null;
     });

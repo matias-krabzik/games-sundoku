@@ -6,20 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
-import '../data/level_node.dart';
+import '../data/valley_map.dart';
+import '../models/world_map_definition.dart';
 import '../models/map_ambient_motion.dart';
 import 'map_ambient_painter.dart';
-
-const _sourceSize = Size(2172, 724);
-// Margins match layer_geometry.py and the foreground outpaint exporter.
-const _layers = [
-  (name: 'sky', horizontalPadding: 512.0, verticalPadding: 128.0),
-  (name: 'clouds', horizontalPadding: 512.0, verticalPadding: 128.0),
-  (name: 'mountains', horizontalPadding: 512.0, verticalPadding: 128.0),
-  (name: 'distance', horizontalPadding: 512.0, verticalPadding: 48.0),
-  (name: 'terrain', horizontalPadding: 128.0, verticalPadding: 128.0),
-  (name: 'foreground', horizontalPadding: 128.0, verticalPadding: 80.0),
-];
 
 /// Separate sky, clouds, mountains, hills, terrain and foreground layers.
 /// The interactive world and its lights share the approved terrain transform.
@@ -30,8 +20,16 @@ class MapParallaxScene extends StatefulWidget {
     required this.worldSize,
     required this.child,
     this.protectedWorldRects = const [],
+    this.definition = valleyMap,
+    this.worldTop,
+    this.focusY,
+    this.childBuilder,
   });
 
+  final WorldMapDefinition definition;
+  final double? worldTop;
+  final double? focusY;
+  final Widget Function(double verticalPan)? childBuilder;
   final ScrollController scroll;
   final Size worldSize;
   final Widget child;
@@ -45,8 +43,8 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker = createTicker(_tick);
   final ValueNotifier<double> _frame = ValueNotifier(0);
-  final MapAmbientMotion _ambient = MapAmbientMotion();
-  final MapAmbientArt _ambientArt = MapAmbientArt();
+  MapAmbientMotion? _ambient;
+  late MapAmbientArt _ambientArt;
   StreamSubscription<AccelerometerEvent>? _sensor;
   Offset? _neutral;
   Offset _filtered = Offset.zero;
@@ -58,6 +56,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
   bool _reduceMotion = false;
   bool _failedSensor = false;
   double _seconds = 0;
+  double? _panY;
 
   bool get _mobile =>
       !kIsWeb &&
@@ -77,7 +76,42 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_ambientArt.load());
+    _configureAmbient();
+  }
+
+  void _configureAmbient() {
+    widget.definition.validate();
+    final config = widget.definition.ambient;
+    _ambient = config == null
+        ? null
+        : MapAmbientMotion(
+            flowerAnchors: config.flowers,
+            foregroundFlowers: config.foregroundFlowerCount,
+            canopyAnchors: config.canopies,
+            pinkCanopy: config.pinkCanopy,
+            sourceSize: widget.definition.sourceSize,
+          );
+    _ambientArt = MapAmbientArt(
+      leafAsset: config?.leafAsset,
+      beeAsset: config?.beeAsset,
+    );
+    if (config != null) unawaited(_ambientArt.load());
+  }
+
+  @override
+  void didUpdateWidget(MapParallaxScene oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusY != widget.focusY ||
+        oldWidget.worldSize != widget.worldSize) {
+      _panY = null;
+    }
+    if (oldWidget.definition != widget.definition) {
+      _ambientArt.dispose();
+      _configureAmbient();
+      _neutral = null;
+      _target = _tilt = Offset.zero;
+      _seconds = 0;
+    }
   }
 
   @override
@@ -161,7 +195,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
         : ((elapsed - _lastFrame!).inMicroseconds / 1000000).clamp(0.0, .05);
     _lastFrame = elapsed;
     _seconds += dt;
-    _ambient.advance(dt);
+    _ambient?.advance(dt);
     _tilt = Offset.lerp(_tilt, _target, 1 - math.exp(-dt * 7))!;
     if ((_target - _tilt).distance < .001) {
       _tilt = _target;
@@ -198,176 +232,196 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      final definition = widget.definition;
       final viewport = constraints.biggest;
       final world = widget.worldSize;
-      final scale = world.width / _sourceSize.width;
-      // Images and the interactive subtree are retained between motion frames.
-      Widget art(String name) => RepaintBoundary(
-        child: Image.asset(
-          'assets/images/map/layers/$name.png',
-          fit: BoxFit.fill,
-          filterQuality: FilterQuality.medium,
-          excludeFromSemantics: true,
-        ),
-      );
-      final layers = [for (final layer in _layers) art(layer.name)];
-      return MouseRegion(
-        onEnter: (e) => _pointer(e.localPosition, viewport),
-        onHover: (e) => _pointer(e.localPosition, viewport),
-        onExit: (_) {
-          _target = Offset.zero;
-          _wakeMotion();
-        },
-        child: ClipRect(
-          child: AnimatedBuilder(
-            animation: Listenable.merge([widget.scroll, _frame]),
-            child: widget.child,
-            builder: (context, child) {
-              final maxScroll = math.max(0.0, world.width - viewport.width);
-              // New layout dimensions arrive before the scroll position is
-              // clamped. Keep artwork aligned during rotation/resizing too.
-              final scroll =
-                  (widget.scroll.hasClients ? widget.scroll.offset : 0.0).clamp(
-                    0.0,
-                    maxScroll,
-                  );
-              final enabled = !_reduceMotion;
-              final tilt = enabled ? _tilt * math.min(1.0, scale) : Offset.zero;
-              // Relative horizontal speeds, centered to share overscan at both
-              // ends. Far layers travel slower; foreground travels faster.
-              final depthScroll = scroll - maxScroll / 2;
-              final camera = enabled
-                  ? mapPathCameraOffset(scroll, viewport, world)
-                  : 0.0;
-              final terrain = Offset(tilt.dx * 5, camera + tilt.dy * 3.5);
-              final top = (viewport.height - world.height) / 2;
-              final foregroundDelta = enabled
-                  ? Offset(-depthScroll * .08 + tilt.dx * 14, tilt.dy * 10)
-                  : Offset.zero;
-              final terrainOrigin = Offset(-scroll, top) + terrain;
-              final foregroundOrigin = terrainOrigin + foregroundDelta;
-              final protectedRects = [
-                for (final rect in widget.protectedWorldRects)
-                  rect.shift(terrainOrigin),
-              ];
-              if (enabled && scale > 0) {
-                _ambient.setView(
-                  Rect.fromLTWH(
-                    -foregroundOrigin.dx / scale,
-                    -foregroundOrigin.dy / scale,
-                    viewport.width / scale,
-                    viewport.height / scale,
+      final scale = world.width / definition.sourceSize.width;
+      final layers = {
+        for (final layer in definition.layers)
+          layer.id: RepaintBoundary(
+            child: Image.asset(
+              layer.asset,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.medium,
+              excludeFromSemantics: true,
+            ),
+          ),
+      };
+      final baseTop = widget.worldTop ?? (viewport.height - world.height) / 2;
+      final canPan =
+          definition.allowVerticalPan && world.height > viewport.height;
+      final focus = (widget.focusY ?? .5) * world.height + baseTop;
+      final autoPan = focus < 80
+          ? 80 - focus
+          : focus > viewport.height - 80
+          ? viewport.height - 80 - focus
+          : 0.0;
+      final pan = canPan
+          ? (_panY ?? autoPan).clamp(
+              viewport.height - world.height - baseTop,
+              -baseTop,
+            )
+          : 0.0;
+      return GestureDetector(
+        onVerticalDragUpdate: canPan
+            ? (details) {
+                setState(
+                  () => _panY = (pan + details.delta.dy).clamp(
+                    viewport.height - world.height - baseTop,
+                    -baseTop,
                   ),
                 );
               }
-              Widget atmosphere(MapLeafDepth depth) => Positioned.fill(
-                child: IgnorePointer(
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      painter: MapAmbientPainter(
-                        motion: _ambient,
-                        art: _ambientArt,
-                        depth: depth,
-                        origin: depth == MapLeafDepth.foreground
-                            ? foregroundOrigin
-                            : terrainOrigin,
+            : null,
+        child: MouseRegion(
+          onEnter: (e) => _pointer(e.localPosition, viewport),
+          onHover: (e) => _pointer(e.localPosition, viewport),
+          onExit: (_) {
+            _target = Offset.zero;
+            _wakeMotion();
+          },
+          child: ClipRect(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([widget.scroll, _frame]),
+              child: widget.child,
+              builder: (context, child) {
+                final maxScroll = math.max(0.0, world.width - viewport.width);
+                final scroll =
+                    (widget.scroll.hasClients ? widget.scroll.offset : 0.0)
+                        .clamp(0.0, maxScroll);
+                final enabled = !_reduceMotion;
+                final tilt = enabled
+                    ? _tilt * math.min(1.0, scale)
+                    : Offset.zero;
+                final camera = enabled
+                    ? pathCameraOffset(scroll, viewport, world, definition)
+                    : 0.0;
+                final terrain = Offset(
+                  tilt.dx * definition.terrainTilt.dx,
+                  camera + pan + tilt.dy * definition.terrainTilt.dy,
+                );
+                final top =
+                    widget.worldTop ?? (viewport.height - world.height) / 2;
+                Offset deltaFor(MapLayerDefinition layer) =>
+                    !enabled || layer.plane == MapLayerPlane.terrain
+                    ? Offset.zero
+                    : layer.motion.offset(
+                        centeredScroll: scroll - maxScroll / 2,
+                        inclination: tilt,
+                        camera: camera,
+                        seconds: _seconds,
                         scale: scale,
-                        protectedRects: protectedRects,
-                        time: _seconds,
+                      );
+                final ambient = _ambient;
+                final ambientLayer = definition.layers
+                    .where(
+                      (layer) =>
+                          layer.id == definition.ambient?.foregroundLayerId,
+                    )
+                    .firstOrNull;
+                final terrainOrigin = Offset(-scroll, top) + terrain;
+                final foregroundOrigin =
+                    terrainOrigin +
+                    (ambientLayer == null
+                        ? Offset.zero
+                        : deltaFor(ambientLayer));
+                final protectedRects = [
+                  for (final rect in widget.protectedWorldRects)
+                    rect.shift(terrainOrigin),
+                ];
+                if (enabled && scale > 0) {
+                  ambient?.setView(
+                    Rect.fromLTWH(
+                      -foregroundOrigin.dx / scale,
+                      -foregroundOrigin.dy / scale,
+                      viewport.width / scale,
+                      viewport.height / scale,
+                    ),
+                    terrainOffset: (terrainOrigin - foregroundOrigin) / scale,
+                  );
+                }
+                Widget atmosphere(MapLeafDepth depth) => Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: MapAmbientPainter(
+                          motion: ambient!,
+                          art: _ambientArt,
+                          depth: depth,
+                          origin: depth == MapLeafDepth.foreground
+                              ? foregroundOrigin
+                              : terrainOrigin,
+                          scale: scale,
+                          protectedRects: protectedRects,
+                          time: _seconds,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-              Widget plane(int index, Offset delta) {
-                final horizontalPadding =
-                    _layers[index].horizontalPadding * scale;
-                final verticalPadding = _layers[index].verticalPadding * scale;
-                return Positioned(
-                  left: -scroll - horizontalPadding + terrain.dx + delta.dx,
-                  top: top - verticalPadding + terrain.dy + delta.dy,
-                  width: world.width + horizontalPadding * 2,
-                  height: world.height + verticalPadding * 2,
-                  child: IgnorePointer(child: layers[index]),
                 );
-              }
+                Widget plane(MapLayerDefinition layer) {
+                  final paddingX = layer.horizontalPadding * scale;
+                  final paddingY = layer.verticalPadding * scale;
+                  final delta = deltaFor(layer);
+                  return Positioned(
+                    key: ValueKey('map-layer-${layer.id}'),
+                    left: -scroll - paddingX + terrain.dx + delta.dx,
+                    top: top - paddingY + terrain.dy + delta.dy,
+                    width: world.width + paddingX * 2,
+                    height: world.height + paddingY * 2,
+                    child: IgnorePointer(child: layers[layer.id]),
+                  );
+                }
 
-              return GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                excludeFromSemantics: true,
-                onTapUp: !enabled
-                    ? null
-                    : (details) {
-                        if (!_active || scale <= 0) return;
-                        final position =
-                            (details.localPosition - foregroundOrigin) / scale;
-                        if (_ambientArt.bee != null &&
-                            _ambient.startleBeeAt(position, scale: scale)) {
-                          return;
-                        }
-                        _ambient.puff(
-                          position,
-                          canopyPosition:
-                              (details.localPosition - terrainOrigin) / scale,
-                        );
-                      },
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    plane(
-                      0,
-                      enabled
-                          ? Offset(
-                              depthScroll * .45 - tilt.dx * 8,
-                              -camera * .30 - tilt.dy * 4,
-                            )
-                          : Offset.zero,
-                    ),
-                    plane(
-                      1,
-                      enabled
-                          ? Offset(
-                              depthScroll * .40 -
-                                  tilt.dx * 7 +
-                                  math.sin(_seconds * .20) * 40 * scale,
-                              -camera * .25 -
-                                  tilt.dy * 4 +
-                                  math.sin(_seconds * .16) * 2 * scale,
-                            )
-                          : Offset.zero,
-                    ),
-                    plane(
-                      2,
-                      enabled
-                          ? Offset(
-                              depthScroll * .35 - tilt.dx * 5,
-                              -camera * .18 - tilt.dy * 3,
-                            )
-                          : Offset.zero,
-                    ),
-                    plane(
-                      3,
-                      enabled
-                          ? Offset(
-                              depthScroll * .18 - tilt.dx * 3,
-                              -camera * .08 - tilt.dy * 2,
-                            )
-                          : Offset.zero,
-                    ),
-                    if (enabled) atmosphere(MapLeafDepth.behindTrees),
-                    plane(4, Offset.zero),
-                    if (enabled) atmosphere(MapLeafDepth.air),
-                    Transform.translate(
-                      key: const ValueKey('map-terrain-transform'),
-                      offset: terrain,
-                      child: child,
-                    ),
-                    plane(5, foregroundDelta),
-                    if (enabled) atmosphere(MapLeafDepth.foreground),
-                  ],
-                ),
-              );
-            },
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  excludeFromSemantics: true,
+                  onTapUp: !enabled || ambient == null
+                      ? null
+                      : (details) {
+                          if (!_active || scale <= 0) return;
+                          final position =
+                              (details.localPosition - foregroundOrigin) /
+                              scale;
+                          if (_ambientArt.bee != null &&
+                              ambient.startleBeeAt(position, scale: scale)) {
+                            return;
+                          }
+                          ambient.puff(
+                            position,
+                            canopyPosition:
+                                (details.localPosition - terrainOrigin) / scale,
+                          );
+                        },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      for (final layer in definition.layers)
+                        if (layer.plane == MapLayerPlane.background)
+                          plane(layer),
+                      if (enabled && ambient != null)
+                        atmosphere(MapLeafDepth.behindTrees),
+                      for (final layer in definition.layers)
+                        if (layer.plane == MapLayerPlane.terrain) plane(layer),
+                      if (enabled && ambient != null)
+                        atmosphere(MapLeafDepth.air),
+                      Transform.translate(
+                        key: const ValueKey('map-terrain-transform'),
+                        offset:
+                            terrain -
+                            Offset(0, widget.childBuilder == null ? 0 : pan),
+                        child: widget.childBuilder?.call(pan) ?? child,
+                      ),
+                      for (final layer in definition.layers)
+                        if (layer.plane == MapLayerPlane.foreground)
+                          plane(layer),
+                      if (enabled && ambient != null)
+                        atmosphere(MapLeafDepth.foreground),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       );
@@ -375,24 +429,10 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
   );
 }
 
-/// A bounded, smooth vertical follow of the painted path under the viewport.
-/// The vertical overscan covers this camera follow and tilt at both ends.
-double mapPathCameraOffset(double scroll, Size viewport, Size world) {
-  final x = ((scroll + viewport.width / 2) / world.width).clamp(0.0, 1.0);
-  var y = kMap1Nodes.last.y;
-  if (x <= kMap1Nodes.first.x) y = kMap1Nodes.first.y;
-  for (var i = 1; i < kMap1Nodes.length; i++) {
-    final a = kMap1Nodes[i - 1];
-    final b = kMap1Nodes[i];
-    if (x >= a.x && x <= b.x) {
-      final t = (x - a.x) / (b.x - a.x);
-      final smooth = t * t * (3 - 2 * t);
-      y = a.y + (b.y - a.y) * smooth;
-      break;
-    }
-  }
-  return ((.61 - y) * world.height * .35).clamp(
-    -world.height * .025,
-    world.height * .025,
-  );
-}
+/// Default valley camera retained for callers that preview it independently.
+double mapPathCameraOffset(
+  double scroll,
+  Size viewport,
+  Size world, {
+  WorldMapDefinition definition = valleyMap,
+}) => pathCameraOffset(scroll, viewport, world, definition);

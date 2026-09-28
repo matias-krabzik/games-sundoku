@@ -5,42 +5,47 @@ import 'package:flutter/foundation.dart';
 import '../domain/models/game_save.dart';
 import '../domain/models/game_session.dart';
 import 'level_catalog.dart';
-import 'level_node.dart';
+import 'world_catalog.dart';
 import 'repositories/game_repository.dart';
 
 /// Presents the current map's saved records; challenge rules live in the catalog.
 class LevelProgress extends ChangeNotifier {
-  LevelProgress({GameRepository? repository})
+  LevelProgress({GameRepository? repository, this.worldId = 'world-1'})
     : _repository = repository ?? GameRepository.memory(),
       _ownsRepository = repository == null {
     _repository.addListener(notifyListeners);
   }
+
+  final String worldId;
+  AdventureWorld get world => adventureWorld(worldId);
 
   static const int requiredLights = 3;
   final GameRepository _repository;
   final bool _ownsRepository;
 
   String _id(int level) {
-    RangeError.checkValueInInterval(level, 1, kMap1Nodes.length, 'level');
-    return mapLevelId(level);
+    RangeError.checkValueInInterval(level, 1, world.nodes.length, 'level');
+    return mapLevelId(level, worldId: worldId);
   }
 
   int lightsFor(int level) =>
       _repository.state.progress[_id(level)]?.bestLights ?? 0;
   bool isUnlocked(int level) => _repository.state.isUnlocked(_id(level));
   int get unlockedCount =>
-      kMap1Nodes.where((node) => isUnlocked(node.level)).length;
+      world.nodes.where((node) => isUnlocked(node.level)).length;
   int get latestUnlocked =>
-      kMap1Nodes.lastWhere((node) => isUnlocked(node.level)).level;
+      world.nodes.lastWhere((node) => isUnlocked(node.level)).level;
 
-  bool get gateCelebrationPending => _repository.shouldCelebrateWorldGate;
-  Future<void> markGateCelebrated() => _repository.markWorldGateCelebrated();
+  bool get gateCelebrationPending =>
+      world.map.gate != null && _repository.shouldCelebrateGate(worldId);
+  Future<void> markGateCelebrated() =>
+      _repository.markWorldGateCelebrated(worldId: worldId);
 
   LevelRecord recordFor(int level) =>
       _repository.state.progress[_id(level)] ?? LevelRecord();
 
   /// Sum each level's best saved score, including an unfinished attempt.
-  int get worldPoints => kMap1Nodes.fold(0, (total, node) {
+  int get worldPoints => world.nodes.fold(0, (total, node) {
     var points = recordFor(node.level).bestPoints;
     for (final session in _repository.state.sessions.values) {
       if (session.levelId == _id(node.level) && session.points > points) {
@@ -78,18 +83,21 @@ class LevelProgress extends ChangeNotifier {
   Future<void> resetLevel(int level) {
     _id(level);
     return _repository.resetDebugLevels({
-      for (final node in kMap1Nodes.where((node) => node.level >= level))
+      for (final node in world.nodes.where((node) => node.level >= level))
         _id(node.level),
     });
   }
 
   Future<void> completeRandomLevel(int level) {
     _id(level);
-    return _repository.completeDebugLevel(level);
+    return _repository.completeDebugLevel(level, worldId: worldId);
   }
 
   Future<void> completeWorldExceptLastPuzzle() =>
-      _repository.completeDebugWorldExceptLastPuzzle();
+      _repository.completeDebugWorldExceptLastPuzzle(worldId: worldId);
+
+  Future<void> prepareForest() => _repository.prepareDebugForest();
+  Future<void> resetNotesLesson() => _repository.resetDebugNotesTutorial();
 
   @override
   void dispose() {

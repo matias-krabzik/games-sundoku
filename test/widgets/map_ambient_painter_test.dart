@@ -8,13 +8,22 @@ import 'package:sundoku/widgets/map_ambient_painter.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('new bees stay opaque when crossing protected level markers', () async {
+  test('leaves and bees stay opaque over level markers', () async {
     final art = MapAmbientArt();
     addTearDown(art.dispose);
     await art.load();
     expect(art.bee, isNotNull);
     final motion = MapAmbientMotion(seed: 1);
     motion.bees.add(MapBee(const ui.Offset(100, 100), 0, 0)..rest = 2);
+    motion.leaves.add(
+      MapLeaf(
+        const ui.Offset(100, 100),
+        MapLeafDepth.foreground,
+        16,
+        0,
+        bottom: 200,
+      )..age = 10,
+    );
 
     Future<Uint8List> render(List<ui.Rect> protectedRects) async {
       final recorder = ui.PictureRecorder();

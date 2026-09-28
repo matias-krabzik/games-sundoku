@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'game_feedback_scope.dart';
 import 'map_art.dart';
+import 'home_art.dart';
 
 /// Star geometry shared by the indicator, light masking and award destination.
 Offset mapScoreStarOffset(int socket, double nodeSize) {
@@ -22,6 +23,8 @@ class MapLevelButton extends StatefulWidget {
   const MapLevelButton({
     super.key,
     required this.level,
+    this.textNumber = false,
+    this.numberAsset,
     required this.active,
     required this.lights,
     required this.unlocked,
@@ -29,6 +32,8 @@ class MapLevelButton extends StatefulWidget {
   });
 
   final int level;
+  final bool textNumber;
+  final String? numberAsset;
   final bool active;
   final int lights;
   final bool unlocked;
@@ -56,8 +61,7 @@ class _MapLevelButtonState extends State<MapLevelButton> {
         final gold = widget.unlocked && (widget.active || widget.lights == 3);
         final artwork = MapMarkerArt(gold: gold);
         return AnimatedScale(
-          scale:
-              _hovered && !reduced && widget.unlocked ? 1.03 : 1,
+          scale: _hovered && !reduced && widget.unlocked ? 1.03 : 1,
           duration: reduced ? Duration.zero : const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           child: Stack(
@@ -101,7 +105,9 @@ class _MapLevelButtonState extends State<MapLevelButton> {
                       mapScoreStarSize(socket, size) / 2,
                   child: IgnorePointer(
                     child: _ScoreStar(
-                      key: ValueKey('level-${widget.level}-score-${socket + 1}'),
+                      key: ValueKey(
+                        'level-${widget.level}-score-${socket + 1}',
+                      ),
                       size: mapScoreStarSize(socket, size),
                       earned: widget.lights > socket,
                       reduced: reduced,
@@ -129,18 +135,30 @@ class _MapLevelButtonState extends State<MapLevelButton> {
                         widget.onTap();
                       },
                       child: Center(
-                        child: Image.asset(
-                          'assets/images/level-number-${widget.level}.png',
-                          key: ValueKey('level-${widget.level}-label'),
-                          width: widget.level == 10 ? size * .60 : size * .49,
-                          height: size * .58,
-                          fit: BoxFit.contain,
-                          cacheWidth: 200,
-                          excludeFromSemantics: true,
-                          opacity: AlwaysStoppedAnimation(
-                            widget.unlocked ? 1 : .58,
-                          ),
-                        ),
+                        child:
+                            widget.textNumber ||
+                                (widget.numberAsset == null &&
+                                    widget.level > 10)
+                            ? Text(
+                                '${widget.level}',
+                                style: homeText(size * .49),
+                                textAlign: TextAlign.center,
+                              )
+                            : Image.asset(
+                                widget.numberAsset ??
+                                    'assets/images/level-number-${widget.level}.png',
+                                key: ValueKey('level-${widget.level}-label'),
+                                width: widget.level == 10
+                                    ? size * .60
+                                    : size * .49,
+                                height: size * .58,
+                                fit: BoxFit.contain,
+                                cacheWidth: 200,
+                                excludeFromSemantics: true,
+                                opacity: AlwaysStoppedAnimation(
+                                  widget.unlocked ? 1 : .58,
+                                ),
+                              ),
                       ),
                     ),
                   ),

@@ -4,6 +4,27 @@ import 'package:sundoku/data/repositories/game_repository.dart';
 import 'package:sundoku/data/services/save_store.dart';
 
 void main() {
+  test('each world keeps its own gate celebration and debug reset', () async {
+    final repo = GameRepository.memory();
+    for (var level = 1; level <= 10; level++) {
+      await repo.recordDebugLights(mapLevelId(level), 3);
+    }
+    await repo.markWorldGateCelebrated();
+    for (var level = 1; level <= 21; level++) {
+      await repo.recordDebugLights(mapLevelId(level, worldId: 'world-2'), 3);
+    }
+    expect(repo.shouldCelebrateGate('world-2'), isTrue);
+    expect(repo.shouldCelebrateWorldGate, isFalse);
+    await repo.markWorldGateCelebrated(worldId: 'world-2');
+    expect(repo.shouldCelebrateGate('world-2'), isFalse);
+    expect(repo.state.modules['world1GateCelebrated'], isTrue);
+    await repo.resetDebugLevels({mapLevelId(21, worldId: 'world-2')});
+    await repo.recordDebugLights(mapLevelId(21, worldId: 'world-2'), 3);
+    expect(repo.shouldCelebrateGate('world-2'), isTrue);
+    expect(repo.shouldCelebrateWorldGate, isFalse);
+    await repo.close();
+  });
+
   test(
     'gate celebration survives reopening and is independent of home discovery',
     () async {

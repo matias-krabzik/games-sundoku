@@ -1,29 +1,32 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import '../routes.dart';
-import '../data/level_node.dart';
-import 'score_feedback.dart';
-import 'ui_surface_art.dart';
+import '../data/world_catalog.dart';
+import '../data/services/world_navigation_service.dart';
+import 'adventure_progress_card.dart';
 import 'game_feedback_scope.dart';
 import 'home_art.dart';
 import 'juicy_press.dart';
 import 'map_art.dart';
 import 'settings_art.dart';
+import 'ui_surface_art.dart';
+import 'world_thumbnail.dart';
 
 class MapWorldHeader extends StatelessWidget {
   const MapWorldHeader({
     super.key,
     required this.onBack,
     this.onViewTutorial,
+    this.onChooseWorld,
     this.compact = false,
     this.groupActions = false,
   });
 
   final VoidCallback onBack;
   final VoidCallback? onViewTutorial;
+  final VoidCallback? onChooseWorld;
   final bool compact;
   final bool groupActions;
 
@@ -48,6 +51,15 @@ class MapWorldHeader extends StatelessWidget {
           onPressed: onViewTutorial,
         ),
       ],
+      if (onChooseWorld != null) ...[
+        const SizedBox(width: 8),
+        _MapRoundButton(
+          label: 'Elegir mundo',
+          icon: Icons.public_rounded,
+          size: compact ? 50 : 54,
+          onPressed: onChooseWorld,
+        ),
+      ],
       if (groupActions) const SizedBox(width: 8) else const Spacer(),
       _MapRoundButton(
         key: const ValueKey('map-settings'),
@@ -61,178 +73,161 @@ class MapWorldHeader extends StatelessWidget {
   );
 }
 
-/// Full-width world footer. Stars remain on their level markers.
+/// Floating map progress panel. Stars remain on their level markers.
 class MapStatusCard extends StatelessWidget {
   const MapStatusCard({
     super.key,
     required this.level,
-    required this.points,
+    this.worldId = 'world-1',
+    required this.unlockedLevels,
+    this.worldNavigation,
+    this.onSelectWorld,
     required this.onPrevious,
     required this.onNext,
     this.compact = false,
   });
 
   final int level;
-  final int points;
+  final String worldId;
+  final int unlockedLevels;
+  final WorldNavigationService? worldNavigation;
+  final ValueChanged<String>? onSelectWorld;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final bool compact;
 
   @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      const Positioned.fill(child: UiSurfaceArt(UiSurface.worldFooter)),
-      SafeArea(
-        top: false,
-        child: LayoutBuilder(
-          builder: (context, bounds) {
-            final desktop =
-                defaultTargetPlatform != TargetPlatform.android &&
-                defaultTargetPlatform != TargetPlatform.iOS;
-            final large = bounds.maxWidth >= 700;
-            final titleSize = compact
-                ? 23.0
-                : large
-                ? 34.0
-                : 26.0;
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                compact ? 10 : 16,
-                16,
-                compact ? 8 : 14,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'MUNDO 1 · VALLE DEL SOL',
-                    textAlign: TextAlign.center,
-                    style: homeText(compact ? 10 : 12).copyWith(
-                      color: const Color(0xFFA46A0E),
-                      letterSpacing: 1.8,
-                    ),
-                  ),
-                  SizedBox(height: compact ? 3 : 6),
-                  Row(
-                    children: [
-                      if (desktop)
-                        _MapRoundButton(
-                          key: const ValueKey('map-previous'),
-                          label: 'Nivel anterior',
-                          glyph: MapGlyph.chevron,
-                          mirrored: true,
-                          gold: onPrevious != null,
-                          size: 48,
-                          onPressed: onPrevious,
-                        ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              kValleyLevelNames[level - 1],
-                              key: const ValueKey('map-level-name'),
-                              style: homeText(titleSize),
-                              textAlign: TextAlign.center,
+  Widget build(BuildContext context) {
+    final navigation = worldNavigation;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: compact ? 400 : 477),
+      child: AdventureProgressCard(
+        level: level,
+        worldId: worldId,
+        unlockedLevels: unlockedLevels,
+        levelName: adventureWorld(worldId).names[level - 1],
+        compact: compact,
+        onChooseWorld: navigation != null && onSelectWorld != null
+            ? () => _chooseWorld(context, navigation)
+            : null,
+        leading: _MapRoundButton(
+          key: const ValueKey('map-previous'),
+          label: 'Nivel anterior',
+          glyph: MapGlyph.chevron,
+          mirrored: true,
+          gold: onPrevious != null,
+          progressStyle: true,
+          size: 48,
+          onPressed: onPrevious,
+        ),
+        trailing: _MapRoundButton(
+          key: const ValueKey('map-next'),
+          label: 'Nivel siguiente',
+          glyph: MapGlyph.chevron,
+          gold: onNext != null,
+          progressStyle: true,
+          size: 48,
+          onPressed: onNext,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _chooseWorld(
+    BuildContext context,
+    WorldNavigationService navigation,
+  ) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 410),
+          child: UiSurfacePanel(
+            surface: UiSurface.creamPanel,
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Elige un mundo', style: homeText(25)),
+                const SizedBox(height: 14),
+                for (final world in navigation.worlds) ...[
+                  SizedBox(
+                    height: 58,
+                    child: JuicyPress(
+                      key: ValueKey('map-world-option-${world.number}'),
+                      label: world.id == worldId
+                          ? 'Mundo ${world.number}: ${world.name}, actual'
+                          : 'Mundo ${world.number}: ${world.name}',
+                      onFeedback: () => GameFeedbackScope.tap(dialogContext),
+                      onPressed: navigation.isUnlocked(world.id)
+                          ? () => Navigator.of(dialogContext).pop(world.id)
+                          : null,
+                      builder: (context, _) => Opacity(
+                        opacity: navigation.isUnlocked(world.id) ? 1 : .55,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            UiSurfaceArt(
+                              world.id == worldId
+                                  ? UiSurface.goldButton
+                                  : UiSurface.creamPill,
                             ),
-                          ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                              ),
+                              child: Row(
+                                children: [
+                                  WorldThumbnail(worldId: world.id, size: 36),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Mundo ${world.number}',
+                                          style: homeText(17),
+                                        ),
+                                        Text(
+                                          world.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: homeText(12),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!navigation.isUnlocked(world.id))
+                                    const Icon(
+                                      Icons.lock_rounded,
+                                      size: 21,
+                                      color: homeNavy,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      if (desktop)
-                        _MapRoundButton(
-                          key: const ValueKey('map-next'),
-                          label: 'Nivel siguiente',
-                          glyph: MapGlyph.chevron,
-                          gold: onNext != null,
-                          size: 48,
-                          onPressed: onNext,
-                        ),
-                    ],
+                    ),
                   ),
-                  SizedBox(height: compact ? 3 : 8),
-                  _WorldScoreBadge(
-                    points: points,
-                    height: compact
-                        ? 42
-                        : large
-                        ? 66
-                        : 54,
-                  ),
+                  const SizedBox(height: 7),
                 ],
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         ),
       ),
-    ],
-  );
-}
-
-class _WorldScoreBadge extends StatelessWidget {
-  const _WorldScoreBadge({required this.points, required this.height});
-  final int points;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'Puntaje acumulado del mundo: $points puntos',
-    excludeSemantics: true,
-    child: SizedBox(
-      height: height,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: height * .5,
-                top: height * .12,
-                bottom: height * .12,
-              ),
-              child: UiSurfacePanel(
-                surface: UiSurface.blueScoreCapsule,
-                padding: EdgeInsets.fromLTRB(
-                  height * .6,
-                  height * .11,
-                  height * .3,
-                  height * .13,
-                ),
-                child: Text(
-                  formatScore(points),
-                  key: const ValueKey('map-world-score'),
-                  style: homeText(height * .48).copyWith(
-                    color: const Color(0xFFFFF1CE),
-                    shadows: const [
-                      Shadow(color: Color(0x88001741), offset: Offset(0, 2)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Image.asset(
-                  'assets/images/map/score-sun.png',
-                  key: const ValueKey('map-score-sun'),
-                  width: height,
-                  height: height,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.medium,
-                  excludeFromSemantics: true,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+    );
+    if (context.mounted && selected != null && selected != worldId) {
+      onSelectWorld?.call(selected);
+    }
+  }
 }
 
 class _MapRoundButton extends StatelessWidget {
@@ -245,6 +240,7 @@ class _MapRoundButton extends StatelessWidget {
     required this.size,
     required this.onPressed,
     this.gold = false,
+    this.progressStyle = false,
     this.mirrored = false,
   });
 
@@ -255,6 +251,7 @@ class _MapRoundButton extends StatelessWidget {
   final double size;
   final VoidCallback? onPressed;
   final bool gold;
+  final bool progressStyle;
   final bool mirrored;
 
   @override
@@ -272,7 +269,9 @@ class _MapRoundButton extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                MapRoundSurface(gold: gold),
+                progressStyle && gold
+                    ? const UiSurfaceArt(UiSurface.mapProgressRound)
+                    : MapRoundSurface(gold: gold),
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 3),

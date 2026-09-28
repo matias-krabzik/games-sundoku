@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../domain/models/game_save.dart';
+import '../data/world_catalog.dart';
 import '../domain/models/game_session.dart';
 import 'game_pause.dart';
 import 'home_art.dart';
@@ -16,6 +17,7 @@ import 'ui_surface_art.dart';
 class LevelSummaryRoute extends RawDialogRoute<bool> {
   LevelSummaryRoute({
     required int level,
+    String worldId = 'world-1',
     required int lights,
     required GameSession? session,
     required LevelRecord record,
@@ -29,6 +31,7 @@ class LevelSummaryRoute extends RawDialogRoute<bool> {
            child: Center(
              child: LevelSummaryCard(
                level: level,
+               worldId: worldId,
                lights: lights,
                session: session,
                record: record,
@@ -64,6 +67,7 @@ class LevelSummaryRoute extends RawDialogRoute<bool> {
 class LevelSummaryCard extends StatelessWidget {
   const LevelSummaryCard({
     required this.level,
+    this.worldId = 'world-1',
     required this.lights,
     required this.session,
     required this.record,
@@ -73,13 +77,15 @@ class LevelSummaryCard extends StatelessWidget {
   });
 
   final int level;
+  final String worldId;
   final int lights;
   final GameSession? session;
   final LevelRecord record;
   final VoidCallback onContinue;
   final VoidCallback onOk;
 
-  bool get _isPracticeComplete => level == 1 && lights >= 3;
+  bool get _isPracticeComplete =>
+      (worldId == 'world-1' && level == 1) && lights >= 3;
   bool get _isComplete =>
       _isPracticeComplete || (session?.canResume != true && lights >= 3);
   bool get _isNewLevel => session == null && lights == 0;
@@ -132,7 +138,7 @@ class LevelSummaryCard extends StatelessWidget {
     child: LayoutBuilder(
       builder: (context, bounds) {
         final textScale = MediaQuery.textScalerOf(context).scale(1);
-        if (level == 1) {
+        if ((worldId == 'world-1' && level == 1)) {
           final width = math.min(540.0, bounds.maxWidth);
           final preferredHeight = _isPracticeComplete ? 500.0 : 360.0;
           final height = math.min(
@@ -318,10 +324,10 @@ class LevelSummaryCard extends StatelessWidget {
   Widget _heading({required bool dense}) => Column(
     children: [
       _fitText(
-        'MUNDO 1',
+        'MUNDO ${adventureWorld(worldId).number}',
         homeText(dense ? 12 : 14).copyWith(color: const Color(0xFFAC691C)),
       ),
-      _fitText('Valle del Sol', homeText(dense ? 22 : 27)),
+      _fitText(adventureWorld(worldId).name, homeText(dense ? 22 : 27)),
       SizedBox(height: dense ? 2 : 6),
       _fitText('Nivel $level', homeText(dense ? 27 : 34)),
       _fitText(
@@ -362,7 +368,9 @@ class LevelSummaryCard extends StatelessWidget {
   );
 
   Widget _challengeHeading({required bool dense}) {
-    final stars = level == 1 ? lights.clamp(0, 3) : _completedRounds;
+    final stars = (worldId == 'world-1' && level == 1)
+        ? lights.clamp(0, 3)
+        : _completedRounds;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -382,7 +390,7 @@ class LevelSummaryCard extends StatelessWidget {
         Text(
           _isPracticeComplete
               ? '¡Lo hiciste muy bien!'
-              : level == 1
+              : (worldId == 'world-1' && level == 1)
               ? 'En progreso'
               : _isComplete
               ? '¡Completado!'

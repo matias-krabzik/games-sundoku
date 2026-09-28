@@ -14,6 +14,8 @@ import '../../domain/models/player_profile.dart';
 import '../../domain/models/sudoku_definition.dart';
 import '../../domain/tutorial/tutorial_sudokus.dart';
 import '../level_catalog.dart';
+import '../world_catalog.dart';
+import '../forest_puzzles.dart';
 import '../services/save_codec.dart';
 import '../services/save_store.dart';
 
@@ -58,6 +60,20 @@ class GameRepository extends ChangeNotifier {
           ),
         );
       }
+      // Add content only: existing definitions, sessions and unknown fields stay intact.
+      if (initialLevelCatalog.keys.any(
+        (id) => !repo.state.levels.containsKey(id),
+      )) {
+        await repo._update(
+          (save) => save.copyWith(
+            levels: {...initialLevelCatalog, ...save.levels},
+            modules: {
+              ...save.modules,
+              'contentCatalog': {'revision': 2},
+            },
+          ),
+        );
+      }
       return repo;
     } catch (_) {
       await store.close();
@@ -82,11 +98,64 @@ class GameRepository extends ChangeNotifier {
 
   static const _quickPlayDiscoveryKey = 'quickPlayDiscovery';
   static const _worldGateCelebratedKey = 'world1GateCelebrated';
+  static String _gateKey(String worldId) => worldId == 'world-1'
+      ? _worldGateCelebratedKey
+      : 'worldGate/$worldId/celebrated';
 
-  bool get quickPlayUnlocked => initialLevelCatalog.values.every(
-    (level) =>
-        (state.progress[level.id]?.bestLights ?? 0) >= level.requiredLights,
+  bool get quickPlayUnlocked => worldCompleted('world-1');
+
+  bool worldCompleted(String worldId) {
+    // Retired definitions may remain in old saves; only current map levels
+    // contribute to world completion, without deleting historical records.
+    final levels = initialLevelCatalog.values.where(
+      (l) => l.worldId == worldId,
+    );
+    return levels.isNotEmpty &&
+        levels.every(
+          (level) =>
+              (state.progress[level.id]?.bestLights ?? 0) >=
+              level.requiredLights,
+        );
+  }
+
+  bool get forestUnlocked => quickPlayUnlocked;
+  bool get notesTutorialCompleted {
+    final lesson = state.modules['tutorials/notes/v1'];
+    return lesson is Map && lesson['completed'] == true;
+  }
+
+  bool get notesUnlocked =>
+      (state.progress['world-2/level-1']?.bestLights ?? 0) >= 3;
+  bool notesAllowedFor(String? levelId) =>
+      notesUnlocked ||
+      (levelId == 'world-2/level-1' &&
+          forestUnlocked &&
+          notesTutorialCompleted);
+  bool get notesAnnouncementPending =>
+      notesUnlocked && state.modules['announcements/notes'] != true;
+  Future<void> markNotesAnnounced() => _update(
+    (save) => !notesUnlocked
+        ? save
+        : save.copyWith(
+            modules: {...save.modules, 'announcements/notes': true},
+          ),
   );
+  String get lastAdventureWorld {
+    final navigation = state.modules['navigation/adventure'];
+    return navigation is Map &&
+            navigation['worldId'] == 'world-2' &&
+            forestUnlocked
+        ? 'world-2'
+        : 'world-1';
+  }
+
+  Future<void> visitWorld(String worldId) {
+    adventureWorld(worldId);
+    if (worldId == 'world-2' && !forestUnlocked) {
+      throw StateError('World is locked');
+    }
+    return saveModule('navigation/adventure', {'worldId': worldId});
+  }
 
   bool _quickPlayFlag(String key) {
     final discovery = state.modules[_quickPlayDiscoveryKey];
@@ -97,15 +166,17 @@ class GameRepository extends ChangeNotifier {
   bool get shouldCelebrateQuickPlay =>
       quickPlayIsNew && !_quickPlayFlag('celebrationShown');
 
-  bool get shouldCelebrateWorldGate =>
-      quickPlayUnlocked && state.modules[_worldGateCelebratedKey] != true;
+  bool get shouldCelebrateWorldGate => shouldCelebrateGate('world-1');
 
-  Future<void> markWorldGateCelebrated() => _update((save) {
-    if (!shouldCelebrateWorldGate) return save;
-    return save.copyWith(
-      modules: {...save.modules, _worldGateCelebratedKey: true},
-    );
-  });
+  bool shouldCelebrateGate(String worldId) =>
+      worldCompleted(worldId) && state.modules[_gateKey(worldId)] != true;
+
+  Future<void> markWorldGateCelebrated({String worldId = 'world-1'}) => _update(
+    (save) {
+      if (!shouldCelebrateGate(worldId)) return save;
+      return save.copyWith(modules: {...save.modules, _gateKey(worldId): true});
+    },
+  );
 
   Future<void> markQuickPlayCelebrated() =>
       _markQuickPlayDiscovery('celebrationShown');
@@ -223,22 +294,32 @@ class GameRepository extends ChangeNotifier {
   }
 
   /// Materialize and save all three definitions before opening the game route.
-  Future<GameSession> startGeneratedLevel(int number) async {
-    RangeError.checkValueInInterval(number, 2, 10, 'number');
-    final id = mapLevelId(number);
+  Future<GameSession> startGeneratedLevel(
+    int number, {
+    String worldId = 'world-1',
+  }) async {
+    RangeError.checkValueInInterval(
+      number,
+      worldId == 'world-1' ? 2 : 1,
+      adventureWorld(worldId).nodes.length,
+      'number',
+    );
+    final id = mapLevelId(number, worldId: worldId);
     final level = state.levels[id]!;
-    final key = 'generatedLevel/$number';
+    final key = adventureModuleKey(worldId, number);
     final savedModule = state.modules[key];
     return startOrResumeLevel(
       id,
-      definitions: [
-        for (final puzzleId in level.puzzleIds)
-          state.puzzles[puzzleId] ??
-              SeededSudokus.create(
-                id: puzzleId,
-                seed: '${state.player.id}/$puzzleId',
-              ),
-      ],
+      definitions: worldId == 'world-2'
+          ? forestPuzzles(number)
+          : [
+              for (final puzzleId in level.puzzleIds)
+                state.puzzles[puzzleId] ??
+                    SeededSudokus.create(
+                      id: puzzleId,
+                      seed: '${state.player.id}/$puzzleId',
+                    ),
+            ],
       moduleKey: key,
       moduleData:
           savedModule is Map &&
@@ -385,8 +466,13 @@ class GameRepository extends ChangeNotifier {
     await _update((save) {
       if (!save.isUnlocked(levelId)) throw StateError('Level is locked');
       final level = save.levels[levelId]!;
+      if (level.worldId == 'world-2' && !notesTutorialCompleted) {
+        throw StateError(
+          'Complete the notes lesson before entering the forest games',
+        );
+      }
       if (levelId != mapLevelId(1) &&
-          level.worldId == 'world-1' &&
+          (level.worldId == 'world-1' || level.worldId == 'world-2') &&
           ((save.progress[levelId]?.bestLights ?? 0) >= level.requiredLights ||
               restart)) {
         throw StateError('This level cannot be replayed');
@@ -525,12 +611,110 @@ class GameRepository extends ChangeNotifier {
     revealError: revealError,
   );
 
+  bool _notesAccess(GameSession session) {
+    if (notesAllowedFor(session.levelId)) return true;
+    final level = state.levels[session.levelId];
+    if (!kDebugMode || level == null) return false;
+    return state.modules.values.any(
+      (module) =>
+          module is Map &&
+          module['sessionId'] == session.id &&
+          module['debugNotes'] == true,
+    );
+  }
+
+  Future<void> debugEnableNotes(String sessionId) => _update((save) {
+    if (!kDebugMode) throw StateError('Developer controls are unavailable');
+    final session = save.sessions[sessionId]!;
+    final level = save.levels[session.levelId]!;
+    final key = level.worldId == 'quick-play'
+        ? 'quickPlay/${save.puzzles[session.puzzles.first.puzzleId]!.difficulty}'
+        : adventureModuleKey(
+            level.worldId,
+            int.parse(level.id.split('-').last),
+          );
+    final module = save.modules[key];
+    return save.copyWith(
+      modules: {
+        ...save.modules,
+        key: {
+          if (module is Map) ...jsonObject(module),
+          'sessionId': sessionId,
+          'debugNotes': true,
+        },
+      },
+    );
+  });
+
   Future<void> setNotes(
     String sessionId,
     String puzzleId,
     int index,
     List<int> notes,
-  ) => _editCell(sessionId, puzzleId, index, notes: List.unmodifiable(notes));
+  ) {
+    final snapshot = List<int>.unmodifiable(notes);
+    return _editNotes(sessionId, puzzleId, index, (_) => snapshot);
+  }
+
+  Future<void> toggleNote(
+    String sessionId,
+    String puzzleId,
+    int index,
+    int number,
+  ) => _editNotes(sessionId, puzzleId, index, (current) {
+    if (number < 1 || number > _save.puzzles[puzzleId]!.size) {
+      throw const FormatException('Invalid note');
+    }
+    return current.contains(number)
+        ? current.where((n) => n != number).toList()
+        : [...current, number];
+  });
+
+  Future<void> _editNotes(
+    String sessionId,
+    String puzzleId,
+    int index,
+    List<int> Function(List<int>) change,
+  ) => _update((save) {
+    final session = _playable(save, sessionId, puzzleId);
+    if (!_notesAccess(session)) throw StateError('Notes are locked');
+    final definition = save.puzzles[puzzleId]!;
+    RangeError.checkValidIndex(index, definition.initial);
+    final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+    final old = board.cells[index];
+    if (definition.isFixed(index) || old.value != null) {
+      throw StateError('Notes require an empty editable cell');
+    }
+    final next = CellProgress(notes: change(old.notes), extra: old.extra);
+    if (listEquals(old.notes, next.notes)) return save;
+    final updated = board.copyWith(cells: [...board.cells]..[index] = next);
+    updated.validate(definition);
+    // Notes never enter scoring, mistake detection or completion checks.
+    return _replaceBoard(save, session, updated);
+  });
+
+  Future<void> setPuzzleInputState(
+    String sessionId,
+    String puzzleId, {
+    bool? notesMode,
+    int? selectedIndex,
+  }) => _update((save) {
+    final session = _playable(save, sessionId, puzzleId);
+    if (notesMode == true && !_notesAccess(session)) {
+      throw StateError('Notes are locked');
+    }
+    final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+    if (selectedIndex != null) {
+      RangeError.checkValidIndex(selectedIndex, board.cells);
+    }
+    final extra = {
+      ...board.extra,
+      'notesMode': ?notesMode,
+      'selectedCell': ?selectedIndex,
+    };
+    if (mapEquals(board.extra, extra)) return save;
+    return _replaceBoard(save, session, board.copyWith(extra: extra));
+  });
 
   Future<void> debugFillExceptCell(
     String sessionId,
@@ -629,7 +813,6 @@ class GameRepository extends ChangeNotifier {
     String puzzleId,
     int index, {
     int? value,
-    List<int>? notes,
     bool revealError = true,
     bool hint = false,
   }) => _update((save) {
@@ -642,11 +825,10 @@ class GameRepository extends ChangeNotifier {
     final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
     final old = board.cells[index];
     final number = hint ? definition.solution[index] : value;
-    if (notes == null && old.value == number && old.notes.isEmpty) return save;
-    final isError = notes == null && definition.hasError(index, number);
+    if (old.value == number && old.notes.isEmpty) return save;
+    final isError = definition.hasError(index, number);
     final cell = CellProgress(
-      value: notes == null ? number : null,
-      notes: notes ?? [],
+      value: number,
       source: hint ? ValueSource.hint : ValueSource.player,
       errorRevealed: isError && revealError,
       extra: old.extra,
@@ -749,27 +931,39 @@ class GameRepository extends ChangeNotifier {
   });
 
   /// Creates a complete, internally consistent attempt with randomized stats.
-  Future<void> completeDebugLevel(int number, {math.Random? random}) {
-    RangeError.checkValueInInterval(number, 1, 10, 'number');
+  Future<void> completeDebugLevel(
+    int number, {
+    math.Random? random,
+    String worldId = 'world-1',
+  }) {
+    RangeError.checkValueInInterval(
+      number,
+      1,
+      adventureWorld(worldId).nodes.length,
+      'number',
+    );
     final generator = random ?? math.Random();
-    return _update((save) => _completedDebugLevel(save, number, generator));
+    return _update(
+      (save) => _completedDebugLevel(save, number, generator, worldId: worldId),
+    );
   }
 
-  Future<void> completeDebugWorldExceptLastPuzzle({math.Random? random}) {
+  Future<void> completeDebugWorldExceptLastPuzzle({
+    math.Random? random,
+    String worldId = 'world-1',
+  }) {
     final generator = random ?? math.Random();
     return _update((save) {
       if (!kDebugMode) throw StateError('Developer controls are unavailable');
       var next = save;
-      final numbers =
-          initialLevelCatalog.keys
-              .map((id) => int.parse(id.split('level-').last))
-              .toList()
-            ..sort();
+      final numbers = adventureWorld(worldId).nodes
+          .map((n) => n.level)
+          .toList();
       for (final number in numbers) {
-        next = _completedDebugLevel(next, number, generator);
+        next = _completedDebugLevel(next, number, generator, worldId: worldId);
       }
-      final levelId = mapLevelId(numbers.last);
-      final moduleKey = 'generatedLevel/${numbers.last}';
+      final levelId = mapLevelId(numbers.last, worldId: worldId);
+      final moduleKey = adventureModuleKey(worldId, numbers.last);
       final module = jsonObject(next.modules[moduleKey]);
       final completed = next.sessions[module['sessionId']]!;
       final lastPuzzle = next.puzzles[completed.puzzles.last.puzzleId]!;
@@ -797,8 +991,8 @@ class GameRepository extends ChangeNotifier {
         activeSessionId: session.id,
         modules: {
           for (final entry in next.modules.entries)
-            if (entry.key != _quickPlayDiscoveryKey &&
-                entry.key != _worldGateCelebratedKey)
+            if (entry.key != _gateKey(worldId) &&
+                (worldId != 'world-1' || entry.key != _quickPlayDiscoveryKey))
               entry.key: entry.value,
           moduleKey: {
             ...module,
@@ -814,16 +1008,19 @@ class GameRepository extends ChangeNotifier {
   GameSave _completedDebugLevel(
     GameSave save,
     int number,
-    math.Random generator,
-  ) {
+    math.Random generator, {
+    String worldId = 'world-1',
+  }) {
     if (!kDebugMode) throw StateError('Developer controls are unavailable');
-    final levelId = mapLevelId(number);
+    final levelId = mapLevelId(number, worldId: worldId);
     final level = save.levels[levelId]!;
     if (!save.isUnlocked(levelId)) {
       throw StateError('Complete the previous level first');
     }
     const tutorialCenter = [8, 3, 5, 4, 1, 6, 9, 2, 7];
-    final definitions = number == 1
+    final definitions = worldId == 'world-2'
+        ? forestPuzzles(number)
+        : number == 1
         ? (level.puzzleIds.every(save.puzzles.containsKey)
               ? [for (final id in level.puzzleIds) save.puzzles[id]!]
               : TutorialSudokus.create(tutorialCenter))
@@ -875,9 +1072,7 @@ class GameRepository extends ChangeNotifier {
             : entry.value,
       sessionId: session,
     };
-    final moduleKey = number == 1
-        ? 'firstExperience'
-        : 'generatedLevel/$number';
+    final moduleKey = adventureModuleKey(worldId, number);
     return save.copyWith(
       puzzles: {
         ...save.puzzles,
@@ -907,7 +1102,7 @@ class GameRepository extends ChangeNotifier {
           'gameIndex': 2,
           'started': true,
           'sessionId': sessionId,
-          if (number == 1) ...{
+          if (number == 1 && worldId == 'world-1') ...{
             'cells': tutorialCenter,
             'briefingAccepted': true,
             'homeIntroductionShown': true,
@@ -917,31 +1112,62 @@ class GameRepository extends ChangeNotifier {
     );
   }
 
-  Future<void> resetDebugLevels(Set<String> levelIds) => _update((save) {
-    final sessions = {...save.sessions}
-      ..removeWhere((id, s) => levelIds.contains(s.levelId));
-    final resetNumbers = levelIds
-        .map((id) => int.tryParse(id.split('level-').last))
-        .whereType<int>();
-    final firstReset = resetNumbers.isEmpty
-        ? 11
-        : resetNumbers.reduce(math.min);
-    final modules = {...save.modules}
-      ..removeWhere(
-        (key, _) =>
-            (firstReset <= 10 &&
-                (key == _quickPlayDiscoveryKey ||
-                    key == _worldGateCelebratedKey)) ||
-            (firstReset <= 1 && key == 'firstExperience') ||
-            (key.startsWith('generatedLevel/') &&
-                (int.tryParse(key.split('/').last) ?? 0) >= firstReset),
-      );
+  Future<void> resetDebugNotesTutorial() => _update((save) {
+    if (!kDebugMode) throw StateError('Developer controls are unavailable');
     return save.copyWith(
-      progress: {...save.progress}
-        ..removeWhere((id, _) => levelIds.contains(id)),
+      modules: {...save.modules}..remove('tutorials/notes/v1'),
+    );
+  });
+
+  Future<void> prepareDebugForest() async {
+    if (!kDebugMode) throw StateError('Developer controls are unavailable');
+    for (var n = 1; n <= 10; n++) {
+      await completeDebugLevel(n);
+    }
+    await resetDebugLevels({for (var n = 1; n <= 21; n++) 'world-2/level-$n'});
+  }
+
+  Future<void> resetDebugLevels(Set<String> levelIds) => _update((save) {
+    if (!kDebugMode) throw StateError('Developer controls are unavailable');
+    final ids = {...levelIds};
+    // Reset dependent content as well, without colliding with local level numbers.
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final level in save.levels.values) {
+        if (level.prerequisites.any(ids.contains) && ids.add(level.id)) {
+          changed = true;
+        }
+      }
+    }
+    final sessions = {...save.sessions}
+      ..removeWhere((_, s) => ids.contains(s.levelId));
+    final moduleKeys = {
+      for (final world in adventureWorlds.values)
+        if (world.nodes.any(
+          (node) => ids.contains(mapLevelId(node.level, worldId: world.id)),
+        ))
+          _gateKey(world.id),
+      for (final world in adventureWorlds.values)
+        for (final node in world.nodes)
+          if (ids.contains(mapLevelId(node.level, worldId: world.id)))
+            adventureModuleKey(world.id, node.level),
+      if (ids.any((id) => id.startsWith('world-1/'))) ...[
+        _quickPlayDiscoveryKey,
+        _worldGateCelebratedKey,
+      ],
+      if (ids.contains('world-2/level-1')) ...[
+        'tutorials/notes/v1',
+        'announcements/notes',
+        'navigation/adventure',
+      ],
+    };
+    return save.copyWith(
+      progress: {...save.progress}..removeWhere((id, _) => ids.contains(id)),
       sessions: sessions,
       clearActiveSession: !sessions.containsKey(save.activeSessionId),
-      modules: modules,
+      modules: {...save.modules}
+        ..removeWhere((key, _) => moduleKeys.contains(key)),
     );
   });
 

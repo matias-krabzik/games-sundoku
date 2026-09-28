@@ -13,6 +13,8 @@ class MapSelectionLight extends StatefulWidget {
     this.enabled = true,
     this.scoreLevels = const <int>{},
     required this.worldSize,
+    this.nodes = kMap1Nodes,
+    this.worldTop,
     required this.nodeSize,
     required this.scroll,
   });
@@ -21,6 +23,8 @@ class MapSelectionLight extends StatefulWidget {
   final bool enabled;
   final Set<int> scoreLevels;
   final Size worldSize;
+  final List<LevelNode> nodes;
+  final double? worldTop;
   final double nodeSize;
   final ScrollController scroll;
 
@@ -45,7 +49,7 @@ class _MapSelectionLightState extends State<MapSelectionLight>
   bool _foreground = true;
 
   Offset _node(int level) {
-    final node = kMap1Nodes[level - 1];
+    final node = widget.nodes[level - 1];
     return Offset(node.x, node.y);
   }
 
@@ -146,6 +150,8 @@ class _MapSelectionLightState extends State<MapSelectionLight>
           intensities: _intensities,
           position: _position,
           worldSize: widget.worldSize,
+          nodes: widget.nodes,
+          worldTop: widget.worldTop,
           nodeSize: widget.nodeSize,
           scoreLevels: widget.scoreLevels,
           scroll: widget.scroll,
@@ -172,6 +178,8 @@ class _LightPainter extends CustomPainter {
     required this.intensities,
     required this.position,
     required this.worldSize,
+    this.nodes = kMap1Nodes,
+    this.worldTop,
     required this.nodeSize,
     required this.scoreLevels,
     required this.scroll,
@@ -182,6 +190,8 @@ class _LightPainter extends CustomPainter {
   final Map<int, double> Function() intensities;
   final Offset Function(double) position;
   final Size worldSize;
+  final List<LevelNode> nodes;
+  final double? worldTop;
   final double nodeSize;
   final Set<int> scoreLevels;
   final ScrollController scroll;
@@ -191,7 +201,8 @@ class _LightPainter extends CustomPainter {
 
   Offset _screen(Offset normalized, Size size) => Offset(
     normalized.dx * worldSize.width - (scroll.hasClients ? scroll.offset : 0),
-    normalized.dy * worldSize.height + (size.height - worldSize.height) / 2,
+    normalized.dy * worldSize.height +
+        (worldTop ?? (size.height - worldSize.height) / 2),
   );
 
   void _bloom(Canvas canvas, Offset center, double radius, double alpha) {
@@ -247,7 +258,7 @@ class _LightPainter extends CustomPainter {
       ..fillType = PathFillType.evenOdd
       ..addRect(Offset.zero & size);
     for (final level in scoreLevels) {
-      final node = kMap1Nodes[level - 1];
+      final node = nodes[level - 1];
       final center = _screen(Offset(node.x, node.y), size);
       for (int socket = 0; socket < 3; socket++) {
         scoreCutouts.addOval(
@@ -263,7 +274,7 @@ class _LightPainter extends CustomPainter {
     final double radius = nodeSize * 0.54;
     for (final light in intensities().entries) {
       if (light.value <= 0.005) continue;
-      final node = kMap1Nodes[light.key - 1];
+      final node = nodes[light.key - 1];
       final center = _screen(Offset(node.x, node.y), size);
       if (!(Offset.zero & size).inflate(100).contains(center)) continue;
       final double energy = light.value * (0.83 + math.sin(p) * 0.17);

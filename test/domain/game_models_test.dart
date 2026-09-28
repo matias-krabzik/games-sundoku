@@ -58,6 +58,7 @@ void main() {
     addTearDown(repo.close);
     await repo.registerPuzzles(mapLevelId(1), levelPuzzles());
     final session = await repo.startOrResumeLevel(mapLevelId(1));
+    await repo.debugEnableNotes(session.id);
     final data = repo.state.toJson();
     final sessions = jsonObject(data['sessions']);
     final attempt = jsonObject(sessions[session.id]);
@@ -78,6 +79,7 @@ void main() {
     addTearDown(repo.close);
     await repo.registerPuzzles(mapLevelId(1), levelPuzzles());
     final session = await repo.startOrResumeLevel(mapLevelId(1));
+    await repo.debugEnableNotes(session.id);
     await repo.setNotes(session.id, session.nextPuzzleId!, 0, [1, 2]);
     await repo.setCell(session.id, session.nextPuzzleId!, 0, null);
     expect(

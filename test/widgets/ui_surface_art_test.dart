@@ -10,8 +10,9 @@ import 'package:sundoku/widgets/ui_surface_art.dart';
 Future<Uint8List> _pixels(
   WidgetTester tester,
   UiSurface surface,
-  Size size,
-) async {
+  Size size, {
+  double pixelRatio = 2,
+}) async {
   final key = GlobalKey();
   await tester.pumpWidget(
     Directionality(
@@ -31,7 +32,7 @@ Future<Uint8List> _pixels(
   return (await tester.runAsync(() async {
     final image =
         await (key.currentContext!.findRenderObject()! as RenderRepaintBoundary)
-            .toImage(pixelRatio: 2);
+            .toImage(pixelRatio: pixelRatio);
     final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
     image.dispose();
     return data!.buffer.asUint8List();
@@ -39,6 +40,46 @@ Future<Uint8List> _pixels(
 }
 
 void main() {
+  testWidgets('short map progress fills have no transparent internal seams', (
+    tester,
+  ) async {
+    for (final width in [8.0, 16.0, 18.1, 25.1, 29.0, 30.25, 36.0, 120.0]) {
+      for (final ratio in [1.0, 2.0, 3.0]) {
+        const height = 30.0;
+        final pixels = await _pixels(
+          tester,
+          UiSurface.mapProgressFill,
+          Size(width, height),
+          pixelRatio: ratio,
+        );
+        final rowWidth = (width * ratio).ceil();
+        for (
+          var y = (height * ratio * .3).ceil();
+          y < height * ratio * .7;
+          y++
+        ) {
+          for (
+            var x = (width * ratio * .35).ceil();
+            x < width * ratio * .65;
+            x++
+          ) {
+            final offset = (y * rowWidth + x) * 4;
+            expect(
+              pixels[offset + 3],
+              greaterThanOrEqualTo(240),
+              reason: 'Transparent seam at $x,$y, width $width, DPR $ratio',
+            );
+            expect(
+              pixels[offset + 2],
+              lessThan(170),
+              reason: 'Pale seam at $x,$y, width $width, DPR $ratio',
+            );
+          }
+        }
+      }
+    }
+  });
+
   testWidgets(
     'cards grow in two axes without enlarging the illustrated corners',
     (tester) async {

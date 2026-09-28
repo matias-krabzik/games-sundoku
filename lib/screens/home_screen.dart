@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../routes.dart';
-import '../data/level_node.dart';
+import '../widgets/adventure_progress_card.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
@@ -19,6 +19,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.availableLevel = 1,
+    this.worldId = 'world-1',
     this.unlockedLevels = 1,
     this.playerName = 'Jugador',
     this.onPlay,
@@ -34,6 +35,7 @@ class HomeScreen extends StatefulWidget {
   });
 
   final int availableLevel;
+  final String worldId;
   final int unlockedLevels;
   final String playerName;
   final VoidCallback? onPlay;
@@ -150,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               child: Center(
                                                 child: SingleChildScrollView(
                                                   child: _HomeActions(
+                                                    worldId: widget.worldId,
                                                     onQuickPlay:
                                                         widget.onQuickPlay,
                                                     onPlay: widget.onPlay,
@@ -215,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const Expanded(child: _Doku()),
                                       const SizedBox(height: 8),
                                       _HomeActions(
+                                        worldId: widget.worldId,
                                         onQuickPlay: widget.onQuickPlay,
                                         onPlay: widget.onPlay,
                                         availableLevel: widget.availableLevel,
@@ -365,6 +369,7 @@ class _HomeHeader extends StatelessWidget {
 class _HomeActions extends StatelessWidget {
   const _HomeActions({
     required this.availableLevel,
+    required this.worldId,
     required this.unlockedLevels,
     required this.compact,
     required this.quickPlayIsNew,
@@ -378,6 +383,7 @@ class _HomeActions extends StatelessWidget {
   final VoidCallback? onPlay;
   final VoidCallback? onQuickPlay;
   final int availableLevel;
+  final String worldId;
   final int unlockedLevels;
   final bool compact;
   final bool quickPlayIsNew;
@@ -406,9 +412,10 @@ class _HomeActions extends StatelessWidget {
           SizedBox(height: compact ? 9 : 12),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
-            child: _GameStatusCard(
+            child: AdventureProgressCard(
               key: const ValueKey('home-game-status'),
-              availableLevel: availableLevel,
+              level: availableLevel,
+              worldId: worldId,
               unlockedLevels: unlockedLevels,
             ),
           ),
@@ -433,131 +440,6 @@ class _HomeActions extends StatelessWidget {
     compact: compact,
     leadingIcon: const HomeIcon(HomeGlyph.bolt, size: 34),
     onPressed: onQuickPlay ?? () {},
-  );
-}
-
-class _GameStatusCard extends StatelessWidget {
-  const _GameStatusCard({
-    super.key,
-    required this.availableLevel,
-    required this.unlockedLevels,
-  });
-  final int availableLevel;
-  final int unlockedLevels;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    label:
-        'Nivel $availableLevel. Mundo 1. $unlockedLevels de ${kMap1Nodes.length} niveles desbloqueados',
-    excludeSemantics: true,
-    child: AspectRatio(
-      aspectRatio: 3.12,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const HomeArt(HomeSurface.status),
-          LayoutBuilder(
-            builder: (context, space) {
-              final unit = space.maxWidth / 350;
-              return Padding(
-                padding: EdgeInsets.fromLTRB(
-                  23 * unit,
-                  17 * unit,
-                  23 * unit,
-                  16 * unit,
-                ),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _StatusLabel(
-                              HomeGlyph.sun,
-                              'Nivel $availableLevel',
-                              unit,
-                            ),
-                          ),
-                          Container(
-                            width: 1.2,
-                            height: 32 * unit,
-                            color: const Color(0xFFE1CCA3),
-                          ),
-                          SizedBox(width: 13 * unit),
-                          Expanded(
-                            child: _StatusLabel(
-                              HomeGlyph.world,
-                              'Mundo 1',
-                              unit,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 7 * unit),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20 * unit),
-                      child: SizedBox(
-                        height: 16 * unit,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            const HomeArt(HomeSurface.progressTrack),
-                            Padding(
-                              padding: EdgeInsets.all(1.6 * unit),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: FractionallySizedBox(
-                                  widthFactor:
-                                      (unlockedLevels / kMap1Nodes.length)
-                                          .clamp(0, 1),
-                                  heightFactor: 1,
-                                  child: const HomeArt(
-                                    HomeSurface.progressFill,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 3 * unit),
-                    Text(
-                      '$unlockedLevels de ${kMap1Nodes.length}',
-                      style: homeText(15 * unit),
-                      textScaler: TextScaler.noScaling,
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _StatusLabel extends StatelessWidget {
-  const _StatusLabel(this.glyph, this.label, this.unit);
-  final HomeGlyph glyph;
-  final String label;
-  final double unit;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      HomeIcon(glyph, size: 37 * unit),
-      SizedBox(width: 7 * unit),
-      Expanded(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(label, style: homeText(22 * unit)),
-        ),
-      ),
-    ],
   );
 }
 
