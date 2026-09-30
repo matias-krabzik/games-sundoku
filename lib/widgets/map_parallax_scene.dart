@@ -88,12 +88,21 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
             flowerAnchors: config.flowers,
             foregroundFlowers: config.foregroundFlowerCount,
             canopyAnchors: config.canopies,
+            canopyLeafStyles: config.canopyLeafStyles,
             pinkCanopy: config.pinkCanopy,
+            petalAnchors: config.petalAnchors,
+            creatures: config.creatures,
+            beeCount: config.beeCount,
+            treeLeavesOnly: config.treeLeavesOnly,
             sourceSize: widget.definition.sourceSize,
           );
     _ambientArt = MapAmbientArt(
       leafAsset: config?.leafAsset,
       beeAsset: config?.beeAsset,
+      leafAssets: config?.leafAssets ?? const [],
+      petalAsset: config?.petalAsset,
+      creatureAssets: config?.creatureAssets ?? const {},
+      creatureWingAssets: config?.creatureWingAssets ?? const {},
     );
     if (config != null) unawaited(_ambientArt.load());
   }
@@ -391,6 +400,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
                             position,
                             canopyPosition:
                                 (details.localPosition - terrainOrigin) / scale,
+                            scale: scale,
                           );
                         },
                   child: Stack(

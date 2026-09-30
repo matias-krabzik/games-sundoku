@@ -1,0 +1,91 @@
+import 'json_data.dart';
+
+class AdventureDialogue {
+  const AdventureDialogue(this.speaker, this.text);
+
+  final String speaker;
+  final String text;
+}
+
+class AdventureScene {
+  const AdventureScene({
+    required this.id,
+    required this.levelNumber,
+    required this.roundIndex,
+    required this.title,
+    required this.dialogues,
+    this.backgroundAsset = 'assets/images/home-background.png',
+  });
+
+  final String id;
+  final int levelNumber;
+  final int roundIndex;
+  final String title;
+  final List<AdventureDialogue> dialogues;
+  final String backgroundAsset;
+}
+
+enum SceneStatus { pending, reading, read, skipped }
+
+class AdventureSceneRecord {
+  const AdventureSceneRecord({
+    required this.sessionId,
+    this.page = 0,
+    this.status = SceneStatus.pending,
+  });
+
+  factory AdventureSceneRecord.fromJson(Json json) => AdventureSceneRecord(
+    sessionId: json['sessionId'] as String,
+    page: nonNegative(json['page']),
+    status: SceneStatus.values.byName(json['status'] as String),
+  );
+
+  final String sessionId;
+  final int page;
+  final SceneStatus status;
+  bool get isClosed =>
+      status == SceneStatus.read || status == SceneStatus.skipped;
+
+  Json toJson() => {
+    'sessionId': sessionId,
+    'page': page,
+    'status': status.name,
+  };
+}
+
+class AdventureStoryProgress {
+  AdventureStoryProgress({Map<String, AdventureSceneRecord> scenes = const {}})
+    : scenes = Map.unmodifiable(scenes);
+
+  static const moduleKey = 'adventureStory';
+
+  factory AdventureStoryProgress.fromJson(Object? value) {
+    final json = value is Map ? jsonObject(value) : <String, Object?>{};
+    final scenes = json['scenes'] is Map
+        ? jsonObject(json['scenes'])
+        : <String, Object?>{};
+    return AdventureStoryProgress(
+      scenes: {
+        for (final entry in scenes.entries)
+          entry.key: AdventureSceneRecord.fromJson(jsonObject(entry.value)),
+      },
+    );
+  }
+
+  final Map<String, AdventureSceneRecord> scenes;
+
+  AdventureStoryProgress withScene(String id, AdventureSceneRecord record) =>
+      AdventureStoryProgress(scenes: {...scenes, id: record});
+
+  AdventureStoryProgress withoutScenes(Iterable<String> ids) =>
+      AdventureStoryProgress(
+        scenes: {...scenes}..removeWhere((id, _) => ids.contains(id)),
+      );
+
+  Json toJson() => {
+    'version': 1,
+    'scenes': {
+      for (final entry in scenes.entries) entry.key: entry.value.toJson(),
+    },
+  };
+}

@@ -2,6 +2,7 @@ import 'level_node.dart';
 import '../models/world_map_definition.dart';
 import 'valley_map.dart';
 import 'spring_forest_map.dart';
+import 'crossed_rivers_map.dart';
 
 class AdventureWorld {
   AdventureWorld({
@@ -65,6 +66,39 @@ const forestLevelNames = [
   'La cima del bosque',
 ];
 
+const crossedRiversLevelNames = [
+  'La entrada de las corrientes',
+  'La orilla de los sauces',
+  'Las piedras que asoman',
+  'El sendero del agua',
+  'El prado de los juncos',
+  'Aguas tranquilas',
+  'El puente entre orillas',
+  'Los pinos lejanos',
+  'El claro del río',
+  'El sendero de los álamos',
+  'La curva azul',
+  'La pequeña cascada',
+  'La orilla de las rocas',
+  'El remanso',
+  'La bajada al agua',
+  'Donde se cruzan los ríos',
+  'El sendero de los helechos',
+  'La cascada escondida',
+  'La ribera alta',
+  'El puente de piedra',
+  'El salto de agua',
+  'Junto al lago',
+  'El lago abierto',
+  'La orilla de los lirios',
+  'Las piedras del lago',
+  'El camino de la colina',
+  'Las flores silvestres',
+  'El mirador del agua',
+  'La última subida',
+  'El claro de la cima',
+];
+
 final adventureWorlds = <String, AdventureWorld>{
   'world-1': AdventureWorld(
     id: 'world-1',
@@ -81,6 +115,14 @@ final adventureWorlds = <String, AdventureWorld>{
     names: forestLevelNames,
     map: springForestMap,
     nodes: springForestNodes,
+  ),
+  'world-3': AdventureWorld(
+    id: 'world-3',
+    number: 3,
+    name: 'Ríos Cruzados',
+    names: crossedRiversLevelNames,
+    map: crossedRiversMap,
+    nodes: crossedRiversNodes,
   ),
 };
 

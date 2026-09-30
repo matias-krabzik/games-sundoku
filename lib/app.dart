@@ -54,6 +54,10 @@ class _SunDokuAppState extends State<SunDokuApp> {
     repository: _repository,
     worldId: 'world-2',
   );
+  late final LevelProgress _riverProgress = LevelProgress(
+    repository: _repository,
+    worldId: 'world-3',
+  );
   late final GameFeedback _feedback = widget.feedback ?? DeviceGameFeedback();
   late final WorldNavigationService _worldNavigation =
       widget.worldNavigation ?? MockWorldNavigationService(_repository);
@@ -81,7 +85,13 @@ class _SunDokuAppState extends State<SunDokuApp> {
   }
 
   LevelProgress get _adventureProgress =>
-      _repository.lastAdventureWorld == 'world-2' ? _forestProgress : _progress;
+      _progressFor(_repository.lastAdventureWorld);
+
+  LevelProgress _progressFor(String worldId) => switch (worldId) {
+    'world-2' => _forestProgress,
+    'world-3' => _riverProgress,
+    _ => _progress,
+  };
 
   bool get _levelOneComplete =>
       _progress.lightsFor(1) >= LevelProgress.requiredLights;
@@ -224,7 +234,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
             .disableAnimations,
     builder: (context) => MapScreen(
       key: ValueKey(worldId),
-      progress: worldId == 'world-2' ? _forestProgress : _progress,
+      progress: _progressFor(worldId),
       worldNavigation: _worldNavigation,
       onSelectWorld: (selected) => unawaited(_switchWorld(context, selected)),
       onNextWorld: worldId == 'world-1'
@@ -421,6 +431,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
   void dispose() {
     _progress.dispose();
     _forestProgress.dispose();
+    _riverProgress.dispose();
     if (widget.repository == null) unawaited(_repository.close());
     super.dispose();
   }

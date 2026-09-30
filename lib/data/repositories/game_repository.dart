@@ -69,7 +69,7 @@ class GameRepository extends ChangeNotifier {
             levels: {...initialLevelCatalog, ...save.levels},
             modules: {
               ...save.modules,
-              'contentCatalog': {'revision': 2},
+              'contentCatalog': {'revision': 3},
             },
           ),
         );
@@ -119,6 +119,16 @@ class GameRepository extends ChangeNotifier {
   }
 
   bool get forestUnlocked => quickPlayUnlocked;
+
+  bool isWorldUnlocked(String worldId) {
+    final world = adventureWorld(worldId);
+    if (world.number == 1) return true;
+    final previousWorld = adventureWorlds.values.where(
+      (candidate) => candidate.number == world.number - 1,
+    );
+    return previousWorld.length == 1 && worldCompleted(previousWorld.single.id);
+  }
+
   bool get notesTutorialCompleted {
     final lesson = state.modules['tutorials/notes/v1'];
     return lesson is Map && lesson['completed'] == true;
@@ -142,16 +152,17 @@ class GameRepository extends ChangeNotifier {
   );
   String get lastAdventureWorld {
     final navigation = state.modules['navigation/adventure'];
-    return navigation is Map &&
-            navigation['worldId'] == 'world-2' &&
-            forestUnlocked
-        ? 'world-2'
+    final savedWorldId = navigation is Map ? navigation['worldId'] : null;
+    return savedWorldId is String &&
+            adventureWorlds.containsKey(savedWorldId) &&
+            isWorldUnlocked(savedWorldId)
+        ? savedWorldId
         : 'world-1';
   }
 
   Future<void> visitWorld(String worldId) {
     adventureWorld(worldId);
-    if (worldId == 'world-2' && !forestUnlocked) {
+    if (!isWorldUnlocked(worldId)) {
       throw StateError('World is locked');
     }
     return saveModule('navigation/adventure', {'worldId': worldId});
@@ -471,8 +482,8 @@ class GameRepository extends ChangeNotifier {
           'Complete the notes lesson before entering the forest games',
         );
       }
-      if (levelId != mapLevelId(1) &&
-          (level.worldId == 'world-1' || level.worldId == 'world-2') &&
+      if (!(level.worldId == 'world-1' && levelId == mapLevelId(1)) &&
+          adventureWorlds.containsKey(level.worldId) &&
           ((save.progress[levelId]?.bestLights ?? 0) >= level.requiredLights ||
               restart)) {
         throw StateError('This level cannot be replayed');

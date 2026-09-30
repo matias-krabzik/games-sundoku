@@ -5,6 +5,7 @@ import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/data/repositories/game_repository.dart';
 import 'package:sundoku/data/spring_forest_map.dart';
 import 'package:sundoku/data/world_catalog.dart';
+import 'package:sundoku/models/map_ambient_motion.dart';
 import 'package:sundoku/models/world_map_definition.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/map_ambient_painter.dart';
@@ -87,23 +88,133 @@ void main() {
     );
   });
 
+  test(
+    'worlds one and two follow the route vertically during horizontal scroll',
+    () {
+      const viewport = Size(390, 844);
+      for (final worldId in ['world-1', 'world-2']) {
+        final map = adventureWorld(worldId).map;
+        final world = MapLayout(
+          viewport,
+          map,
+          adventureWorld(worldId).nodes,
+        ).worldSize;
+        final start = pathCameraOffset(0, viewport, world, map);
+        final end = pathCameraOffset(
+          world.width - viewport.width,
+          viewport,
+          world,
+          map,
+        );
+
+        expect(map.camera.strength, greaterThan(0), reason: worldId);
+        expect((start - end).abs(), greaterThan(1), reason: worldId);
+      }
+
+      final map3 = adventureWorld('world-3').map;
+      final world3 = MapLayout(
+        viewport,
+        map3,
+        adventureWorld('world-3').nodes,
+      ).worldSize;
+      expect(map3.camera.strength, 0);
+      expect(pathCameraOffset(0, viewport, world3, map3), 0);
+      expect(
+        pathCameraOffset(world3.width - viewport.width, viewport, world3, map3),
+        0,
+      );
+    },
+  );
+
+  testWidgets('Ríos Cruzados loads every ambient sprite', (tester) async {
+    final ambient = adventureWorld('world-3').map.ambient!;
+    final art = MapAmbientArt(
+      leafAssets: ambient.leafAssets,
+      petalAsset: ambient.petalAsset,
+      creatureAssets: ambient.creatureAssets,
+      creatureWingAssets: ambient.creatureWingAssets,
+    );
+    addTearDown(art.dispose);
+    await tester.runAsync(art.load);
+    expect(art.leaves, hasLength(3));
+    expect(art.petal, isNotNull);
+    expect(art.creatures.keys.toSet(), MapCreatureKind.values.toSet());
+    expect(art.creatureWings.keys.toSet(), {
+      MapCreatureKind.butterfly,
+      MapCreatureKind.dragonfly,
+      MapCreatureKind.mayfly,
+    });
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tapping near a world-three insect starts its escape', (
+    tester,
+  ) async {
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MapParallaxScene(
+          definition: adventureWorld('world-3').map,
+          scroll: scroll,
+          worldSize: const Size(8142, 724),
+          child: SingleChildScrollView(
+            controller: scroll,
+            scrollDirection: Axis.horizontal,
+            child: const SizedBox(width: 8142, height: 724),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final painter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<MapAmbientPainter>()
+        .firstWhere((paint) => paint.depth == MapLeafDepth.air);
+    final creature = painter.motion.creatures.first;
+    final pose = painter.motion.creaturePose(creature);
+    final point = painter.origin + pose.position * painter.scale;
+    // The tap lands beyond the butterfly sprite, on the surrounding map.
+    await tester.tapAt(point + const Offset(65, 0));
+    await tester.pump();
+    expect(painter.motion.creaturePose(creature).startled, isTrue);
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(painter.motion.creaturePose(creature).visualScale, greaterThan(1));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test('dense worlds retain touch targets and source aspect ratio in small windows', () {
-    final world = adventureWorld('world-2');
-    for (final viewport in [
-      const Size(390, 640),
-      const Size(844, 240),
-      const Size(320, 320),
+    for (final world in [
+      adventureWorld('world-2'),
+      adventureWorld('world-3'),
     ]) {
-      final layout = MapLayout(viewport, world.map, world.nodes);
-      expect(layout.worldSize.aspectRatio, closeTo(world.map.aspectRatio, 1e-10));
-      expect(layout.nodeSize, greaterThanOrEqualTo(48));
-      for (var i = 1; i < world.nodes.length; i++) {
-        final a = world.nodes[i - 1], b = world.nodes[i];
-        final distance = Offset(
-          (a.x - b.x) * layout.worldSize.width,
-          (a.y - b.y) * layout.worldSize.height,
-        ).distance;
-        expect(distance, greaterThanOrEqualTo(layout.nodeSize * 2.0 - .001));
+      for (final viewport in [
+        const Size(390, 640),
+        const Size(844, 240),
+        const Size(320, 320),
+      ]) {
+        final layout = MapLayout(viewport, world.map, world.nodes);
+        expect(
+          layout.worldSize.aspectRatio,
+          closeTo(world.map.aspectRatio, 1e-10),
+        );
+        expect(layout.nodeSize, greaterThanOrEqualTo(48));
+        for (var i = 1; i < world.nodes.length; i++) {
+          final a = world.nodes[i - 1], b = world.nodes[i];
+          final distance = Offset(
+            (a.x - b.x) * layout.worldSize.width,
+            (a.y - b.y) * layout.worldSize.height,
+          ).distance;
+          expect(
+            distance,
+            greaterThanOrEqualTo(
+              layout.nodeSize * world.map.markerSeparation - .001,
+            ),
+            reason: '${world.name}, ${viewport.width}×${viewport.height}',
+          );
+        }
       }
     }
   });

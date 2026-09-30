@@ -74,6 +74,8 @@ flutter:
     - assets/images/home/
     - assets/images/map/
     - assets/images/map/spring-forest/
+    - assets/images/map/crossed-rivers/
+    - assets/images/map/crossed-rivers/ambient/
     - assets/images/map/layers/sky.png
     - assets/images/map/layers/clouds.png
     - assets/images/map/layers/mountains.png

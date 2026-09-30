@@ -16,8 +16,12 @@ final Map<String, LevelDefinition> initialLevelCatalog = Map.unmodifiable({
         ],
         prerequisites: [
           if (node.level > 1) mapLevelId(node.level - 1, worldId: world.id),
-          if (world.isForest && node.level == 1)
-            for (var n = 1; n <= 10; n++) mapLevelId(n),
+          if (world.number > 1 && node.level == 1)
+            for (final previousWorld in adventureWorlds.values.where(
+              (candidate) => candidate.number == world.number - 1,
+            ))
+              for (final previous in previousWorld.nodes)
+                mapLevelId(previous.level, worldId: previousWorld.id),
         ],
       ),
 });

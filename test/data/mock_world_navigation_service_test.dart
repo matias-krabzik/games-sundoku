@@ -11,14 +11,18 @@ void main() {
       expect(navigation.worlds.map((world) => world.id), [
         'world-1',
         'world-2',
+        'world-3',
       ]);
       expect(navigation.isUnlocked('world-2'), isFalse);
       expect(() => navigation.enterWorld('world-2'), throwsStateError);
+      expect(navigation.isUnlocked('world-3'), isFalse);
+      expect(() => navigation.enterWorld('world-3'), throwsStateError);
 
       await repository.prepareDebugForest();
       expect(navigation.isUnlocked('world-2'), isTrue);
       await navigation.enterWorld('world-2');
       expect(repository.lastAdventureWorld, 'world-2');
+      expect(navigation.isUnlocked('world-3'), isFalse);
       await navigation.enterWorld('world-1');
       expect(repository.lastAdventureWorld, 'world-1');
       await repository.close();

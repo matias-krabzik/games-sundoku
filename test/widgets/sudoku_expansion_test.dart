@@ -39,6 +39,7 @@ void main() {
               SudokuBoardReveal.row => List.generate(9, (i) => 36 + i),
               SudokuBoardReveal.column => List.generate(9, (i) => i * 9 + 4),
               SudokuBoardReveal.remaining => [],
+              SudokuBoardReveal.givens => [],
             },
           ),
         ),

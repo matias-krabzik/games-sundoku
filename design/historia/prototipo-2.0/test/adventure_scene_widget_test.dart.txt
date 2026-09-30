@@ -1,0 +1,308 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sundoku/app.dart';
+import 'package:sundoku/controllers/first_experience_controller.dart';
+import 'package:sundoku/data/level_catalog.dart';
+import 'package:sundoku/data/repositories/game_repository.dart';
+import 'package:sundoku/data/services/game_feedback.dart';
+import 'package:sundoku/data/services/save_store.dart';
+import 'package:sundoku/domain/models/adventure_scene.dart';
+import 'package:sundoku/screens/adventure_scene_screen.dart';
+import 'package:sundoku/screens/first_experience_screen.dart';
+import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/theme.dart';
+import 'package:sundoku/widgets/tutorial_journey.dart';
+import 'package:sundoku/widgets/sudoku_board.dart';
+import 'package:sundoku/widgets/world_journey_route.dart';
+
+import 'data/adventure_story_test.dart' show finishPreparedVictory;
+import 'tutorial_journey_widget_test.dart' as scene;
+
+FirstExperienceController flowOf(WidgetTester tester) =>
+    tester.widget<TutorialJourney>(find.byType(TutorialJourney)).flow;
+
+Future<void> win(WidgetTester tester) async {
+  final flow = flowOf(tester);
+  final last = flow.boardValues.indexOf(null);
+  flow.selectGameCell(last);
+  await flow.placeGameNumber(flow.puzzleDefinition!.solution[last]);
+  await scene.settle(tester);
+}
+
+void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'Baloo2',
+    )..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'))).load();
+  });
+
+  testWidgets(
+    'victory opens the scene, keeps play time paused and continues to the next board',
+    (tester) async {
+      scene.configure(tester);
+      final repo = GameRepository.memory();
+      await repo.prepareDebugVictory(1, roundIndex: 1);
+      await scene.show(tester, repo);
+      final flow = flowOf(tester);
+      await win(tester);
+      final points = flow.points;
+      final time = flow.elapsedMs;
+      expect(find.text('Continuar'), findsOneWidget);
+      await scene.tap(tester, scene.next);
+      expect(find.byType(AdventureSceneScreen), findsOneWidget);
+      expect(find.text('Doku'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 20));
+      expect(flow.elapsedMs, time);
+      expect(flow.points, points);
+      await scene.tap(tester, find.byKey(const ValueKey('scene-next')));
+      expect(find.text('Invitación de Numa'), findsOneWidget);
+      await scene.tap(tester, find.byKey(const ValueKey('scene-previous')));
+      expect(find.text('Doku'), findsOneWidget);
+      await scene.tap(tester, find.byKey(const ValueKey('scene-next')));
+      await scene.tap(tester, find.byKey(const ValueKey('scene-next')));
+      expect(find.byType(AdventureSceneScreen), findsNothing);
+      expect(flow.gameIndex, 2);
+      expect(flow.readyToPlay, isTrue);
+      expect(repo.state.totalLights, 2);
+      expect(repo.pendingAdventureScene, isNull);
+      await tester.pumpWidget(const SizedBox());
+      await scene.settle(tester);
+      await repo.close();
+    },
+  );
+
+  testWidgets(
+    'closing the app during a cinematic resumes its page from Continue adventure',
+    (tester) async {
+      scene.configure(tester);
+      final store = MemorySaveStore();
+      final repo = await GameRepository.open(store);
+      await repo.prepareDebugVictory(1, roundIndex: 1);
+      await finishPreparedVictory(repo);
+      final story = repo.pendingAdventureScene!;
+      await repo.updateAdventureScene(story.id, page: 1);
+      await repo.close();
+      final reopened = await GameRepository.open(store);
+      await tester.pumpWidget(
+        SunDokuApp(repository: reopened, feedback: const GameFeedback()),
+      );
+      await tester.pump(const Duration(seconds: 3));
+      await scene.settle(tester);
+      await scene.tap(tester, find.byKey(const ValueKey('home-play')));
+      expect(find.byType(AdventureSceneScreen), findsOneWidget);
+      expect(find.text('Invitación de Numa'), findsOneWidget);
+      expect(reopened.state.totalLights, 2);
+      await scene.tap(tester, find.byKey(const ValueKey('scene-skip')));
+      expect(flowOf(tester).gameIndex, 2);
+      expect(
+        reopened.adventureStory.scenes[story.id]!.status,
+        SceneStatus.skipped,
+      );
+      await tester.pumpWidget(const SizedBox());
+      await scene.settle(tester);
+      await reopened.close();
+    },
+  );
+
+  for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
+    testWidgets('animated cinematic return keeps board laid out on $platform', (
+      tester,
+    ) async {
+      scene.configure(tester, reduced: false);
+      final repo = GameRepository.memory();
+      await repo.prepareDebugVictory(1);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSunDokuTheme().copyWith(platform: platform),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                WorldJourneyRoute(
+                  builder: (_) => FirstExperienceScreen(repository: repo),
+                ),
+              ),
+              child: const Text('Abrir aventura'),
+            ),
+          ),
+        ),
+      );
+      await scene.tap(tester, find.text('Abrir aventura'));
+      await scene.settle(tester);
+      final flow = flowOf(tester);
+      final boardElement = tester.element(scene.board);
+      for (var round = 0; round < 2; round++) {
+        await flow.debugFillExceptOne();
+        await win(tester);
+        await scene.settle(tester);
+        await scene.tap(tester, scene.next);
+        expect(find.byType(AdventureSceneScreen), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('scene-skip')));
+        for (var frame = 0; frame < 100; frame++) {
+          // Rotate while the route is returning and the next board arrives.
+          if (frame == 18) {
+            tester.view.physicalSize = const Size(844, 390);
+          } else if (frame == 38) {
+            tester.view.physicalSize = const Size(390, 844);
+          }
+          await tester.pump(const Duration(milliseconds: 32));
+          expect(tester.takeException(), isNull);
+        }
+        await scene.settle(tester);
+        expect(flow.gameIndex, round + 1);
+        expect(flow.readyToPlay, isTrue);
+        expect(tester.element(scene.board), same(boardElement));
+        expect(tester.widget<SudokuBoard>(scene.board).onSelect, isNotNull);
+        final rect = tester.getRect(scene.board);
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.right, lessThanOrEqualTo(390));
+        expect(repo.pendingAdventureScene, isNull);
+      }
+      await tester.pumpWidget(const SizedBox());
+      await scene.settle(tester);
+      await repo.close();
+    });
+  }
+
+  testWidgets('third victory shows its story before opening the next level', (
+    tester,
+  ) async {
+    scene.configure(tester);
+    final repo = GameRepository.memory();
+    await repo.prepareDebugVictory(1, roundIndex: 2);
+    await scene.show(tester, repo);
+    await win(tester);
+    expect(find.byKey(const ValueKey('next-level')), findsNothing);
+    await scene.tap(tester, scene.next);
+    expect(find.byType(AdventureSceneScreen), findsOneWidget);
+    await scene.tap(tester, find.byKey(const ValueKey('scene-next')));
+    expect(find.text('Siguiente nivel'), findsOneWidget);
+    expect(find.text('Mapa'), findsOneWidget);
+    await scene.tap(tester, find.byKey(const ValueKey('scene-next')));
+    expect(find.byType(AdventureSceneScreen), findsNothing);
+    expect(flowOf(tester).levelNumber, 2);
+    expect(flowOf(tester).gameIndex, 0);
+    expect(repo.state.progress[mapLevelId(1)]!.bestLights, 3);
+    await tester.pumpWidget(const SizedBox());
+    await scene.settle(tester);
+    await repo.close();
+  });
+
+  testWidgets(
+    'cinematic uses the home image and keeps actions reachable across sizes',
+    (tester) async {
+      scene.configure(tester);
+      final repo = GameRepository.memory();
+      await repo.prepareDebugVictory(1, roundIndex: 1);
+      await finishPreparedVictory(repo);
+      final story = repo.pendingAdventureScene!;
+      for (final size in [
+        const Size(390, 844),
+        const Size(320, 568),
+        const Size(844, 390),
+        const Size(1024, 768),
+      ]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildSunDokuTheme(),
+            home: MediaQuery(
+              data: MediaQueryData(
+                size: size,
+                textScaler: TextScaler.linear(size.width == 390 ? 1 : 2),
+                disableAnimations: true,
+              ),
+              child: RepaintBoundary(
+                key: scene.captureKey,
+                child: AdventureSceneScreen(
+                  repository: repo,
+                  scene: story,
+                  continueLabel: 'Jugar el tercero',
+                ),
+              ),
+            ),
+          ),
+        );
+        await scene.settle(tester);
+        final background = tester.widget<Image>(
+          find.byKey(const ValueKey('adventure-scene-background')),
+        );
+        expect(
+          (background.image as AssetImage).assetName,
+          'assets/images/home-background.png',
+        );
+        expect(
+          find.byKey(const ValueKey('scene-next')).hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-back')).hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-skip')).hitTestable(),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+        if (size.width == 390 || size.width == 844) {
+          await scene.capture(tester, 'cinematic-${size.width.toInt()}');
+        }
+      }
+      await tester.pumpWidget(const SizedBox());
+      await repo.close();
+    },
+  );
+
+  testWidgets(
+    'map DEV selects the round and opens it with one editable cell left',
+    (tester) async {
+      scene.configure(tester);
+      final repo = GameRepository.memory();
+      await repo.saveModule('firstExperience', {'homeIntroductionShown': true});
+      await repo.saveModule('homeWelcome', {'namePromptShown': true});
+      await tester.pumpWidget(
+        SunDokuApp(repository: repo, feedback: const GameFeedback()),
+      );
+      await tester.pump(const Duration(seconds: 3));
+      await scene.settle(tester);
+      await scene.tap(tester, find.byKey(const ValueKey('home-play')));
+      expect(find.byType(MapScreen), findsOneWidget);
+      await scene.tap(
+        tester,
+        find.byKey(const ValueKey('dev-floating-button')),
+      );
+      await scene.tap(
+        tester,
+        find.byKey(const ValueKey('dev-prepare-victory')),
+      );
+      await scene.tap(
+        tester,
+        find.byKey(const ValueKey('dev-victory-round-2')),
+      );
+      final flow = flowOf(tester);
+      expect(flow.gameIndex, 2);
+      expect(flow.remaining, 1);
+      expect(repo.state.isUnlocked(mapLevelId(2)), isFalse);
+      await scene.tap(
+        tester,
+        find.byKey(const ValueKey('dev-floating-button')),
+      );
+      expect(find.byKey(const ValueKey('dev-fill-except-one')), findsOneWidget);
+      await scene.tap(
+        tester,
+        find.byKey(const ValueKey('dev-fill-except-one')),
+      );
+      expect(flow.remaining, 1);
+      await win(tester);
+      await scene.tap(tester, scene.next);
+      expect(find.byType(AdventureSceneScreen), findsOneWidget);
+      await scene.tap(tester, find.byKey(const ValueKey('scene-next')));
+      await scene.tap(tester, find.byKey(const ValueKey('scene-map')));
+      expect(find.byType(MapScreen), findsOneWidget);
+      expect(repo.pendingAdventureScene, isNull);
+      await tester.pumpWidget(const SizedBox());
+      await scene.settle(tester);
+      await repo.close();
+    },
+  );
+}

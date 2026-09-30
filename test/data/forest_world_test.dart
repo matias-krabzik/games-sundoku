@@ -97,7 +97,7 @@ void main() {
     expect(store.data, original);
     store.fail = false;
     var migrated = await GameRepository.open(store);
-    expect(migrated.state.levels.length, 30);
+    expect(migrated.state.levels.length, 60);
     expect(
       migrated.state.sessions.map((id, s) => MapEntry(id, s.toJson())),
       old.sessions.map((id, s) => MapEntry(id, s.toJson())),

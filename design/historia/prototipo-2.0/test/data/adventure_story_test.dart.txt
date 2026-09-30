@@ -1,0 +1,217 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sundoku/controllers/adventure_scene_controller.dart';
+import 'package:sundoku/controllers/first_experience_controller.dart';
+import 'package:sundoku/data/adventure_scene_catalog.dart';
+import 'package:sundoku/data/level_catalog.dart';
+import 'package:sundoku/data/repositories/game_repository.dart';
+import 'package:sundoku/data/services/save_store.dart';
+import 'package:sundoku/domain/models/adventure_scene.dart';
+import 'package:sundoku/domain/models/quick_play_difficulty.dart';
+
+import 'game_repository_test.dart' show FailingStore;
+
+Future<void> finishPreparedVictory(GameRepository repo) async {
+  final session = repo.state.sessions[repo.state.activeSessionId]!;
+  final puzzleId = session.nextPuzzleId!;
+  final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+  final index = board.cells.indexWhere((c) => c.value == null);
+  await repo.setCell(
+    session.id,
+    puzzleId,
+    index,
+    repo.state.puzzles[puzzleId]!.solution[index],
+  );
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'every valley victory has its own scene and the existing home background',
+    () {
+      expect(AdventureSceneCatalog.scenes, hasLength(30));
+      expect(
+        AdventureSceneCatalog.scenes.map((s) => s.id).toSet(),
+        hasLength(30),
+      );
+      for (var level = 1; level <= 10; level++) {
+        for (var round = 1; round <= 3; round++) {
+          final scene = AdventureSceneCatalog.afterPuzzle(
+            '${mapLevelId(level)}/sudoku-$round',
+          )!;
+          expect(scene.levelNumber, level);
+          expect(scene.roundIndex, round - 1);
+          expect(scene.dialogues, isNotEmpty);
+          expect(scene.backgroundAsset, 'assets/images/home-background.png');
+        }
+      }
+    },
+  );
+
+  test('victory, star and pending scene are saved together, including write failure', () async {
+    final store = FailingStore();
+    final repo = await GameRepository.open(store);
+    await repo.prepareDebugVictory(1);
+    store.failNext = true;
+    await expectLater(finishPreparedVictory(repo), throwsException);
+    expect(repo.state.progress[mapLevelId(1)]!.bestLights, 0);
+    expect(repo.pendingAdventureScene, isNull);
+    await finishPreparedVictory(repo);
+    final scene = repo.pendingAdventureScene!;
+    expect(repo.state.progress[mapLevelId(1)]!.bestLights, 1);
+    expect(repo.adventureStory.scenes[scene.id]!.status, SceneStatus.pending);
+    repo.state.validate();
+    await repo.close();
+
+    final reopened = await GameRepository.open(store);
+    expect(reopened.pendingAdventureScene!.id, scene.id);
+    expect(reopened.state.progress[mapLevelId(1)]!.bestLights, 1);
+    await reopened.close();
+  });
+
+  test(
+    'scene page survives reopening and failed writes keep the previous page',
+    () async {
+      final store = FailingStore();
+      final repo = await GameRepository.open(store);
+      await repo.prepareDebugVictory(1, roundIndex: 1);
+      await finishPreparedVictory(repo);
+      final scene = repo.pendingAdventureScene!;
+      final controller = AdventureSceneController(repo, scene);
+      await controller.begin();
+      store.failNext = true;
+      expect(await controller.next(), isFalse);
+      expect(controller.page, 0);
+      expect(controller.error, isNotNull);
+      expect(await controller.next(), isTrue);
+      expect(controller.page, 1);
+      controller.dispose();
+      await repo.close();
+
+      final reopened = await GameRepository.open(store);
+      final resumed = AdventureSceneController(reopened, scene);
+      expect(resumed.page, 1);
+      expect(resumed.record.status, SceneStatus.reading);
+      final lights = reopened.state.totalLights;
+      final points = reopened.state.totalPoints;
+      await resumed.previous();
+      expect(resumed.page, 0);
+      expect(await resumed.finish(), isFalse);
+      await resumed.next();
+      expect(await resumed.finish(), isTrue);
+      expect(reopened.pendingAdventureScene, isNull);
+      expect(reopened.state.totalLights, lights);
+      expect(reopened.state.totalPoints, points);
+      resumed.dispose();
+      await reopened.close();
+    },
+  );
+
+  test(
+    'skip closes only the scene and ordinary replay does not enqueue it again',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      await repo.prepareDebugVictory(1);
+      await finishPreparedVictory(repo);
+      final scene = repo.pendingAdventureScene!;
+      await repo.updateAdventureScene(scene.id, status: SceneStatus.skipped);
+      final flow = FirstExperienceController(repo);
+      await flow.restartGames();
+      flow.dispose();
+      final session = repo.state.sessions[repo.state.activeSessionId]!;
+      final puzzle = repo.state.puzzles[session.nextPuzzleId]!;
+      for (var i = 0; i < 81; i++) {
+        if (!puzzle.isFixed(i))
+          await repo.setCell(session.id, puzzle.id, i, puzzle.solution[i]);
+      }
+      expect(repo.pendingAdventureScene, isNull);
+      expect(repo.adventureStory.scenes[scene.id]!.status, SceneStatus.skipped);
+      expect(repo.state.progress[mapLevelId(1)]!.bestLights, 1);
+    },
+  );
+
+  test('DEV prepares each round with one hole and only the last win unlocks the next level', () async {
+    final repo = GameRepository.memory();
+    addTearDown(repo.close);
+    await expectLater(repo.prepareDebugVictory(2), throwsStateError);
+    for (var round = 0; round < 3; round++) {
+      await repo.prepareDebugVictory(1, roundIndex: round);
+      final session = repo.state.sessions[repo.state.activeSessionId]!;
+      expect(session.lights, round);
+      expect(
+        session.puzzles[round].cells.where((cell) => cell.value == null),
+        hasLength(1),
+      );
+      expect(repo.state.isUnlocked(mapLevelId(2)), isFalse);
+      expect(repo.pendingAdventureScene, isNull);
+      repo.state.validate();
+      await finishPreparedVictory(repo);
+      expect(repo.pendingAdventureScene!.roundIndex, round);
+      expect(repo.state.isUnlocked(mapLevelId(2)), round == 2);
+      repo.state.validate();
+    }
+    await repo.prepareDebugVictory(1, roundIndex: 2);
+    expect(repo.pendingAdventureScene, isNull);
+    await finishPreparedVictory(repo);
+    expect(repo.pendingAdventureScene!.roundIndex, 2);
+  });
+
+  test(
+    'resetting the level clears its cinematic progress for a fresh test',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      await repo.prepareDebugVictory(1);
+      await finishPreparedVictory(repo);
+      await repo.resetDebugLevels({mapLevelId(1)});
+      expect(repo.adventureStory.scenes, isEmpty);
+      expect(repo.pendingAdventureScene, isNull);
+      repo.state.validate();
+    },
+  );
+
+  test('quick play completion has no adventure scene', () async {
+    final repo = GameRepository.memory();
+    addTearDown(repo.close);
+    final session = await repo.startQuickPlay(QuickPlayDifficulty.easy);
+    final puzzle = repo.state.puzzles[session.nextPuzzleId]!;
+    final emptyIndex = puzzle.initial.indexOf(null);
+    await repo.debugFillExceptCell(session.id, puzzle.id, emptyIndex);
+    await finishPreparedVictory(repo);
+    expect(repo.adventureStory.scenes, isEmpty);
+    expect(repo.pendingAdventureScene, isNull);
+  });
+
+  test(
+    'the map can resume an earlier level with its own pending scene',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      await repo.prepareDebugVictory(1, roundIndex: 2);
+      await finishPreparedVictory(repo);
+      final first = repo.pendingSceneForLevel(1)!;
+      await repo.updateAdventureScene(first.id, page: 1);
+      await repo.prepareDebugVictory(2);
+      await finishPreparedVictory(repo);
+      expect(repo.pendingAdventureScene!.levelNumber, 2);
+      expect(repo.pendingSceneForLevel(1)!.id, first.id);
+      expect(repo.adventureStory.scenes[first.id]!.page, 1);
+      expect(repo.pendingSceneForLevel(3), isNull);
+    },
+  );
+
+  test(
+    'legacy completed levels do not queue retrospective scenes on opening',
+    () async {
+      final store = MemorySaveStore();
+      final repo = await GameRepository.open(store);
+      await repo.completeDebugLevel(1);
+      await repo.close();
+      final reopened = await GameRepository.open(store);
+      expect(reopened.pendingAdventureScene, isNull);
+      expect(reopened.state.progress[mapLevelId(1)]!.bestLights, 3);
+      await reopened.close();
+    },
+  );
+}

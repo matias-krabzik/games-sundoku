@@ -24,6 +24,39 @@ class WorldThumbnail extends StatelessWidget {
       );
     }
     final world = adventureWorld(worldId);
+    if (worldId == 'world-3') {
+      final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+      final cacheHeight = (size * pixelRatio).ceil();
+      return SizedBox.square(
+        dimension: size,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const UiSurfaceArt(UiSurface.goldTile),
+            Padding(
+              padding: EdgeInsets.all(size * .085),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(size * .14),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(color: world.map.backgroundColor),
+                    for (final layer in world.map.layers)
+                      Image.asset(
+                        layer.asset,
+                        fit: BoxFit.cover,
+                        alignment: const Alignment(.9, -.1),
+                        cacheHeight: cacheHeight,
+                        excludeFromSemantics: true,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final terrain = world.map.layers
         .firstWhere(
           (layer) => layer.plane == MapLayerPlane.terrain,

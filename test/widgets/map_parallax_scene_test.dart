@@ -428,9 +428,10 @@ void main() {
         final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
         for (final path in manifest.listAssets().where(
           (path) =>
-              path.startsWith('assets/images/map/') ||
-              path.startsWith('assets/images/home/') ||
-              path.startsWith('assets/images/ui/'),
+              path.endsWith('.png') &&
+              (path.startsWith('assets/images/map/') ||
+                  path.startsWith('assets/images/home/') ||
+                  path.startsWith('assets/images/ui/')),
         )) {
           await precacheImage(AssetImage(path), context);
         }

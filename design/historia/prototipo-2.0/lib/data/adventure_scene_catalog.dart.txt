@@ -1,0 +1,249 @@
+import '../domain/models/adventure_scene.dart';
+import 'level_catalog.dart';
+import 'level_node.dart';
+
+class AdventureSceneCatalog {
+  AdventureSceneCatalog._();
+
+  static final List<AdventureScene> scenes = List.unmodifiable([
+    for (var level = 1; level <= _valley.length; level++)
+      for (var round = 0; round < 3; round++)
+        AdventureScene(
+          id: '${mapLevelId(level)}/after-round-${round + 1}',
+          levelNumber: level,
+          roundIndex: round,
+          title: kValleyLevelNames[level - 1],
+          dialogues: List.unmodifiable(_valley[level - 1][round]),
+        ),
+  ]);
+
+  static AdventureScene? byId(String id) =>
+      scenes.where((scene) => scene.id == id).firstOrNull;
+
+  static AdventureScene? afterPuzzle(String puzzleId) => scenes
+      .where(
+        (scene) =>
+            '${mapLevelId(scene.levelNumber)}/sudoku-${scene.roundIndex + 1}' ==
+            puzzleId,
+      )
+      .firstOrNull;
+
+  static const _valley = <List<List<AdventureDialogue>>>[
+    [
+      [
+        AdventureDialogue(
+          'Tilo',
+          '¡Primer sudoku completo! Aprendieron a mirar bloques, filas y columnas. En la próxima partida van a elegir por dónde empezar.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          '¡Ya van dos! Numa dejó algo escrito en el cuaderno…',
+        ),
+        AdventureDialogue(
+          'Invitación de Numa',
+          'Cada maestro del camino tiene algo para enseñarles. Guarden lo que descubran: lo van a necesitar cuando juguemos juntos.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'El camino sigue por el valle. Vamos a practicar hasta llegar al mirador. Allí les espera mi desafío.',
+        ),
+        AdventureDialogue(
+          'Doku',
+          'Tenemos el cuaderno y nuestras primeras tres estrellas. ¡Vamos por el siguiente paso!',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Doku',
+          'Desde acá todavía se ve la mesa donde empezamos. ¡Ya dimos nuestros primeros pasos!',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Antes de elegir una casilla, recorré el tablero con la mirada. A veces un lugar casi completo te invita a empezar.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          'La próxima mesa está después de aquella curva. Me pregunto qué tablero nos espera.',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Doku',
+          'El camino gira, pero el mirador sigue allá arriba. Cada partida nos acerca un poco más.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Si una casilla todavía no te dice mucho, podés mirar otra región. El tablero tiene muchos lugares por donde seguir.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          '¡Otra parada completa! Sigamos junto a la cerca. Tilo dice que hay una mesa a la sombra.',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Esta cerca me recuerda a las filas. Podés seguirlas de lado a lado y ver qué números tienen.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          'Y los postes me recuerdan a las columnas. La misma casilla forma parte de las dos… y de un bloque.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Vamos hasta el roble. Ahí me sentaba a practicar cuando recién empezaba el camino.',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Doku',
+          '¿Vos también te quedabas pensando mucho tiempo frente a un tablero, Tilo?',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Todavía me pasa. Me detengo, miro otra vez y, si lo necesito, pido una pista. Así sigo aprendiendo.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          'Entonces podemos tomarnos nuestro tiempo. El mirador va a seguir ahí. ¡Vamos juntos!',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Por acá hay piedras pequeñas entre las grandes. Conviene mirar dónde apoyar el siguiente paso.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          'En el tablero también podemos avanzar con algo pequeño: una casilla que sí entendemos.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          '¡Cruzamos el tramo de piedras! Ya se ve el comienzo de la subida.',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Desde la subida se ve más lejos. En una partida también ayuda ampliar la mirada de vez en cuando.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Además de preguntar qué número cabe en una casilla, podés preguntar en qué lugar cabe un número.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          'Una pregunta nueva para nuestro cuaderno. ¡Todavía tenemos mucho por descubrir!',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Doku',
+          'Desde este recodo el mirador parece cerca. Me dan ganas de correr hasta allá.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Guardá esas ganas para el desafío. Antes tenemos unas partidas más para prepararnos.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          'De acuerdo. Una partida por vez. ¡Vamos al último tramo!',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Doku',
+          '¿Te acordás del primer bloque? En ese momento todavía no conocíamos todo el tablero.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Ahora llevás esas reglas con vos. Mis próximas tres partidas van a ponerlas en juego.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          '¡Llegamos al mirador! Estoy listo para intentarlo. ¿Jugamos, Tilo?',
+        ),
+      ],
+    ],
+    [
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Primera prueba completa. Quedan dos tableros. Podés usar todo lo que aprendiste en el valle.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Doku',
+          '¡Solo falta una! Numa nos espera más adelante, pero ahora quiero terminar este desafío con vos.',
+        ),
+      ],
+      [
+        AdventureDialogue(
+          'Tilo',
+          'Completaron mis tres pruebas. Este es el Sello de la Observación: el recuerdo de su paso por el valle.',
+        ),
+        AdventureDialogue(
+          'Doku',
+          '¡Nuestro primer sello! Desde acá se ve el Bosque de las Posibilidades. Guardemos este momento en el cuaderno.',
+        ),
+        AdventureDialogue(
+          'Tilo',
+          'Por hoy, disfruten lo que aprendieron. El próximo tramo del camino estará disponible más adelante.',
+        ),
+      ],
+    ],
+  ];
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "file": "design/ui-unified-2026-09-18/panel.png",
+    "width": 1122,
+    "height": 1402,
+    "hasAlpha": true,
+    "transparentPixels": 283356,
+    "antialiasedOrPartialPixels": 1288736
+  },
+  {
+    "file": "design/ui-unified-2026-09-18/header.png",
+    "width": 2172,
+    "height": 724,
+    "hasAlpha": true,
+    "transparentPixels": 762583,
+    "antialiasedOrPartialPixels": 809662
+  },
+  {
+    "file": "design/ui-unified-2026-09-18/card.png",
+    "width": 2172,
+    "height": 724,
+    "hasAlpha": true,
+    "transparentPixels": 619724,
+    "antialiasedOrPartialPixels": 952108
+  },
+  {
+    "file": "design/ui-unified-2026-09-18/tile.png",
+    "width": 1254,
+    "height": 1254,
+    "hasAlpha": true,
+    "transparentPixels": 596147,
+    "antialiasedOrPartialPixels": 975051
+  },
+  {
+    "file": "design/ui-unified-2026-09-18/footer.png",
+    "width": 2172,
+    "height": 724,
+    "hasAlpha": true,
+    "transparentPixels": 670782,
+    "antialiasedOrPartialPixels": 900018
+  },
+  {
+    "file": "design/ui-unified-2026-09-18/board.png",
+    "width": 1254,
+    "height": 1254,
+    "hasAlpha": true,
+    "transparentPixels": 316248,
+    "antialiasedOrPartialPixels": 1253373
+  }
+]

@@ -22,6 +22,7 @@ class LevelProgress extends ChangeNotifier {
   static const int requiredLights = 3;
   final GameRepository _repository;
   final bool _ownsRepository;
+  bool get worldUnlocked => _repository.isWorldUnlocked(worldId);
 
   String _id(int level) {
     RangeError.checkValueInInterval(level, 1, world.nodes.length, 'level');
@@ -33,8 +34,12 @@ class LevelProgress extends ChangeNotifier {
   bool isUnlocked(int level) => _repository.state.isUnlocked(_id(level));
   int get unlockedCount =>
       world.nodes.where((node) => isUnlocked(node.level)).length;
-  int get latestUnlocked =>
-      world.nodes.lastWhere((node) => isUnlocked(node.level)).level;
+  int get latestUnlocked => world.nodes
+      .lastWhere(
+        (node) => isUnlocked(node.level),
+        orElse: () => world.nodes.first,
+      )
+      .level;
 
   bool get gateCelebrationPending =>
       world.map.gate != null && _repository.shouldCelebrateGate(worldId);

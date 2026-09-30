@@ -1,0 +1,331 @@
+{
+  "version": 5,
+  "sourceSize": {
+    "width": 8142,
+    "height": 724
+  },
+  "viewBox": {
+    "x": 60,
+    "y": 40,
+    "width": 8082,
+    "height": 644
+  },
+  "levels": 30,
+  "assets": [
+    {
+      "file": "layers/01-backdrop-v2.png",
+      "size": [
+        2170,
+        725
+      ],
+      "mode": "RGB",
+      "sha256": "c8be74da67d8969280e5771772238f76a06ab853080485473184183b7007da61"
+    },
+    {
+      "file": "layers/01-terrain.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "68def4a945159651041ed43217893f360d1b7919b41a2a1f3955a12cbb2c373a",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 522841,
+      "partialAlphaPixels": 1049138
+    },
+    {
+      "file": "layers/01-foreground.png",
+      "size": [
+        2171,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "02da64d16dd2d03cd41fbfc041419c8e92e5fc7f35d37824d4552eea1c28f8ae",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1270127,
+      "partialAlphaPixels": 301460
+    },
+    {
+      "file": "layers/02-backdrop.png",
+      "size": [
+        2169,
+        725
+      ],
+      "mode": "RGB",
+      "sha256": "7ce2c728a851a1f302b94c54a29e06b2744015d43a4967d186036fb8da0b29a1"
+    },
+    {
+      "file": "layers/02-terrain.png",
+      "size": [
+        2169,
+        725
+      ],
+      "mode": "RGBA",
+      "sha256": "aa2bb5ae0a30f81213c9ccb5aa5158aa5dbe52d1604e804824851718d2906d4f",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 630131,
+      "partialAlphaPixels": 942265
+    },
+    {
+      "file": "layers/02-foreground.png",
+      "size": [
+        2169,
+        725
+      ],
+      "mode": "RGBA",
+      "sha256": "8ae65fd2844b606de0624be2a022d01acefd3de50cb957dde3beda9af512d64b",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1379415,
+      "partialAlphaPixels": 193003
+    },
+    {
+      "file": "layers/03-terrain-v2.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "ee075fd9d6849b6b5783249dfeaae5d1808ff13eef96de53ddd7970fe7976ff0",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 515486,
+      "partialAlphaPixels": 1056749
+    },
+    {
+      "file": "layers/03-foreground.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "aeb8b8698d0105eb332c270fccd759d1be963c5b8f2eed11f97f58c80f0ac2c4",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1251359,
+      "partialAlphaPixels": 320881
+    },
+    {
+      "file": "layers/04-backdrop.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGB",
+      "sha256": "c735123f41c66321c1d4e69c220af24b581a465c55e4a3140932d0b4d57bd12d"
+    },
+    {
+      "file": "layers/04-terrain-v3.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "2f111fad5ed56cdfa979302f73c0efda72351d320d6ad56ea5b0eb8b530a4d3b",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 590812,
+      "partialAlphaPixels": 981340
+    },
+    {
+      "file": "layers/04-foreground.png",
+      "size": [
+        2171,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "5eb6ea0d9e23fa4d59b47776d1b6d23896a38649e63bba99e312ae6fd325466f",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1292658,
+      "partialAlphaPixels": 278899
+    },
+    {
+      "file": "repairs/terrain-08-09.png",
+      "size": [
+        1377,
+        1142
+      ],
+      "mode": "RGBA",
+      "sha256": "fd5e3bb4a379fb159d96bf62a13d066f51dae179f965031a8015d8840772f2d2",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 548680,
+      "partialAlphaPixels": 1023765
+    },
+    {
+      "file": "repairs/terrain-16.png",
+      "size": [
+        1377,
+        1142
+      ],
+      "mode": "RGBA",
+      "sha256": "7f75f3b8db0125ad7282829eec7104ca7573e2a6fddbafa1afcd0d6bc93abde1",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 558656,
+      "partialAlphaPixels": 1013820
+    },
+    {
+      "file": "repairs/terrain-23.png",
+      "size": [
+        1377,
+        1142
+      ],
+      "mode": "RGBA",
+      "sha256": "d9b0b64c26b80e091dc6401a031cf5caa131447f307b28d9a956946c8ee86c2e",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 172273,
+      "partialAlphaPixels": 1400238
+    },
+    {
+      "file": "layers/foreground-join-08-09.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "126b3f00c3f9112dc43d198978e242e4b97e31642c0bec14f2076ab7935a976d",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1322270,
+      "partialAlphaPixels": 249489
+    },
+    {
+      "file": "layers/foreground-join-16.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "111d85832536ed2e249a413dbb869d2ae88fe764fbbb2528e125ac5fe17d04de",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1203640,
+      "partialAlphaPixels": 368605
+    },
+    {
+      "file": "layers/foreground-join-23.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "2d41d4cdff21d8a8d2bafff5eb710acb16ebaf56cc80500155cd7049b4f20354",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1194796,
+      "partialAlphaPixels": 377030
+    },
+    {
+      "file": "layers/foreground-grass-08-09.png",
+      "size": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "sha256": "4df4d8a1763db206c5bf2bca112c9539d5a74cb4da56883321474f4504810e3c",
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "fullyTransparentPixels": 1300544,
+      "partialAlphaPixels": 271604
+    }
+  ],
+  "geometry": {
+    "minimumCenterDistanceSource": 270.0907254979334,
+    "nominalSeparation": 3,
+    "allPairsChecked": 435,
+    "gameIntegration": false
+  },
+  "composition": {
+    "terrainCrossfade": false,
+    "foregroundCrossfade": false,
+    "repairCount": 3,
+    "foregroundIndependentProps": 9,
+    "rightCropRemoved": true,
+    "destinationPathTerminatesWithinCanvas": true,
+    "uniqueForegroundJoinAssets": 3,
+    "backdropCorrections": 2,
+    "backgroundLayerAlphaPolicy": "RGB opaque full-bleed; transparent alpha is for cutout layers only."
+  },
+  "supportingSources": [
+    {
+      "file": "candidates/02-backdrop-08-09-generation.png",
+      "size": [
+        2169,
+        725
+      ],
+      "mode": "RGB",
+      "sha256": "ca187cbbdc0c32fa1e0f5c699d9affc0fe363880e2ce762a66b35140c09a3a7f",
+      "usedBy": "layers/02-backdrop-seam-08-09.svg; solo aparece dentro de la franja enmascarada del bosque distante."
+    },
+    {
+      "file": "candidates/02-backdrop-transition-16-v1.png",
+      "size": [
+        2169,
+        725
+      ],
+      "mode": "RGB",
+      "sha256": "af4906f8c785ef6e30036865cad2b3c99a06fc24f0676e1887cec9914aa4a136",
+      "usedBy": "layers/02-backdrop-seams-08-09-16.svg; capa de árboles lejanos antes de la unión sobre el nivel 16."
+    }
+  ],
+  "localCorrections": [
+    {
+      "junction": "8-9",
+      "backdropComposition": "layers/02-backdrop-seam-08-09.svg",
+      "backdropMask": {
+        "tileLocalX": [
+          0,
+          450
+        ],
+        "canvasY": [
+          245,
+          390
+        ],
+        "verticalOffset": 12
+      },
+      "grassAsset": "layers/foreground-grass-08-09.png",
+      "grassPlacement": {
+        "x": 1790,
+        "y": 524,
+        "width": 600,
+        "height": 200
+      },
+      "routeAsset": "repairs/terrain-08-09.png",
+      "routeAssetSha256": "fd5e3bb4a379fb159d96bf62a13d066f51dae179f965031a8015d8840772f2d2",
+      "routeAssetUnchanged": true
+    },
+    {
+      "junction": "15-16 (fondo)",
+      "backdropComposition": "layers/02-backdrop-seams-08-09-16.svg",
+      "sourceCandidate": "candidates/02-backdrop-transition-16-v1.png",
+      "backdropMask": {
+        "tileLocalX": [
+          1569,
+          2169
+        ],
+        "horizontalFade": [
+          1569,
+          1769
+        ],
+        "canvasY": [
+          253,
+          317
+        ],
+        "verticalOpaqueRange": [
+          264.5,
+          305.5
+        ]
+      },
+      "pathAssetUnchanged": true,
+      "foregroundUnchanged": true,
+      "scope": "Solo pinos lejanos y su base inmediata; el resto del mapa permanece igual.",
+      "compositionSha256": "08b6a3ea2de8d5f4895af116813b53b4cc7bb19abdefe605430f53648c0a1094"
+    }
+  ]
+}

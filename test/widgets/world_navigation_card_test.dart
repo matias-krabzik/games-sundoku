@@ -9,54 +9,55 @@ import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/juicy_press.dart';
 
 void main() {
-  testWidgets(
-    'world picker keeps locked worlds unavailable',
-    (tester) async {
-      final repository = GameRepository.memory();
-      final progress = LevelProgress(repository: repository);
-      final navigation = MockWorldNavigationService(repository);
-      String? selectedWorld;
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets('world picker keeps locked worlds unavailable', (tester) async {
+    final repository = GameRepository.memory();
+    final progress = LevelProgress(repository: repository);
+    final navigation = MockWorldNavigationService(repository);
+    String? selectedWorld;
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MediaQuery(
-            data: const MediaQueryData(
-              size: Size(390, 844),
-              disableAnimations: true,
-            ),
-            child: MapScreen(
-              progress: progress,
-              worldNavigation: navigation,
-              onSelectWorld: (worldId) => selectedWorld = worldId,
-              showDeveloperControls: false,
-            ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(390, 844),
+            disableAnimations: true,
+          ),
+          child: MapScreen(
+            progress: progress,
+            worldNavigation: navigation,
+            onSelectWorld: (worldId) => selectedWorld = worldId,
+            showDeveloperControls: false,
           ),
         ),
-      );
-      await tester.pump();
-      expect(find.text('Mundo 1'), findsOneWidget);
-      expect(find.text('Valle del Sol'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('map-world-selector')));
-      await tester.pump();
-      expect(
-        tester
-            .widget<JuicyPress>(
-              find.byKey(const ValueKey('map-world-option-2')),
-            )
-            .onPressed,
-        isNull,
-      );
-      expect(selectedWorld, isNull);
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Mundo 1'), findsOneWidget);
+    expect(find.text('Valle del Sol'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('map-world-selector')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<JuicyPress>(find.byKey(const ValueKey('map-world-option-2')))
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<JuicyPress>(find.byKey(const ValueKey('map-world-option-3')))
+          .onPressed,
+      isNull,
+    );
+    expect(selectedWorld, isNull);
 
-      await tester.pumpWidget(const SizedBox());
-      progress.dispose();
-      await repository.close();
-    },
-  );
+    await tester.pumpWidget(const SizedBox());
+    progress.dispose();
+    await repository.close();
+  });
 
   testWidgets(
     'world picker replaces the map and remembers the selected world',
@@ -90,6 +91,18 @@ void main() {
       await frames();
       expect(find.text('Mundo 2'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-2');
+      await tester.tap(find.byKey(const ValueKey('map-world-selector')));
+      await frames();
+      expect(
+        tester
+            .widget<JuicyPress>(
+              find.byKey(const ValueKey('map-world-option-3')),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tapAt(const Offset(20, 20));
+      await frames();
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
       await tester.tap(find.byKey(const ValueKey('map-world-option-1')));

@@ -63,6 +63,13 @@ Future<WorldCompletionDestination?> showWorldCompletionRecap(
                                 'Cada nota tiene su lugar en la pequeña cuadrícula.',
                                 'Al colocar un número, vuelve a mirar tus notas. Borra las que ya no pueden ir en su fila, columna o bloque.',
                                 'Cuando solo queda una posibilidad, apaga el lápiz y coloca tu respuesta.',
+                              ] else if (worldId == 'world-3') ...[
+                                'Recorriste los treinta niveles de Ríos Cruzados. El camino completo quedó abierto gracias a tu paciencia y atención.',
+                                'En cada fila, de lado a lado, van los números del 1 al 9 sin repetir.',
+                                'En cada columna, de arriba abajo, también van del 1 al 9 sin repetir.',
+                                'En cada bloque de 3×3, los nueve números aparecen una sola vez.',
+                                'Las pistas del tablero te ayudan a descubrir dónde encaja cada número.',
+                                'Puedes volver al mapa y recorrer de nuevo los niveles que ya completaste.',
                               ] else ...[
                                 'Completaste el Valle del Sol. ¡Mira todo lo que aprendiste!',
                                 'En cada fila, de lado a lado, van los números del 1 al 9 sin repetir.',
@@ -74,7 +81,9 @@ Future<WorldCompletionDestination?> showWorldCompletionRecap(
                             ].join('\n\n'),
                           ],
                           tip: worldId == 'world-2'
-                              ? '¡Sigue practicando en Partida rápida! Puedes elegir la dificultad y usar tus anotaciones cuando quieras.'
+                              ? '¡Desbloqueaste Ríos Cruzados! Elige ese mundo desde el mapa. También puedes seguir practicando en Partida rápida y usar tus anotaciones cuando quieras.'
+                              : worldId == 'world-3'
+                              ? '¡Gracias por recorrer Ríos Cruzados! Vuelve al mapa para mirar el camino completo y seguir disfrutando de SunDoku.'
                               : '¡Desbloqueaste Partida rápida!\n\nAhora puedes elegir la dificultad y jugar nuevos sudokus para seguir practicando.\n\n¡Encontrarás tu próximo desafío en el inicio!',
                         ),
                       ],

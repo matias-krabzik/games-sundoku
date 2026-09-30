@@ -1,0 +1,56 @@
+import 'package:flutter/foundation.dart';
+
+import '../data/repositories/game_repository.dart';
+import '../domain/models/adventure_scene.dart';
+
+class AdventureSceneController extends ChangeNotifier {
+  AdventureSceneController(this.repository, this.scene);
+
+  final GameRepository repository;
+  final AdventureScene scene;
+  bool isBusy = false;
+  String? error;
+  bool _disposed = false;
+
+  AdventureSceneRecord get record =>
+      repository.adventureStory.scenes[scene.id]!;
+  int get page => record.page.clamp(0, scene.dialogues.length - 1);
+  bool get isLastPage => page == scene.dialogues.length - 1;
+  AdventureDialogue get dialogue => scene.dialogues[page];
+
+  Future<bool> begin() => _save(status: SceneStatus.reading);
+  Future<bool> previous() async => page > 0 && await _save(page: page - 1);
+  Future<bool> next() async => !isLastPage && await _save(page: page + 1);
+  Future<bool> finish({bool skipped = false}) =>
+      _save(status: skipped ? SceneStatus.skipped : SceneStatus.read);
+
+  Future<bool> _save({
+    int? page,
+    SceneStatus status = SceneStatus.reading,
+  }) async {
+    if (_disposed || isBusy) return false;
+    isBusy = true;
+    error = null;
+    notifyListeners();
+    try {
+      await repository.updateAdventureScene(
+        scene.id,
+        page: page,
+        status: status,
+      );
+      return true;
+    } catch (_) {
+      error = 'No pudimos guardar la historia. Intentá de nuevo.';
+      return false;
+    } finally {
+      isBusy = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}

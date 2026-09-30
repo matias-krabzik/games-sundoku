@@ -45,7 +45,7 @@ const springForestMap = WorldMapDefinition(
   markerSeparation: 2.0,
   terrainTilt: Offset(4, 3),
   allowVerticalPan: true,
-  camera: MapCameraDefinition(),
+  camera: MapCameraDefinition(targetY: .61, strength: .35, maxTravel: .025),
   layers: [
     MapLayerDefinition(
       id: 'sky',

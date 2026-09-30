@@ -28,6 +28,7 @@ class MapLevelButton extends StatefulWidget {
     required this.active,
     required this.lights,
     required this.unlocked,
+    this.lockedReason,
     required this.onTap,
   });
 
@@ -37,6 +38,7 @@ class MapLevelButton extends StatefulWidget {
   final bool active;
   final int lights;
   final bool unlocked;
+  final String? lockedReason;
   final VoidCallback onTap;
 
   @override
@@ -51,7 +53,7 @@ class _MapLevelButtonState extends State<MapLevelButton> {
     label: 'Nivel ${widget.level}',
     value: widget.unlocked
         ? 'Disponible, ${widget.lights} de 3 puntos'
-        : 'Bloqueado, consigue 3 puntos en el nivel ${widget.level - 1}',
+        : 'Bloqueado, ${widget.lockedReason ?? 'consigue 3 puntos en el nivel ${widget.level - 1}'}',
     button: true,
     selected: widget.active,
     child: LayoutBuilder(

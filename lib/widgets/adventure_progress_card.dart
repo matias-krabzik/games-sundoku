@@ -148,18 +148,29 @@ class AdventureProgressCard extends StatelessWidget {
                         // inset here leaves a pale gap beside a short cap.
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: FractionallySizedBox(
-                              widthFactor: (unlockedLevels / totalLevels).clamp(
-                                0,
-                                1,
-                              ),
-                              heightFactor: 1,
-                              child: const UiSurfaceArt(
-                                UiSurface.mapProgressFill,
-                              ),
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, bounds) {
+                              final fraction = (unlockedLevels / totalLevels)
+                                  .clamp(0.0, 1.0);
+                              // A visible fill starts as a circle, then grows
+                              // with progress without exceeding the track.
+                              final fillWidth = fraction == 0
+                                  ? 0.0
+                                  : (bounds.maxWidth * fraction).clamp(
+                                      bounds.biggest.shortestSide,
+                                      bounds.maxWidth,
+                                    );
+                              return Align(
+                                alignment: Alignment.centerLeft,
+                                child: SizedBox(
+                                  width: fillWidth,
+                                  height: bounds.maxHeight,
+                                  child: const UiSurfaceArt(
+                                    UiSurface.mapProgressFill,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                         Align(

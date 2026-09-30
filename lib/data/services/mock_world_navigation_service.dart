@@ -15,9 +15,7 @@ class MockWorldNavigationService implements WorldNavigationService {
 
   @override
   bool isUnlocked(String worldId) {
-    final world = adventureWorld(worldId);
-    return world.number == 1 ||
-        (world.id == 'world-2' && _repository.forestUnlocked);
+    return _repository.isWorldUnlocked(worldId);
   }
 
   @override

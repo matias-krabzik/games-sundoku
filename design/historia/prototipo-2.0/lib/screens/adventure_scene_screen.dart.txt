@@ -1,0 +1,234 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../controllers/adventure_scene_controller.dart';
+import '../data/repositories/game_repository.dart';
+import '../domain/models/adventure_scene.dart';
+import '../widgets/game_navigation_header.dart';
+import '../widgets/home_art.dart';
+import '../widgets/illustrated_action_button.dart';
+import '../widgets/map_art.dart';
+import '../widgets/tutorial_story_navigation.dart';
+import '../widgets/ui_surface_art.dart';
+
+enum AdventureSceneExit { continueJourney, map }
+
+class AdventureSceneScreen extends StatefulWidget {
+  const AdventureSceneScreen({
+    super.key,
+    required this.repository,
+    required this.scene,
+    required this.continueLabel,
+    this.canContinue = true,
+  });
+
+  final GameRepository repository;
+  final AdventureScene scene;
+  final String continueLabel;
+  final bool canContinue;
+
+  @override
+  State<AdventureSceneScreen> createState() => _AdventureSceneScreenState();
+}
+
+class _AdventureSceneScreenState extends State<AdventureSceneScreen> {
+  late final _flow = AdventureSceneController(widget.repository, widget.scene);
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_flow.begin());
+  }
+
+  @override
+  void dispose() {
+    _flow.dispose();
+    super.dispose();
+  }
+
+  Future<void> _finish({bool skipped = false, bool map = false}) async {
+    final saved = await _flow.finish(skipped: skipped);
+    if (!mounted || !saved) return;
+    Navigator.of(context).pop(
+      map || !widget.canContinue
+          ? AdventureSceneExit.map
+          : AdventureSceneExit.continueJourney,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: _flow,
+    builder: (context, _) => PopScope(
+      canPop: !_flow.isBusy,
+      child: Scaffold(
+        key: const ValueKey('adventure-scene'),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              widget.scene.backgroundAsset,
+              key: const ValueKey('adventure-scene-background'),
+              fit: BoxFit.cover,
+              excludeFromSemantics: true,
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        GameHeaderButton(
+                          key: const ValueKey('scene-back'),
+                          label: 'Volver',
+                          onPressed: _flow.isBusy
+                              ? null
+                              : () => Navigator.of(context).maybePop(),
+                          icon: const MapIcon(MapGlyph.back, size: 29),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Nivel ${widget.scene.levelNumber} · Partida ${widget.scene.roundIndex + 1}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: homeText(18),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, bounds) => SingleChildScrollView(
+                          key: const ValueKey('scene-content-scroll'),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: bounds.maxHeight,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 620,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  child: UiSurfacePanel(
+                                    surface: UiSurface.goldCreamPanel,
+                                    padding: const EdgeInsets.all(26),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          widget.scene.title,
+                                          style: homeText(21),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TutorialStoryProgress(
+                                          index: _flow.page,
+                                          count: widget.scene.dialogues.length,
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Text(
+                                          _flow.dialogue.speaker,
+                                          key: const ValueKey('scene-speaker'),
+                                          style: homeText(22),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          _flow.dialogue.text,
+                                          key: const ValueKey('scene-dialogue'),
+                                          style: homeText(24)
+                                              .copyWith(height: 1.35),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          '${_flow.page + 1} de ${widget.scene.dialogues.length}',
+                                          style: homeText(15),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_flow.error != null)
+                      Text(
+                        _flow.error!,
+                        style: homeText(15),
+                        textAlign: TextAlign.center,
+                      ),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: IllustratedActionButton(
+                        key: const ValueKey('scene-next'),
+                        compact: true,
+                        fontSize: 24,
+                        label: _flow.isBusy
+                            ? 'Guardando…'
+                            : _flow.isLastPage
+                            ? widget.continueLabel
+                            : 'Continuar',
+                        onPressed: _flow.isBusy
+                            ? null
+                            : () async {
+                                if (_flow.isLastPage) {
+                                  await _finish();
+                                } else {
+                                  await _flow.next();
+                                }
+                              },
+                      ),
+                    ),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 16,
+                      children: [
+                        if (_flow.page > 0)
+                          TextButton(
+                            key: const ValueKey('scene-previous'),
+                            onPressed: _flow.isBusy ? null : _flow.previous,
+                            child: Text('Anterior', style: homeText(16)),
+                          ),
+                        if (_flow.isLastPage &&
+                            widget.scene.roundIndex == 2 &&
+                            widget.canContinue)
+                          TextButton(
+                            key: const ValueKey('scene-map'),
+                            onPressed: _flow.isBusy
+                                ? null
+                                : () => _finish(map: true),
+                            child: Text('Mapa', style: homeText(16)),
+                          )
+                        else
+                          TextButton(
+                            key: const ValueKey('scene-skip'),
+                            onPressed: _flow.isBusy
+                                ? null
+                                : () => _finish(skipped: true),
+                            child: Text('Omitir historia', style: homeText(16)),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

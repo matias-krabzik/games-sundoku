@@ -79,6 +79,26 @@ class MapGateDefinition {
   final double sourceDiameter;
 }
 
+enum MapCreatureKind { butterfly, dragonfly, mayfly, fish }
+
+/// A small ambient creature with a favored birthplace on the artwork.
+/// Fish use [travel] as their water patch; insects may roam beyond it.
+class MapCreatureDefinition {
+  const MapCreatureDefinition({
+    required this.kind,
+    required this.center,
+    required this.travel,
+    required this.size,
+    this.phase = 0,
+  });
+
+  final MapCreatureKind kind;
+  final Offset center;
+  final Offset travel;
+  final double size;
+  final double phase;
+}
+
 class MapAmbientDefinition {
   const MapAmbientDefinition({
     required this.flowers,
@@ -88,7 +108,17 @@ class MapAmbientDefinition {
     this.pinkCanopy,
     this.leafAsset = 'assets/images/map/ambient/leaf.png',
     this.beeAsset = 'assets/images/map/ambient/bee.png',
-  }) : assert(foregroundFlowerCount > 0);
+    this.leafAssets = const [],
+    this.canopyLeafStyles = const [],
+    this.petalAsset,
+    this.petalAnchors = const [],
+    this.creatureAssets = const {},
+    this.creatureWingAssets = const {},
+    this.creatures = const [],
+    this.beeCount = 2,
+    this.treeLeavesOnly = false,
+  }) : assert(foregroundFlowerCount > 0),
+       assert(beeCount >= 0);
 
   final List<Offset> flowers;
   final int foregroundFlowerCount;
@@ -97,6 +127,15 @@ class MapAmbientDefinition {
   final Offset? pinkCanopy;
   final String leafAsset;
   final String beeAsset;
+  final List<String> leafAssets;
+  final List<int> canopyLeafStyles;
+  final String? petalAsset;
+  final List<Offset> petalAnchors;
+  final Map<MapCreatureKind, String> creatureAssets;
+  final Map<MapCreatureKind, String> creatureWingAssets;
+  final List<MapCreatureDefinition> creatures;
+  final int beeCount;
+  final bool treeLeavesOnly;
 }
 
 /// Artwork and layout only. Progress, lessons and navigation belong to callers.
@@ -158,7 +197,22 @@ class WorldMapDefinition {
     final effects = ambient;
     if (effects != null &&
         (effects.foregroundFlowerCount > effects.flowers.length ||
-            !layers.any((layer) => layer.id == effects.foregroundLayerId))) {
+            (effects.canopyLeafStyles.isNotEmpty &&
+                effects.canopyLeafStyles.length != effects.canopies.length) ||
+            !layers.any((layer) => layer.id == effects.foregroundLayerId) ||
+            effects.canopyLeafStyles.any(
+              (style) =>
+                  style < 0 || style >= math.max(1, effects.leafAssets.length),
+            ) ||
+            effects.creatures.any(
+              (creature) =>
+                  !effects.creatureAssets.containsKey(creature.kind) ||
+                  creature.size <= 0 ||
+                  creature.center.dx < 0 ||
+                  creature.center.dx > sourceSize.width ||
+                  creature.center.dy < 0 ||
+                  creature.center.dy > sourceSize.height,
+            ))) {
       throw ArgumentError(
         'Ambient anchors must belong to an existing map layer.',
       );

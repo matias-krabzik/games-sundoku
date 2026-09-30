@@ -508,12 +508,14 @@ class _MapScreenState extends State<MapScreen>
       }
       showToast(
         context,
-        _progress.isUnlocked(target)
-            ? 'Nivel $target'
-            : 'Consigue 3 puntos en el nivel ${target - 1}',
+        _progress.isUnlocked(target) ? 'Nivel $target' : _lockedReason(target),
       );
     }
   }
+
+  String _lockedReason(int level) => level == 1 && !_progress.worldUnlocked
+      ? 'Completa el mundo anterior para desbloquear este nivel.'
+      : 'Consigue 3 puntos en el nivel ${level - 1}';
 
   Future<void> _openSelectedLevel(int level) async {
     _openingLevel = true;
@@ -662,6 +664,7 @@ class _MapScreenState extends State<MapScreen>
                                   width: nodeSize,
                                   height: nodeSize + 22,
                                   child: MapLevelButton(
+                                    key: ValueKey('map-level-${node.level}'),
                                     level: node.level,
                                     textNumber: !_definition.numberAssets
                                         .containsKey(node.level),
@@ -669,6 +672,7 @@ class _MapScreenState extends State<MapScreen>
                                         _definition.numberAssets[node.level],
                                     lights: _lightsFor(node.level),
                                     unlocked: _unlocked(node.level),
+                                    lockedReason: _lockedReason(node.level),
                                     active: node.level == _activeLevel,
                                     onTap: () =>
                                         _focusLevel(node.level, select: true),
