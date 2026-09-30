@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../playables/playables_runtime.dart';
+
 import '../routes.dart';
 import '../widgets/adventure_progress_card.dart';
 import '../widgets/game_feedback_scope.dart';
@@ -57,7 +59,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (PlayablesRuntime.active != null) {
+        // gameReady follows the first fully painted, usable menu.
+        await Future.wait([
+          for (final asset in [
+            'assets/images/home-background.png',
+            'assets/images/sundoku-logo.png',
+            'assets/images/doku-home.png',
+            'assets/images/home/header-surfaces.png',
+            'assets/images/home/icons.png',
+            'assets/images/settings/icons.png',
+            'assets/images/home/play-button.png',
+            'assets/images/home/adventure-map.png',
+            if (widget.quickPlayUnlocked)
+              'assets/images/home/quick-play-bolt.png',
+          ])
+            precacheImage(AssetImage(asset), context),
+        ]);
+      }
       if (mounted) widget.onReady?.call(context);
     });
   }

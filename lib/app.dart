@@ -28,6 +28,8 @@ import 'screens/first_experience_screen.dart';
 import 'widgets/sundoku_cursor.dart';
 import 'widgets/world_journey_route.dart';
 import 'widgets/developer_floating_menu.dart';
+import 'playables/playables_runtime.dart';
+import 'playables/playables_pause_gate.dart';
 
 /// Root of the app. Wires the theme and the top-level route table.
 class SunDokuApp extends StatefulWidget {
@@ -36,11 +38,15 @@ class SunDokuApp extends StatefulWidget {
     this.repository,
     this.feedback,
     this.worldNavigation,
+    this.playables,
+    this.onHomeReady,
   });
 
   final GameRepository? repository;
   final GameFeedback? feedback;
   final WorldNavigationService? worldNavigation;
+  final PlayablesRuntime? playables;
+  final VoidCallback? onHomeReady;
 
   @override
   State<SunDokuApp> createState() => _SunDokuAppState();
@@ -66,7 +72,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
 
   late final _modalSoundObserver = ModalSoundObserver(
     onOpened: () => unawaited(
-      _feedback.modalOpened(sound: _repository.state.settings.sound),
+      _feedback.modalOpened(
+        sound: widget.playables == null && _repository.state.settings.sound,
+      ),
     ),
   );
 
@@ -441,14 +449,25 @@ class _SunDokuAppState extends State<SunDokuApp> {
     return GameFeedbackHost(
       repository: _repository,
       output: _feedback,
+      playables: widget.playables,
       child: MaterialApp(
         title: 'SunDoku',
         navigatorObservers: [_musicObserver, _modalSoundObserver],
         debugShowCheckedModeBanner: false,
         theme: buildSunDokuTheme(),
-        initialRoute: AppRoutes.splash,
-        builder: (context, child) => SunDokuCursor(child: child!),
-        routes: {AppRoutes.splash: (_) => const SplashScreen()},
+        initialRoute: widget.playables == null
+            ? AppRoutes.splash
+            : AppRoutes.home,
+        builder: (context, child) {
+          final runtime = widget.playables;
+          return runtime == null
+              ? SunDokuCursor(child: child!)
+              : PlayablesPauseGate(runtime: runtime, child: child!);
+        },
+        routes: {
+          if (widget.playables == null)
+            AppRoutes.splash: (_) => const SplashScreen(),
+        },
         onGenerateRoute: (settings) => switch (settings.name) {
           AppRoutes.tutorialReview => WorldJourneyRoute(
             settings: settings,
@@ -476,7 +495,10 @@ class _SunDokuAppState extends State<SunDokuApp> {
                 onQuickPlay: () => unawaited(_openQuickPlay(context)),
                 onQuickPlayCelebrated: () =>
                     unawaited(_quickPlayCelebrated(context)),
-                onReady: (homeContext) => unawaited(_welcome(homeContext)),
+                onReady: (homeContext) {
+                  widget.onHomeReady?.call();
+                  unawaited(_welcome(homeContext));
+                },
                 onResetAll: _repository.resetDebugSave,
                 hasStarted: _departingHomeHasStarted ?? _hasStarted,
                 quickPlayUnlocked: _repository.quickPlayUnlocked,

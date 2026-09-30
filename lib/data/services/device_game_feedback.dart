@@ -20,8 +20,8 @@ class DeviceGameFeedback extends GameFeedback {
 
   DeviceGameFeedback({Random? random}) : _random = random ?? Random();
 
-  static const homeTrack = 'audio/map/Devonshire Waltz Moderato.mp3';
-  static const mapTrack = 'audio/map/Devonshire Waltz Allegretto.mp3';
+  static const homeTrack = 'audio/map/Devonshire-Waltz-Moderato.mp3';
+  static const mapTrack = 'audio/map/Devonshire-Waltz-Allegretto.mp3';
   static const gameTracks = [
     'audio/games/Morning.mp3',
     'audio/games/Evening.mp3',
@@ -50,6 +50,30 @@ class DeviceGameFeedback extends GameFeedback {
   Future<void> _gateTail = Future.value();
   int _gateGeneration = 0;
   bool _closed = false;
+  bool _suspended = false;
+
+  @override
+  Future<void> setSuspended(bool suspended) async {
+    if (_suspended == suspended) return;
+    _suspended = suspended;
+    ++_musicFadeGeneration;
+    ++_gateGeneration;
+    if (suspended) {
+      await _safely(() async {
+        for (final player in [
+          _music,
+          _effects,
+          _modal,
+          _win,
+          ..._gatePlayers.values,
+        ]) {
+          if (player?.state == PlayerState.playing) await player!.pause();
+        }
+      });
+    } else {
+      await _syncMusic();
+    }
+  }
 
   Future<void> _safely(Future<void> Function() action) async {
     try {
@@ -81,7 +105,7 @@ class DeviceGameFeedback extends GameFeedback {
     _musicTail = _musicTail.then(
       (_) => _safely(() async {
         if (_closed || generation != _musicFadeGeneration) return;
-        if (!_musicEnabled) {
+        if (!_musicEnabled || _suspended) {
           await _music?.pause();
           return;
         }
@@ -94,14 +118,22 @@ class DeviceGameFeedback extends GameFeedback {
             await incoming.setReleaseMode(ReleaseMode.loop);
             await incoming.setVolume(0);
             await incoming.setSource(AssetSource(track));
-            if (_closed || !_musicEnabled || generation != _musicFadeGeneration)
+            if (_closed ||
+                _suspended ||
+                !_musicEnabled ||
+                generation != _musicFadeGeneration) {
               return;
+            }
             final outgoing = _music;
             if (outgoing != null) {
               await _fadeMusic(outgoing, 0, generation);
             }
-            if (_closed || !_musicEnabled || generation != _musicFadeGeneration)
+            if (_closed ||
+                _suspended ||
+                !_musicEnabled ||
+                generation != _musicFadeGeneration) {
               return;
+            }
             await outgoing?.pause();
             _music = incoming;
             incoming = null;
@@ -112,8 +144,12 @@ class DeviceGameFeedback extends GameFeedback {
             await incoming?.dispose();
           }
         }
-        if (_closed || !_musicEnabled || generation != _musicFadeGeneration)
+        if (_closed ||
+            _suspended ||
+            !_musicEnabled ||
+            generation != _musicFadeGeneration) {
           return;
+        }
         final player = _music;
         if (player == null) return;
         if (_musicEnabled && player.state != PlayerState.playing) {
@@ -134,8 +170,12 @@ class DeviceGameFeedback extends GameFeedback {
     if ((target - start).abs() < .001) return;
     final steps = target < start ? 15 : 40;
     for (var step = 1; step <= steps; step++) {
-      if (_closed || !_musicEnabled || generation != _musicFadeGeneration)
+      if (_closed ||
+          _suspended ||
+          !_musicEnabled ||
+          generation != _musicFadeGeneration) {
         return;
+      }
       final progress = step / steps;
       final eased = progress * progress * (3 - 2 * progress);
       _musicVolume = start + (target - start) * eased;
@@ -165,12 +205,12 @@ class DeviceGameFeedback extends GameFeedback {
     required bool sound,
     required bool vibration,
   }) async {
-    if (_closed) return;
+    if (_closed || _suspended) return;
     if (vibration) unawaited(_safely(HapticFeedback.lightImpact));
     if (!sound) return;
     _effectTail = _effectTail.then(
       (_) => _safely(() async {
-        if (_closed) return;
+        if (_closed || _suspended) return;
         final player = _effects ??= AudioPlayer()..positionUpdater = null;
         await player.setAudioContext(_context);
         await player.play(AssetSource(asset), volume: .45);
@@ -198,16 +238,16 @@ class DeviceGameFeedback extends GameFeedback {
 
   @override
   Future<void> worldGate(WorldGateSound cue, {required bool sound}) {
-    if (_closed || !sound) return Future.value();
+    if (_closed || _suspended || !sound) return Future.value();
     final generation = _gateGeneration;
     _gateTail = _gateTail.then(
       (_) => _safely(() async {
         await _prepareGate();
-        if (_closed || generation != _gateGeneration) return;
+        if (_closed || _suspended || generation != _gateGeneration) return;
         final player = _gatePlayers[cue];
         if (player?.source == null) return;
         await player!.seek(Duration.zero);
-        if (_closed || generation != _gateGeneration) return;
+        if (_closed || _suspended || generation != _gateGeneration) return;
         await player.resume();
       }),
     );
@@ -245,11 +285,11 @@ class DeviceGameFeedback extends GameFeedback {
 
   @override
   Future<void> levelCompleted({required bool sound}) {
-    if (_closed || !sound) return Future.value();
+    if (_closed || _suspended || !sound) return Future.value();
     _winTail = _winTail.then(
       (_) => _safely(() async {
         await _prepareWin();
-        if (_closed) return;
+        if (_closed || _suspended) return;
         if (_win?.source == null) return;
         _winPlaying = true;
         unawaited(_syncMusic());
@@ -277,11 +317,11 @@ class DeviceGameFeedback extends GameFeedback {
 
   @override
   Future<void> modalOpened({required bool sound}) {
-    if (_closed || !sound) return Future.value();
+    if (_closed || _suspended || !sound) return Future.value();
     _modalTail = _modalTail.then(
       (_) => _safely(() async {
         await _prepareModal();
-        if (_closed) return;
+        if (_closed || _suspended) return;
         final player = _modal;
         if (player == null) return;
         await player.seek(Duration.zero);
@@ -307,8 +347,8 @@ class DeviceGameFeedback extends GameFeedback {
       _winTail,
       _gateTail,
       ?_gatePreparation,
-      if (_winPreparation != null) _winPreparation!,
-      if (_modalPreparation != null) _modalPreparation!,
+      ?_winPreparation,
+      ?_modalPreparation,
     ]);
     await _safely(() async {
       await _music?.dispose();

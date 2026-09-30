@@ -4,25 +4,41 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../data/repositories/game_repository.dart';
+import '../playables/playables_runtime.dart';
 
 /// Persists active play time and serializes input for the future Sudoku screen.
 class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   GameSessionController(
     this.repository, {
     Stopwatch? clock,
+    PlayablesRuntime? playables,
     this.resumeOnForeground = true,
-    Duration checkpointInterval = const Duration(seconds: 5),
-  }) : _clock = clock ?? Stopwatch() {
+    this.checkpointInterval = const Duration(seconds: 5),
+  }) : _clock = clock ?? Stopwatch(),
+       _playables = playables ?? PlayablesRuntime.active {
     WidgetsBinding.instance.addObserver(this);
-    _timer = Timer.periodic(checkpointInterval, (_) {
-      if (_clock.isRunning) unawaited(checkpoint().catchError((Object _) {}));
-    });
+    _foreground = _playables?.isPaused != true;
+    _playables?.addPauseHandler(_handlePlayablesPause);
   }
 
   final GameRepository repository;
   final bool resumeOnForeground;
   final Stopwatch _clock;
-  late final Timer _timer;
+  final PlayablesRuntime? _playables;
+  final Duration checkpointInterval;
+  Timer? _timer;
+
+  void _startTimer() {
+    _timer ??= Timer.periodic(checkpointInterval, (_) {
+      if (_clock.isRunning) unawaited(checkpoint().catchError((Object _) {}));
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
   String? _sessionId;
   String? _puzzleId;
   int _savedMs = 0;
@@ -70,7 +86,10 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
       _savedMs = 0;
       if (_foreground && !_disposed && _wantsToPlay) {
         await repository.activatePuzzle(sessionId, puzzleId);
-        if (_foreground && !_disposed && _wantsToPlay) _clock.start();
+        if (_foreground && !_disposed && _wantsToPlay) {
+          _clock.start();
+          _startTimer();
+        }
       }
     });
   }
@@ -90,12 +109,14 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _pause() async {
     _clock.stop();
+    _stopTimer();
     await _checkpoint();
     if (_sessionId != null) await repository.pauseSession(_sessionId!);
   }
 
   Future<void> pause() {
     _clock.stop();
+    _stopTimer();
     _wantsToPlay = false;
     return _enqueue(_pause);
   }
@@ -167,12 +188,26 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
     (session, puzzle) => repository.recordHint(session, puzzle, index: index),
   );
 
+  Future<void> _handlePlayablesPause(bool paused) {
+    _foreground = !paused;
+    if (paused) {
+      _clock.stop();
+      _stopTimer();
+      if (!_disposed) notifyListeners();
+      return _enqueue(_pause);
+    }
+    if (_wantsToPlay && _sessionId != null) return start(_sessionId!);
+    return Future.value();
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_playables?.inPlayablesEnvironment == true) return;
     _foreground = state == AppLifecycleState.resumed;
     if (!_foreground) {
       if (!resumeOnForeground) _wantsToPlay = false;
       _clock.stop();
+      _stopTimer();
       if (!_disposed) notifyListeners();
       unawaited(_enqueue(_pause).catchError((Object _) {}));
     } else if (_wantsToPlay && _sessionId != null) {
@@ -197,8 +232,9 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     _wantsToPlay = false;
     _clock.stop();
-    _timer.cancel();
+    _stopTimer();
     WidgetsBinding.instance.removeObserver(this);
+    _playables?.removePauseHandler(_handlePlayablesPause);
     unawaited(_enqueue(_pause).catchError((Object _) {}));
     _disposed = true;
     super.dispose();

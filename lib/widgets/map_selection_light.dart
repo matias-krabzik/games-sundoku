@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../playables/playables_runtime.dart';
+
 import '../data/level_node.dart';
 import 'map_level_button.dart';
 
@@ -127,6 +129,7 @@ class _MapSelectionLightState extends State<MapSelectionLight>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (PlayablesRuntime.active?.inPlayablesEnvironment == true) return;
     _foreground = state == AppLifecycleState.resumed;
     _syncMotion();
   }

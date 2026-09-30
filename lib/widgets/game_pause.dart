@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../controllers/first_experience_controller.dart';
+import '../playables/playables_runtime.dart';
 import 'home_art.dart';
 import 'illustrated_action_button.dart';
 import 'juicy_press.dart';
@@ -35,19 +36,31 @@ class GameTimerControls extends StatefulWidget {
 }
 
 class _GameTimerControlsState extends State<GameTimerControls> {
-  late final Timer _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-    if (mounted && widget.flow.readyToPlay) setState(() {});
-  });
+  final PlayablesRuntime? _playables = PlayablesRuntime.active;
+  Timer? _ticker;
+
+  void _syncTicker() {
+    if (_playables?.isPaused == true) {
+      _ticker?.cancel();
+      _ticker = null;
+    } else {
+      _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted && widget.flow.readyToPlay) setState(() {});
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _ticker;
+    _playables?.addListener(_syncTicker);
+    _syncTicker();
   }
 
   @override
   void dispose() {
-    _ticker.cancel();
+    _playables?.removeListener(_syncTicker);
+    _ticker?.cancel();
     super.dispose();
   }
 

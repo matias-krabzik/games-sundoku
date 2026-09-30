@@ -4,6 +4,10 @@ abstract interface class SaveStore {
   Future<void> close();
 }
 
+abstract interface class FlushableSaveStore implements SaveStore {
+  Future<void> flush();
+}
+
 class SaveConflict implements Exception {
   const SaveConflict();
   @override

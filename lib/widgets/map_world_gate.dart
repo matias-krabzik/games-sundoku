@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../playables/playables_runtime.dart';
+
 import '../data/services/game_feedback.dart';
 import 'game_feedback_scope.dart';
 import 'juicy_press.dart';
@@ -72,6 +74,8 @@ class _MapWorldGateState extends State<MapWorldGate>
   ModalRoute<dynamic>? _route;
 
   bool get _foreground {
+    final playables = PlayablesRuntime.active;
+    if (playables?.inPlayablesEnvironment == true) return !playables!.isPaused;
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     return lifecycle == null ||
         lifecycle == AppLifecycleState.resumed ||
@@ -132,7 +136,10 @@ class _MapWorldGateState extends State<MapWorldGate>
   void _routeChanged(AnimationStatus _) => _scheduleSync();
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) => _scheduleSync();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (PlayablesRuntime.active?.inPlayablesEnvironment == true) return;
+    _scheduleSync();
+  }
 
   void _scheduleSync() {
     if (_syncQueued) return;

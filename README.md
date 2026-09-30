@@ -27,6 +27,9 @@ tres sudokus fijos y conserva los mejores resultados al repetirlo.
 
 Ver [estructura de datos, diagramas y guía de integración](docs/guardado-local.md).
 
+La variante para YouTube Playables y sus comandos de empaquetado están en
+[docs/youtube-playables.md](docs/youtube-playables.md).
+
 ## Festejos del tutorial
 
 Al ganar, el tablero actual conserva su transición y queda delante de los anteriores:

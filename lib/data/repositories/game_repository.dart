@@ -217,12 +217,24 @@ class GameRepository extends ChangeNotifier {
         revision: _save.revision + 1,
         updatedAt: _now().toUtc(),
       );
+      final milestone =
+          stamped.sessions.length != _save.sessions.length ||
+          stamped.activeSessionId != _save.activeSessionId ||
+          stamped.sessions.entries.any((entry) {
+            final previous = _save.sessions[entry.key];
+            return previous != null &&
+                previous.status != PlayStatus.completed &&
+                entry.value.status == PlayStatus.completed;
+          });
       await _store.write(
         _codec.encode(stamped),
         expectedRevision: _save.revision,
       );
       _save = stamped;
       notifyListeners();
+      if (milestone && _store is FlushableSaveStore) {
+        unawaited(_store.flush().catchError((Object _) {}));
+      }
     });
     // A failed write must not poison subsequent attempts or publish unsaved state.
     _tail = operation.then<void>(
@@ -232,7 +244,10 @@ class GameRepository extends ChangeNotifier {
     return operation;
   }
 
-  Future<void> flush() => _tail;
+  Future<void> flush() async {
+    await _tail;
+    if (_store case FlushableSaveStore store) await store.flush();
+  }
 
   Future<void> close() async {
     if (_closed) return;

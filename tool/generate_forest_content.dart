@@ -1,5 +1,6 @@
 import 'dart:io';
-import '../lib/domain/generation/seeded_sudokus.dart';
+
+import 'package:sundoku/domain/generation/seeded_sudokus.dart';
 
 void main() {
   final rows = <String>[];
@@ -22,12 +23,22 @@ void main() {
           }
         }
       }
-      if (witnesses.length < (n <= 21 ? 1 : n <= 42 ? 2 : 3)) continue;
-      rows.add("  ('${cells.join()}', '${p.solution.join()}', '${p.seed}', ${witnesses.first.$1}, ${witnesses.first.$2}),");
+      if (witnesses.length <
+          (n <= 21
+              ? 1
+              : n <= 42
+              ? 2
+              : 3)) {
+        continue;
+      }
+      rows.add(
+        "  ('${cells.join()}', '${p.solution.join()}', '${p.seed}', ${witnesses.first.$1}, ${witnesses.first.$2}),",
+      );
       break;
     }
   }
-  File('lib/data/forest_puzzles.dart').writeAsStringSync('''// Frozen content. Regenerate intentionally with tool/generate_forest_content.dart.
+  File('lib/data/forest_puzzles.dart').writeAsStringSync(
+    '''// Frozen content. Regenerate intentionally with tool/generate_forest_content.dart.
 import '../domain/models/sudoku_definition.dart';
 
 const forestPuzzleData = <(String, String, String, int, int)>[
@@ -47,5 +58,6 @@ SudokuDefinition _definition(int level, int round, (String, String, String, int,
   extra: {'notesTarget': row.\$4, 'deductionCell': row.\$5,
     'objective': 'Anota dos posibilidades y descarta una al resolver otra casilla.'},
 );
-''');
+''',
+  );
 }

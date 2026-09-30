@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../data/repositories/game_repository.dart';
 import '../data/services/game_feedback.dart';
+import '../playables/playables_runtime.dart';
 
 class GameFeedbackScope extends InheritedWidget {
   const GameFeedbackScope({
@@ -61,11 +62,13 @@ class GameFeedbackHost extends StatefulWidget {
     super.key,
     required this.repository,
     required this.output,
+    this.playables,
     required this.child,
   });
 
   final GameRepository repository;
   final GameFeedback output;
+  final PlayablesRuntime? playables;
   final Widget child;
 
   @override
@@ -82,16 +85,22 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.playables?.addListener(_syncMusic);
     widget.repository.addListener(_syncMusic);
-    unawaited(widget.output.prepareEffects());
+    if (widget.playables == null) unawaited(widget.output.prepareEffects());
   }
 
   void _syncMusic() {
-    if (!_foreground || !widget.repository.state.settings.sound) {
+    final available =
+        _foreground &&
+        widget.playables?.isPaused != true &&
+        widget.playables?.audioEnabled != false;
+    unawaited(widget.output.setSuspended(!available));
+    if (!available || !widget.repository.state.settings.sound) {
       _stopWorldGate();
     }
     final playing =
-        _engaged && _foreground && widget.repository.state.settings.music;
+        _engaged && available && widget.repository.state.settings.music;
     if (_playing == playing) return;
     _playing = playing;
     unawaited(widget.output.setMusicEnabled(playing));
@@ -99,40 +108,50 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
 
   void _engage() {
     // The first user gesture also permits audio in browsers with autoplay limits.
+    if (!_engaged && widget.playables != null) {
+      unawaited(widget.output.prepareEffects());
+    }
     _engaged = true;
     _syncMusic();
   }
 
   void _tap() {
+    if (widget.playables?.isPaused == true) return;
     _engage();
     final settings = widget.repository.state.settings;
     unawaited(
-      widget.output.tap(sound: settings.sound, vibration: settings.vibration),
+      widget.output.tap(
+        sound: settings.sound && widget.playables?.audioEnabled != false,
+        vibration: settings.vibration,
+      ),
     );
   }
 
   void _toggle(bool enabled, bool sound) {
+    if (widget.playables?.isPaused == true) return;
     _engage();
     unawaited(
       widget.output.toggle(
         enabled: enabled,
-        sound: sound,
+        sound: sound && widget.playables?.audioEnabled != false,
         vibration: widget.repository.state.settings.vibration,
       ),
     );
   }
 
   void _levelCompleted() {
-    if (!_foreground) return;
+    if (!_foreground || widget.playables?.isPaused == true) return;
     unawaited(
       widget.output.levelCompleted(
-        sound: widget.repository.state.settings.sound,
+        sound:
+            widget.repository.state.settings.sound &&
+            widget.playables?.audioEnabled != false,
       ),
     );
   }
 
   void _error() {
-    if (!_foreground) return;
+    if (!_foreground || widget.playables?.isPaused == true) return;
     unawaited(
       widget.output.error(
         vibration: widget.repository.state.settings.vibration,
@@ -141,11 +160,13 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
   }
 
   void _worldGate(WorldGateSound cue) {
-    if (!_foreground) return;
+    if (!_foreground || widget.playables?.isPaused == true) return;
     unawaited(
       widget.output.worldGate(
         cue,
-        sound: widget.repository.state.settings.sound,
+        sound:
+            widget.repository.state.settings.sound &&
+            widget.playables?.audioEnabled != false,
       ),
     );
   }
@@ -154,6 +175,7 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (widget.playables?.inPlayablesEnvironment == true) return;
     _foreground = state == AppLifecycleState.resumed;
     _syncMusic();
   }
@@ -161,6 +183,7 @@ class _GameFeedbackHostState extends State<GameFeedbackHost>
   @override
   void dispose() {
     widget.repository.removeListener(_syncMusic);
+    widget.playables?.removeListener(_syncMusic);
     WidgetsBinding.instance.removeObserver(this);
     unawaited(widget.output.close());
     super.dispose();

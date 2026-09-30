@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
+import '../playables/playables_runtime.dart';
+
 /// Moves only the scenery, using device motion on mobile and hover elsewhere.
 class ParallaxBackground extends StatefulWidget {
   const ParallaxBackground({
@@ -53,6 +55,10 @@ class _ParallaxBackgroundState extends State<ParallaxBackground>
     _ => false,
   };
   bool get _enabled {
+    final playables = PlayablesRuntime.active;
+    if (playables?.inPlayablesEnvironment == true) {
+      return _visible && !playables!.isPaused;
+    }
     final state = WidgetsBinding.instance.lifecycleState;
     // Desktop windows still receive hover while visible without input focus.
     final acceptsInput =
@@ -191,6 +197,7 @@ class _ParallaxBackgroundState extends State<ParallaxBackground>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (PlayablesRuntime.active?.inPlayablesEnvironment == true) return;
     setState(_syncInput);
   }
 
@@ -215,7 +222,8 @@ class _ParallaxBackgroundState extends State<ParallaxBackground>
                   _maxY / math.max(1, size.height),
                 ),
       );
-      final alignment = widget.backgroundAlignment ??
+      final alignment =
+          widget.backgroundAlignment ??
           (size.aspectRatio > 1.2
               ? const Alignment(0, .5)
               : Alignment.topCenter);

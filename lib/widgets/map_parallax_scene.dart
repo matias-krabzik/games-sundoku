@@ -4,6 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+
+import '../playables/playables_runtime.dart';
+
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../data/valley_map.dart';
@@ -64,6 +67,10 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
           defaultTargetPlatform == TargetPlatform.android);
 
   bool get _active {
+    final playables = PlayablesRuntime.active;
+    if (playables?.inPlayablesEnvironment == true) {
+      return _visible && !_reduceMotion && !playables!.isPaused;
+    }
     final state = WidgetsBinding.instance.lifecycleState;
     return _visible &&
         !_reduceMotion &&
@@ -225,6 +232,7 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (PlayablesRuntime.active?.inPlayablesEnvironment == true) return;
     setState(_syncMotion);
   }
 
