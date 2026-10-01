@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -617,7 +618,7 @@ void main() {
           tester.getSize(board).width,
           inExclusiveRange(
             154,
-            GameLayout.mobileBoardSize(tester.view.physicalSize.width),
+            GameLayout.playBoardWidthFraction * tester.view.physicalSize.width,
           ),
         );
         expect(tileOpacity(40), 0);
@@ -634,7 +635,7 @@ void main() {
         expect(
           landed.width,
           closeTo(
-            GameLayout.mobileBoardSize(tester.view.physicalSize.width),
+            GameLayout.playBoardWidthFraction * tester.view.physicalSize.width,
             .001,
           ),
         );
@@ -1435,20 +1436,91 @@ void main() {
         final backBounds = tester.getRect(
           find.byKey(const ValueKey('game-back')),
         );
-        final navigationMargin = size.width >= 700 || size.height >= 900
-            ? 32
-            : 16;
-        expect(backBounds.left, closeTo(navigationMargin, .01));
+        final large = GameLayout.useLargePlayLayout(size);
+        final navigationMargin = large
+            ? 16.0
+            : (size.width >= 700 || size.height >= 900 ? 32.0 : 16.0);
+        expect(backBounds.left, closeTo(navigationMargin, .1));
         expect(
           settingsBounds.right,
-          closeTo(size.width - navigationMargin, .01),
+          closeTo(size.width - navigationMargin, .1),
         );
         final boardBounds = tester.getRect(board);
+        final sideMargin = math.max(24.0, size.width * .08);
+        expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
         expect(
           boardBounds.width,
-          closeTo(GameLayout.mobileBoardSize(size.width), .01),
+          lessThanOrEqualTo(
+            large ? GameLayout.maxPlayBoardSize : GameLayout.maxBoardSize,
+          ),
+        );
+        expect(boardBounds.left, greaterThanOrEqualTo(sideMargin - 1));
+        expect(
+          boardBounds.right,
+          lessThanOrEqualTo(size.width - sideMargin + 1),
+        );
+        expect(boardBounds.top, greaterThanOrEqualTo(-1));
+        expect(boardBounds.bottom, lessThanOrEqualTo(size.height + 1));
+        expect(
+          find.byKey(const ValueKey('desktop-play-group')),
+          large ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('game-status-panel')),
+          large ? findsOneWidget : findsNothing,
+        );
+        final pauseBounds = tester.getRect(
+          find.byKey(const ValueKey('game-pause')),
+        );
+        if (large) {
+          expect(pauseBounds.right, lessThan(settingsBounds.left));
+          expect(pauseBounds.center.dy, closeTo(settingsBounds.center.dy, .1));
+          expect(
+            tester
+                .getRect(find.byKey(const ValueKey('game-status-panel')))
+                .height,
+            greaterThanOrEqualTo(70),
+          );
+        } else {
+          expect(
+            pauseBounds.left,
+            greaterThan(
+              tester.getRect(find.byKey(const ValueKey('game-timer'))).right,
+            ),
+          );
+          expect(pauseBounds.top, greaterThan(settingsBounds.bottom));
+        }
+        expect(
+          tester
+              .widget<TutorialNumberTray>(find.byType(TutorialNumberTray))
+              .horizontal,
+          true,
         );
         expect(boardBounds.center.dx, closeTo(size.width / 2, .01));
+        final firstNumberBounds = tester.getRect(
+          find.byKey(const ValueKey('intro-number-1')),
+        );
+        final lastNumberBounds = tester.getRect(
+          find.byKey(const ValueKey('intro-number-9')),
+        );
+        expect(firstNumberBounds.top, greaterThan(boardBounds.bottom));
+        expect(lastNumberBounds.top, closeTo(firstNumberBounds.top, .1));
+        expect(lastNumberBounds.left, greaterThan(firstNumberBounds.right));
+        expect(firstNumberBounds.left, greaterThanOrEqualTo(sideMargin - 1));
+        expect(
+          lastNumberBounds.right,
+          lessThanOrEqualTo(size.width - sideMargin + 1),
+        );
+        expect(lastNumberBounds.bottom, lessThanOrEqualTo(size.height + 1));
+        expect(
+          tester.getRect(find.byKey(const ValueKey('intro-clear'))).top,
+          greaterThan(firstNumberBounds.bottom),
+        );
+        for (final key in ['intro-clear', 'game-help']) {
+          final actionBounds = tester.getRect(find.byKey(ValueKey(key)));
+          expect(actionBounds.top, greaterThanOrEqualTo(-1));
+          expect(actionBounds.bottom, lessThanOrEqualTo(size.height + 1));
+        }
         final tileSize = GameLayout.boardCellSize(boardBounds.width);
         for (var number = 1; number <= 9; number++) {
           final numberSize = tester.getSize(
@@ -1460,22 +1532,14 @@ void main() {
         final clearSize = tester.getSize(
           find.byKey(const ValueKey('intro-clear')),
         );
-        expect(clearSize.width, closeTo(tileSize, .01));
-        expect(clearSize.height, closeTo(tileSize, .01));
+        expect(clearSize.width, closeTo(math.min(tileSize, 52), .01));
+        expect(clearSize.height, closeTo(math.min(tileSize, 52), .01));
         expect(settingsBounds.top, greaterThanOrEqualTo(0));
         expect(settingsBounds.bottom, lessThan(size.height));
-        await tester.ensureVisible(
-          find.byKey(const ValueKey('intro-number-3')),
-        );
-        await settle(tester);
         expect(
           find.byKey(const ValueKey('intro-number-3')).hitTestable(),
           findsOneWidget,
         );
-        await tester.ensureVisible(
-          find.byKey(const ValueKey('sudoku-cell-11')),
-        );
-        await settle(tester);
         expect(
           find.byKey(const ValueKey('sudoku-cell-11')).hitTestable(),
           findsOneWidget,

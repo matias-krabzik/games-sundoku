@@ -278,9 +278,9 @@ class TutorialJourney extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, bounds) {
         final desktopPlay =
-            _playing &&
-            GameLayout.isDesktop &&
-            bounds.maxWidth >= GameLayout.desktopPlayWidth + 32;
+            _playing && GameLayout.useLargePlayLayout(bounds.biggest);
+        final compactLandscape =
+            _playing && GameLayout.useCompactLandscape(bounds.biggest);
         final wide =
             desktopPlay ||
             (!_playing &&
@@ -289,16 +289,32 @@ class TutorialJourney extends StatelessWidget {
         final largeWindow = bounds.maxWidth >= 700 || bounds.maxHeight >= 900;
         final statusWidth = desktopPlay
             ? _maxBoardWidth
+            : compactLandscape
+            ? math.min(_maxBoardWidth, bounds.maxWidth * .8)
             : GameLayout.mobileBoardSize(MediaQuery.sizeOf(context).width);
-        final statusScale = (statusWidth / 360).clamp(1.0, 1.8);
+        final statusScale = desktopPlay || compactLandscape
+            ? 1.0
+            : (statusWidth / 360).clamp(1.0, 1.8);
         return Column(
           children: [
             if (navigation != null)
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  largeWindow ? 32 : 16,
-                  largeWindow ? 16 : 10,
-                  largeWindow ? 32 : 16,
+                  desktopPlay
+                      ? 16
+                      : largeWindow
+                      ? 32
+                      : 16,
+                  compactLandscape
+                      ? 8
+                      : largeWindow
+                      ? 16
+                      : 10,
+                  desktopPlay
+                      ? 16
+                      : largeWindow
+                      ? 32
+                      : 16,
                   0,
                 ),
                 child: _gameUi(navigation!, 'navigation', .60),
@@ -308,13 +324,18 @@ class TutorialJourney extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: desktopPlay
-                        ? GameLayout.desktopPlayWidth + 32
+                        ? GameLayout.maxPlayBoardSize + 32
                         : wide
                         ? 950
                         : (_playing ? double.infinity : 502),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      compactLandscape ? 6 : 10,
+                      16,
+                      compactLandscape ? 6 : 10,
+                    ),
                     child: Column(
                       children: [
                         _gameUi(
@@ -337,10 +358,12 @@ class TutorialJourney extends StatelessWidget {
                               child: GameplayStatusBar(
                                 scale: statusScale,
                                 points: flow.points,
+                                illustrated: desktopPlay,
                                 trailing: GameTimerControls(
                                   flow: flow,
                                   scale: statusScale,
                                   blocked: navigationBlocked,
+                                  showPause: !desktopPlay,
                                 ),
                               ),
                             ),
@@ -352,11 +375,39 @@ class TutorialJourney extends StatelessWidget {
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, body) {
-                              final boardWidth = desktopPlay
-                                  ? _maxBoardWidth
-                                  : _playing
-                                  ? GameLayout.mobileBoardSize(
-                                      MediaQuery.sizeOf(context).width,
+                              final sideInformation =
+                                  _playing &&
+                                  body.maxWidth >= 600 &&
+                                  body.maxHeight < 400;
+                              final notesReading =
+                                  flow.notesAvailable &&
+                                  flow.gameCell != null &&
+                                  flow.boardValues[flow.gameCell!] == null;
+                              final textScaler = MediaQuery.textScalerOf(
+                                context,
+                              );
+                              var extraHeight = 0.0;
+                              if (_playing && !sideInformation) {
+                                if (help != null) {
+                                  extraHeight += math.max(
+                                    112,
+                                    textScaler.scale(18) * 4 + 40,
+                                  );
+                                } else if (flow.playMessage.isNotEmpty) {
+                                  extraHeight += textScaler.scale(16) * 3 + 12;
+                                }
+                                if (notesReading) {
+                                  extraHeight += textScaler.scale(16) * 2 + 16;
+                                }
+                                if (flow.error != null) {
+                                  extraHeight += textScaler.scale(16) * 3 + 16;
+                                }
+                              }
+                              final boardWidth = _playing
+                                  ? GameLayout.playBoardSize(
+                                      viewport: bounds.biggest,
+                                      body: body.biggest,
+                                      extraHeight: extraHeight,
                                     )
                                   : math.min(
                                       wide
@@ -368,9 +419,8 @@ class TutorialJourney extends StatelessWidget {
                                 boardWidth,
                               );
                               final keypadGap = body.maxWidth < 340 ? 2.0 : 4.0;
-                              final controlsWidth = desktopPlay
-                                  ? GameLayout.numberGridWidth
-                                  : boardCellSize * 9 + keypadGap * 8;
+                              final controlsWidth =
+                                  boardCellSize * 9 + keypadGap * 8;
                               final boardArea = SizedBox.square(
                                 key: gameBoardSlotKey,
                                 dimension: boardWidth,
@@ -383,10 +433,8 @@ class TutorialJourney extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (_playing) ...[
-                                    if (!desktopPlay)
-                                      const SizedBox(height: 20),
                                     TutorialNumberTray(
-                                      horizontal: !desktopPlay,
+                                      horizontal: true,
                                       showGuide: !desktopPlay,
                                       buttonExtent: boardCellSize,
                                       available: flow.availableGameNumbers,
@@ -415,7 +463,10 @@ class TutorialJourney extends StatelessWidget {
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
                                               TutorialEraseButton(
-                                                dimension: boardCellSize,
+                                                dimension: math.min(
+                                                  boardCellSize,
+                                                  52,
+                                                ),
                                                 iconSize: boardCellSize * .55,
                                                 surface: UiSurface.creamTile,
                                                 onPressed:
@@ -461,10 +512,7 @@ class TutorialJourney extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    if (flow.notesAvailable &&
-                                        flow.gameCell != null &&
-                                        flow.boardValues[flow.gameCell!] ==
-                                            null)
+                                    if (notesReading && !sideInformation)
                                       SudokuNotesReading(
                                         notes: flow.selectedNotes,
                                         active: flow.notesMode,
@@ -496,7 +544,9 @@ class TutorialJourney extends StatelessWidget {
                                       messageKey:
                                           '${flow.step}-${flow.gameCell}-${flow.playMessage}',
                                     ),
-                                  if (_playing && !desktopPlay) ...[
+                                  if (_playing &&
+                                      !desktopPlay &&
+                                      !sideInformation) ...[
                                     if (help != null)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 8),
@@ -515,7 +565,8 @@ class TutorialJourney extends StatelessWidget {
                                       ),
                                     ],
                                   ],
-                                  if (flow.error != null)
+                                  if (flow.error != null &&
+                                      (!_playing || !sideInformation))
                                     Padding(
                                       padding: const EdgeInsets.all(8),
                                       child: Semantics(
@@ -529,6 +580,123 @@ class TutorialJourney extends StatelessWidget {
                                     ),
                                 ],
                               );
+                              if (_playing) {
+                                final playGroup = Column(
+                                  key: desktopPlay
+                                      ? const ValueKey('desktop-play-group')
+                                      : null,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    boardArea,
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: controlsWidth,
+                                      child: _gameUi(
+                                        information,
+                                        'controls',
+                                        .77,
+                                      ),
+                                    ),
+                                    if (desktopPlay &&
+                                        (help != null ||
+                                            flow.playMessage.isNotEmpty))
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxWidth: boardWidth,
+                                        ),
+                                        child: _gameUi(
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 12,
+                                            ),
+                                            child: help != null
+                                                ? SudokuHelpCard(
+                                                    key: const ValueKey(
+                                                      'game-help-card',
+                                                    ),
+                                                    tip: help,
+                                                  )
+                                                : Text(
+                                                    flow.playMessage,
+                                                    style: homeText(16),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                          ),
+                                          'help',
+                                          .77,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                                final sideWidth = math.min(
+                                  280.0,
+                                  (body.maxWidth - boardWidth) / 2 - 20,
+                                );
+                                return Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        child: playGroup,
+                                      ),
+                                    ),
+                                    if (sideInformation &&
+                                        (help != null ||
+                                            flow.playMessage.isNotEmpty ||
+                                            notesReading ||
+                                            flow.error != null))
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: SizedBox(
+                                          width: sideWidth,
+                                          height: body.maxHeight,
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: SizedBox(
+                                              width: sideWidth,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  if (help != null)
+                                                    SudokuHelpCard(
+                                                      key: const ValueKey(
+                                                        'game-help-card',
+                                                      ),
+                                                      tip: help,
+                                                    )
+                                                  else if (flow
+                                                      .playMessage
+                                                      .isNotEmpty)
+                                                    Text(
+                                                      flow.playMessage,
+                                                      style: homeText(16),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  if (notesReading)
+                                                    SudokuNotesReading(
+                                                      notes: flow.selectedNotes,
+                                                      active: flow.notesMode,
+                                                    ),
+                                                  if (flow.error != null)
+                                                    Text(
+                                                      flow.error!,
+                                                      style: homeText(16),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }
                               return SingleChildScrollView(
                                 key: const ValueKey('intro-scroll'),
                                 child: ConstrainedBox(
@@ -539,83 +707,7 @@ class TutorialJourney extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 6,
                                     ),
-                                    child: desktopPlay
-                                        ? Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Row(
-                                                key: const ValueKey(
-                                                  'desktop-play-group',
-                                                ),
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  boardArea,
-                                                  const SizedBox(
-                                                    width: GameLayout
-                                                        .desktopBoardGap,
-                                                  ),
-                                                  SizedBox(
-                                                    width: GameLayout
-                                                        .numberGridWidth,
-                                                    child: _gameUi(
-                                                      information,
-                                                      'controls',
-                                                      .77,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              if (help != null ||
-                                                  flow.playMessage.isNotEmpty)
-                                                ConstrainedBox(
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        maxWidth:
-                                                            _maxBoardWidth,
-                                                      ),
-                                                  child: _gameUi(
-                                                    Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        if (help != null)
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets.only(
-                                                                  top: 12,
-                                                                ),
-                                                            child: SudokuHelpCard(
-                                                              key:
-                                                                  const ValueKey(
-                                                                    'game-help-card',
-                                                                  ),
-                                                              tip: help,
-                                                            ),
-                                                          )
-                                                        else ...[
-                                                          const SizedBox(
-                                                            height: 12,
-                                                          ),
-                                                          Text(
-                                                            flow.playMessage,
-                                                            style: homeText(16),
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                          ),
-                                                        ],
-                                                      ],
-                                                    ),
-                                                    'help',
-                                                    .77,
-                                                  ),
-                                                ),
-                                            ],
-                                          )
-                                        : wide
+                                    child: wide
                                         ? Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
@@ -632,9 +724,8 @@ class TutorialJourney extends StatelessWidget {
                                             ],
                                           )
                                         : Column(
-                                            mainAxisAlignment: _playing
-                                                ? MainAxisAlignment.spaceEvenly
-                                                : MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               boardArea,
                                               _gameUi(

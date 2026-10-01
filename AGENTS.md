@@ -23,5 +23,5 @@
 
 - SunDoku es responsive: usar el espacio disponible de la ventana con `LayoutBuilder` y respetar `SafeArea`, también en horizontal, ventanas pequeñas y texto ampliado.
 - En el juego, Volver y Configuración se alinean a los extremos del ancho disponible con margen de 16 px; no quedan dentro del límite del tablero.
-- El tablero se centra y se adapta al ancho con un máximo de 430 píxeles lógicos. Los controles no crecen sin límite: números de hasta 54 px por lado (nunca mayores que Volver/Configuración), borrado de 52 px. Mantener estos límites compartidos en `lib/widgets/game_layout.dart`.
-- Si falta altura, permitir desplazar el contenido sin ocultar la navegación ni las acciones inferiores del asistente. Conservar el estado del tablero al redimensionar.
+- El tablero se centra y se adapta al ancho y la altura disponibles: máximo de 430 píxeles lógicos en pantallas pequeñas y 540 en tablets y escritorio. Los controles no crecen sin límite: números de hasta 54 px por lado (nunca mayores que Volver/Configuración), borrado de 52 px. Mantener estos límites compartidos en `lib/widgets/game_layout.dart`.
+- Durante la partida, ajustar el tablero y los controles a la altura disponible sin hacer desplazable la pantalla. En las lecciones y el asistente, si falta altura, permitir desplazar el contenido central sin ocultar la navegación ni las acciones inferiores. Conservar el estado del tablero al redimensionar.

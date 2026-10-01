@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'settings_art.dart';
 import 'score_feedback.dart';
+import 'ui_surface_art.dart';
 
 /// Unlimited lives in the introductory games.
 class GameplayStatusBar extends StatelessWidget {
@@ -10,15 +13,16 @@ class GameplayStatusBar extends StatelessWidget {
     this.trailing,
     this.points = 0,
     this.scale = 1,
+    this.illustrated = false,
   });
   final double scale;
   final int points;
   final Widget? trailing;
+  final bool illustrated;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    child: Row(
+  Widget build(BuildContext context) {
+    final content = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Semantics(
@@ -63,6 +67,26 @@ class GameplayStatusBar extends StatelessWidget {
             child: FittedBox(fit: BoxFit.scaleDown, child: trailing!),
           ),
       ],
-    ),
-  );
+    );
+    if (illustrated) {
+      final height = math.max(
+        76.0,
+        MediaQuery.textScalerOf(context).scale(20) + 36,
+      );
+      return UiSurfacePanel(
+        key: const ValueKey('game-status-panel'),
+        surface: UiSurface.creamPanel,
+        constraints: BoxConstraints(minHeight: height),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: SizedBox(
+          height: height,
+          child: Center(child: content),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: content,
+    );
+  }
 }

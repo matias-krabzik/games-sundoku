@@ -17,6 +17,7 @@ import '../widgets/game_feedback_scope.dart';
 import '../domain/models/sudoku_completion.dart';
 import '../domain/tutorial/tutorial_solution_tour.dart';
 import '../widgets/home_art.dart';
+import '../widgets/game_pause.dart';
 import '../widgets/illustrated_action_button.dart';
 import '../widgets/settings_art.dart';
 import '../widgets/sudoku_board.dart';
@@ -821,9 +822,13 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             bounds.maxWidth >= 700 &&
                             bounds.maxWidth > bounds.maxHeight * 1.2;
                         final titleInGameAppBar = _showGame;
+                        final largeGameLayout =
+                            titleInGameAppBar &&
+                            GameLayout.useLargePlayLayout(bounds.biggest);
                         final flowHeader = _FlowHeader(
                           welcome: false,
                           compact: titleInGameAppBar,
+                          largeStyle: largeGameLayout,
                           title: !_flow.isQuickPlay
                               ? 'Juego ${_flow.levelNumber}'
                               : TutorialJourney.title(_flow),
@@ -866,6 +871,13 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                                     backLabel: _flow.isQuickPlay
                                         ? 'Volver al inicio'
                                         : 'Volver al mapa',
+                                    pauseAction: largeGameLayout
+                                        ? GamePauseButton(
+                                            key: const ValueKey('game-pause'),
+                                            flow: _flow,
+                                            blocked: _navigationBlocked,
+                                          )
+                                        : null,
                                     center: titleInGameAppBar
                                         ? flowHeader
                                         : null,
@@ -1534,18 +1546,23 @@ class _FlowHeader extends StatelessWidget {
     required this.welcome,
     this.expanded = false,
     this.compact = false,
+    this.largeStyle = false,
     this.title,
     this.subtitle,
   });
   final bool welcome;
   final bool expanded;
   final bool compact;
+  final bool largeStyle;
   final String? title;
   final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
+    final shortLandscape = GameLayout.useCompactLandscape(
+      MediaQuery.sizeOf(context),
+    );
     final blockTitle = Text(
       title ?? (expanded ? 'Tu tablero de sudoku' : 'Empecemos con 9 casillas'),
       key: const ValueKey('intro-header-title'),
@@ -1608,17 +1625,50 @@ class _FlowHeader extends StatelessWidget {
               ],
             ),
           ),
-        if (!welcome && compact)
-          FractionallySizedBox(
-            widthFactor: GameLayout.titleWidthFactor(
-              MediaQuery.sizeOf(context).shortestSide,
-            ),
+        if (!welcome && compact && largeStyle)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
             child: UiSurfacePanel(
               key: const ValueKey('intro-header'),
               surface: UiSurface.goldCreamPanel,
-              padding: const EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+              child: Center(
+                heightFactor: 1,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      blockTitle,
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          key: const ValueKey('game-round-subtitle'),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          style: homeText(13, weight: FontWeight.w600),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (!welcome && compact && !largeStyle)
+          FractionallySizedBox(
+            widthFactor: shortLandscape
+                ? .55
+                : GameLayout.titleWidthFactor(
+                    MediaQuery.sizeOf(context).shortestSide,
+                  ),
+            child: UiSurfacePanel(
+              key: const ValueKey('intro-header'),
+              surface: UiSurface.goldCreamPanel,
+              padding: EdgeInsets.symmetric(
                 horizontal: 28,
-                vertical: 20.5,
+                vertical: shortLandscape ? 8 : 20.5,
               ),
               child: Center(
                 heightFactor: 1,

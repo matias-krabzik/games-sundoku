@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/first_experience_controller.dart';
 import '../playables/playables_runtime.dart';
+import 'game_navigation_header.dart';
 import 'home_art.dart';
 import 'illustrated_action_button.dart';
 import 'juicy_press.dart';
@@ -26,10 +27,12 @@ class GameTimerControls extends StatefulWidget {
     required this.flow,
     this.blocked = false,
     this.scale = 1,
+    this.showPause = true,
   });
   final FirstExperienceController flow;
   final bool blocked;
   final double scale;
+  final bool showPause;
 
   @override
   State<GameTimerControls> createState() => _GameTimerControlsState();
@@ -65,55 +68,88 @@ class _GameTimerControlsState extends State<GameTimerControls> {
   }
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text(
-        formatPlayTime(widget.flow.elapsedMs),
-        key: const ValueKey('game-timer'),
-        style: homeText(20 * widget.scale),
-      ),
-      const SizedBox(width: 10),
-      SizedBox.square(
-        dimension: (42 * widget.scale).clamp(42, 54),
-        child: JuicyPress(
-          key: const ValueKey('game-pause'),
-          label: widget.flow.isPaused ? 'Reanudar partida' : 'Pausar partida',
-          onPressed:
-              widget.blocked ||
-                  widget.flow.isBusy ||
-                  (!widget.flow.readyToPlay && !widget.flow.isPaused)
-              ? null
-              : widget.flow.isPaused
-              ? widget.flow.resumeGame
-              : widget.flow.requestPause,
-          builder: (_, _) => UiSurfacePanel(
-            surface: UiSurface.creamTile,
-            padding: EdgeInsets.zero,
-            child: Center(
-              child: widget.flow.isPaused
-                  ? Icon(
-                      Icons.play_arrow_rounded,
-                      key: const ValueKey('game-play-icon'),
-                      color: homeNavy,
-                      size: (30 * widget.scale).clamp(30, 40),
-                    )
-                  : Transform.scale(
-                      scale: widget.scale.clamp(1, 54 / 42),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _PauseBar(),
-                          SizedBox(width: 5),
-                          _PauseBar(),
-                        ],
+  Widget build(BuildContext context) {
+    final time = Text(
+      formatPlayTime(widget.flow.elapsedMs),
+      key: const ValueKey('game-timer'),
+      maxLines: 1,
+      style: homeText(20 * widget.scale),
+    );
+    if (!widget.showPause) return time;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        time,
+        const SizedBox(width: 10),
+        SizedBox.square(
+          dimension: (42 * widget.scale).clamp(42, 54),
+          child: JuicyPress(
+            key: const ValueKey('game-pause'),
+            label: widget.flow.isPaused ? 'Reanudar partida' : 'Pausar partida',
+            onPressed:
+                widget.blocked ||
+                    widget.flow.isBusy ||
+                    (!widget.flow.readyToPlay && !widget.flow.isPaused)
+                ? null
+                : widget.flow.isPaused
+                ? widget.flow.resumeGame
+                : widget.flow.requestPause,
+            builder: (_, _) => UiSurfacePanel(
+              surface: UiSurface.creamTile,
+              padding: EdgeInsets.zero,
+              child: Center(
+                child: widget.flow.isPaused
+                    ? Icon(
+                        Icons.play_arrow_rounded,
+                        key: const ValueKey('game-play-icon'),
+                        color: homeNavy,
+                        size: (30 * widget.scale).clamp(30, 40),
+                      )
+                    : Transform.scale(
+                        scale: widget.scale.clamp(1, 54 / 42),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _PauseBar(),
+                            SizedBox(width: 5),
+                            _PauseBar(),
+                          ],
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         ),
-      ),
-    ],
+      ],
+    );
+  }
+}
+
+class GamePauseButton extends StatelessWidget {
+  const GamePauseButton({super.key, required this.flow, this.blocked = false});
+
+  final FirstExperienceController flow;
+  final bool blocked;
+
+  @override
+  Widget build(BuildContext context) => GameHeaderButton(
+    label: flow.isPaused ? 'Reanudar partida' : 'Pausar partida',
+    onPressed: blocked || flow.isBusy || (!flow.readyToPlay && !flow.isPaused)
+        ? null
+        : flow.isPaused
+        ? flow.resumeGame
+        : flow.requestPause,
+    icon: flow.isPaused
+        ? const Icon(
+            Icons.play_arrow_rounded,
+            key: ValueKey('game-play-icon'),
+            color: homeNavy,
+            size: 34,
+          )
+        : const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [_PauseBar(), SizedBox(width: 5), _PauseBar()],
+          ),
   );
 }
 
