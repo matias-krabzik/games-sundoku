@@ -47,6 +47,16 @@ class TutorialStory extends StatefulWidget {
   final EdgeInsets? padding;
   final TutorialStoryController? controller;
 
+  static EdgeInsets paddingOf(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
+    return EdgeInsets.fromLTRB(
+      24,
+      largeText ? 46 : 23,
+      24,
+      largeText ? 54 : 27,
+    );
+  }
+
   static const sentences = [
     '¡Hola! Vamos a descubrir el sudoku.',
     'Es un juego para mirar, pensar y encontrar',
@@ -171,7 +181,6 @@ class _TutorialStoryState extends State<TutorialStory>
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.sizeOf(context).width < 360;
-    final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
     final letters = widget.lines.join(narrow ? ' ' : '\n').characters;
     return AnimatedBuilder(
       animation: _reveal,
@@ -220,14 +229,7 @@ class _TutorialStoryState extends State<TutorialStory>
                 child: _StorySurface(
                   showPanel: widget.showPanel,
                   surface: UiSurface.goldCreamPanel,
-                  padding:
-                      widget.padding ??
-                      EdgeInsets.fromLTRB(
-                        24,
-                        largeText ? 46 : 23,
-                        24,
-                        largeText ? 54 : 27,
-                      ),
+                  padding: widget.padding ?? TutorialStory.paddingOf(context),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

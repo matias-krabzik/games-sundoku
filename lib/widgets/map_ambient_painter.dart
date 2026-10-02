@@ -201,7 +201,12 @@ class MapAmbientPainter extends CustomPainter {
         canvas.save();
         canvas.translate(point.dx, point.dy);
         canvas.scale(pose.facing * pose.visualScale, pose.visualScale);
-        final width = creature.size * scale;
+        if (creature.kind != MapCreatureKind.fish) {
+          canvas.rotate(math.sin(time * 3 + creature.phase) * .06);
+        }
+        final width = creature.kind == MapCreatureKind.fish
+            ? creature.size * scale
+            : (creature.size * scale).clamp(18.0, 48.0);
         final wing = art.creatureWings[creature.kind];
         switch (creature.kind) {
           case MapCreatureKind.butterfly:
@@ -286,12 +291,12 @@ class MapAmbientPainter extends CustomPainter {
         wingWidth,
         wingHeight,
       );
-      final projection = .55 + .4 * ((beat + 1) / 2);
+      final projection = .72 + .23 * ((beat + 1) / 2);
       for (var i = 0; i < 2; i++) {
         canvas.save();
         canvas.translate(width * (i == 0 ? .09 : .12), width * .11);
-        canvas.rotate((i == 0 ? -.1 : .04) + beat * .1);
-        canvas.scale(projection * (i == 0 ? .82 : 1.0), i == 0 ? .82 : 1.0);
+        canvas.rotate((i == 0 ? -.18 : .04) + beat * (i == 0 ? .18 : .26));
+        canvas.scale(projection * (i == 0 ? .78 : 1.0), i == 0 ? .82 : 1.0);
         _imageRect(canvas, wing, wingRect, i == 0 ? .5 : .96);
         canvas.restore();
       }
@@ -313,7 +318,7 @@ class MapAmbientPainter extends CustomPainter {
       for (var i = 0; i < 2; i++) {
         canvas.save();
         canvas.translate(width * (i == 0 ? .08 : .22), -width * .05);
-        canvas.rotate((i == 0 ? .2 : .36) + beat * .15);
+        canvas.rotate((i == 0 ? .72 : 1.08) + beat * (i == 0 ? .22 : .26));
         canvas.scale(-(i == 0 ? .83 : 1.0), i == 0 ? .85 : 1.0);
         _imageRect(canvas, wing, wingRect, i == 0 ? .55 : .82);
         canvas.restore();
@@ -333,11 +338,11 @@ class MapAmbientPainter extends CustomPainter {
       final wingWidth = width * .44;
       final wingHeight = wingWidth * wing.height / wing.width;
       final wingRect = Rect.fromLTWH(0, -wingHeight, wingWidth, wingHeight);
-      final projection = .66 + .29 * ((beat + 1) / 2);
+      final projection = .78 + .17 * ((beat + 1) / 2);
       for (var i = 0; i < 2; i++) {
         canvas.save();
         canvas.translate(width * (i == 0 ? .08 : .11), -width * .04);
-        canvas.rotate((i == 0 ? -.07 : .06) + beat * .1);
+        canvas.rotate((i == 0 ? -.12 : .06) + beat * (i == 0 ? .16 : .22));
         canvas.scale(projection * (i == 0 ? .84 : 1.0), i == 0 ? .85 : 1.0);
         _imageRect(canvas, wing, wingRect, i == 0 ? .5 : .86);
         canvas.restore();

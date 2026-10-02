@@ -2,6 +2,8 @@
 
 Estado: propuesta didáctica. Reglas de la herramienta: [01 · Producto](01-producto.md).
 
+La interacción y la presentación de esta propuesta son históricas. La implementación actual usa demostraciones automáticas, títulos por paso y el formato compartido de reglas, con «Siguiente» que primero completa la animación. Consultar las [pautas vigentes de los tutoriales](../first-experience/implementacion.md#formato-compartido-de-los-tutoriales) antes de modificar o añadir UI.
+
 ## Ubicación y duración
 
 La explicación comienza al entrar por primera vez al Bosque de Otoño, antes del juego 1. Después el jugador practica con el lápiz durante las tres rondas de ese juego. Al ganarlo se anuncia el desbloqueo permanente.

@@ -32,6 +32,16 @@ class NotesLesson {
       else
         values[i],
   ];
+  static const titles = [
+    'El lápiz de las ideas',
+    'Encendemos el lápiz',
+    'Guardamos dos ideas',
+    'Ideas y respuestas',
+    'Buscamos una pista',
+    'Descartamos el 7',
+    'La respuesta es el 2',
+    '¡Vamos a practicar!',
+  ];
   static const texts = [
     'En esta casilla podrían ir el 2 o el 7. Mira cómo el lápiz nos ayuda a decidir.',
     'Encendemos el lápiz. Ahora los números se guardan como pequeñas ideas.',

@@ -599,7 +599,12 @@ class _MapScreenState extends State<MapScreen>
                 key: ValueKey(_progress.worldId),
                 definition: _definition,
                 worldTop: worldTop,
-                focusY: _nodes[_activeLevel - 1].y,
+                focusY:
+                    gate != null &&
+                        _definition.allowVerticalPan &&
+                        _activeLevel == _nodes.length
+                    ? gate.anchor.dy
+                    : _nodes[_activeLevel - 1].y,
                 scroll: _scroll,
                 worldSize: Size(_worldWidth, worldHeight),
                 protectedWorldRects: [

@@ -14,6 +14,7 @@ import '../widgets/juicy_press.dart';
 import '../widgets/parallax_background.dart';
 import '../widgets/quick_play_unlock_cue.dart';
 import '../widgets/settings_art.dart';
+import '../widgets/ui_surface_art.dart';
 import '../widgets/developer_floating_menu.dart';
 
 /// Sunny title screen with Doku, illustrated controls, and live game progress.
@@ -72,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'assets/images/home/icons.png',
             'assets/images/settings/icons.png',
             'assets/images/home/play-button.png',
+            'assets/images/home/blue-button.png',
             'assets/images/home/adventure-map.png',
             if (widget.quickPlayUnlocked)
               'assets/images/home/quick-play-bolt.png',
@@ -451,6 +453,7 @@ class _HomeActions extends StatelessWidget {
     compact: compact,
     leadingIcon: const HomeIcon(HomeGlyph.map, size: 34),
     secondary: quickPlayUnlocked,
+    surface: UiSurface.blueButton,
     fontSize: quickPlayUnlocked ? 28 : 34,
     onPressed: onPlay ?? () => Navigator.of(context).pushNamed(AppRoutes.map),
   );

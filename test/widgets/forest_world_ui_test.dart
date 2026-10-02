@@ -55,7 +55,7 @@ void main() {
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
   testWidgets(
-    'tutorial advances once per tap and keeps actions visible at every size',
+    'tutorial reveals before advancing and keeps actions visible at every size',
     (tester) async {
       final repo = GameRepository.memory();
       await repo.prepareDebugForest();
@@ -93,8 +93,14 @@ void main() {
       expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
       await tester.tap(next);
       await _frames(tester, 5);
+      expect(repo.state.modules[NotesLesson.key], isNull);
+      await tester.tap(next);
+      await _frames(tester, 5);
       expect(repo.state.modules[NotesLesson.key], containsPair('step', 1));
       expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
+      await tester.tap(next);
+      await _frames(tester, 5);
+      expect(repo.state.modules[NotesLesson.key], containsPair('step', 1));
       await tester.tap(next);
       for (
         var frame = 0;
@@ -124,7 +130,12 @@ void main() {
             .onPressed,
         isNull,
       );
-      await tester.tap(find.byKey(const ValueKey('notes-lesson-pause')));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
       await _frames(tester, 2);
       await _capture(tester, boundary, 'tutorial-mobile');
       for (final size in [
@@ -150,6 +161,8 @@ void main() {
         );
       }
       final skip = find.byKey(const ValueKey('notes-lesson-skip'));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
       expect(skip.hitTestable(), findsOneWidget);
       await tester.tap(skip);
       await _frames(tester);
@@ -193,7 +206,7 @@ void main() {
       await _frames(tester, 30);
       expect(find.byType(MapParallaxScene), findsOneWidget);
       expect(find.text('20'), findsOneWidget);
-      expect(find.byKey(const ValueKey('map-world-gate')), findsNothing);
+      expect(find.byKey(const ValueKey('map-world-gate')), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _capture(tester, boundary, 'forest-map-tablet');
       final scroll = tester

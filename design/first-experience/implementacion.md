@@ -40,6 +40,21 @@ Los tres tableros tienen solución única. Sus dígitos se renombran según el b
 - Los resaltados recorren las casillas una vez. Las animaciones nunca bloquean «Siguiente». Con movimiento reducido o navegación accesible, el contenido se muestra directamente.
 - En pantallas pequeñas o con letra grande el contenido central se puede desplazar. El encabezado y la acción inferior permanecen en sus zonas seguras.
 
+## Formato compartido de los tutoriales
+
+Referencia vigente para nuevos tutoriales y sus agregados: «Reglas del sudoku». Aplicado también a «El lápiz de las ideas».
+
+- **Títulos por paso:** una frase concreta para cada explicación, dentro de `TutorialLessonTitle`. Usa la misma superficie crema y dorada, márgenes y letra que reglas: Baloo 2, azul `#082A62`, peso 800, 22 px (18 px con texto ampliado). El progreso segmentado va encima. No sustituir los títulos por el nombre genérico del tutorial y un contador.
+- **Explicaciones:** reutilizar `TutorialLessonCard`, con Baloo 2 de 20 px, peso 800, azul `#082A62`, interlineado 1,3 y alineación centrada. Conserva el panel, padding y escritura de `TutorialStory`. El límite de ancho se comparte en `GameLayout.maxTutorialTextWidth` (470 px). No reducir la letra, el peso o el padding para hacer caber una lección nueva; permitir desplazamiento central cuando haga falta.
+- **Orden en anotaciones:** progreso y título arriba; tablero, controles de demostración y explicación debajo; «Siguiente» y «Saltar tutorial» abajo, dentro de `SafeArea`. La explicación continúa debajo en horizontal.
+- **Navegación:** las lecciones no añaden los botones de Volver, Pausa o Configuración de la partida o del mapa. Conservar la navegación de historias por gestos/teclado y la acción explícita para saltar el tutorial.
+- **Siguiente en dos pulsaciones:** si quedan entrada, escritura o demostración pendientes, la primera pulsación las completa en el paso actual. No guarda otro paso ni abre la práctica. La siguiente pulsación avanza. Esto se aplica también a «Practicar» y «Terminar repaso» al final. Una pulsación con todo completo avanza directamente; no exigir siempre dos.
+- **Avance automático de anotaciones:** la demostración puede continuar sola como se pidió para este tutorial. Cuando el jugador usa «Siguiente» para completar una animación, ese paso espera otra pulsación y cancela su avance automático pendiente. La última explicación siempre espera una acción para abrir la práctica. Las reglas mantienen su ritmo manual.
+- **Continuidad:** conservar el tablero, las casillas sin cambios y los controles de una misma escena. No volver a ejecutar su aparición ni cambiar claves por cada explicación. Reservar el espacio del texto para que su longitud no mueva ni redimensione el tablero. Animar solo los cambios didácticos.
+- **Accesibilidad y estado:** respetar texto ampliado, movimiento reducido, suspensión de la app y redimensionado. Los botones inferiores deben permanecer accesibles. Las animaciones no modifican partidas, puntos, estrellas ni el progreso guardado; el repaso no escribe sobre una partida.
+
+Estas pautas prevalecen sobre las propuestas históricas de los mundos. Reusar los componentes compartidos también al agregar títulos, explicaciones, controles o pasos nuevos.
+
 ## Validación reproducible
 
 `test/domain/tutorial_sudokus_test.dart` comprueba cuarenta órdenes del bloque, solución única con un solucionador independiente y deducciones de un solo grupo hasta completar los tres tableros.

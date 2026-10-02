@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -72,6 +73,95 @@ void main() {
     }
   });
 
+  test('animals receive exactly the leaf impulse and gust on repeated radial taps', () {
+    const origin = Offset(800, 500);
+    const parallax = Offset(50, -10);
+    for (final kind in [null, ...MapCreatureKind.values]) {
+      for (final scale in [.5, 2.0]) {
+        for (final depth in kind == null ? [0.0, 1.0] : [1.0]) {
+          for (final delta in [
+            const Offset(-60, -40),
+            const Offset(60, -40),
+            const Offset(-60, 40),
+            const Offset(60, 40),
+          ]) {
+            final creature = kind == null
+                ? null
+                : MapCreatureDefinition(
+                    kind: kind,
+                    center: origin,
+                    travel: const Offset(400, 300),
+                    size: 30,
+                  );
+            final motion =
+                MapAmbientMotion(
+                  seed: 5,
+                  beeCount: kind == null ? 1 : 0,
+                  creatures: [?creature],
+                  sourceSize: const Size(1800, 1200),
+                )..setView(
+                  const Rect.fromLTWH(0, 0, 1800, 1200),
+                  terrainOffset: parallax,
+                );
+            if (kind == null) {
+              motion.bees.single
+                ..position = origin
+                ..depth = depth
+                ..rest = 10;
+            }
+            final leaf = MapLeaf(
+              origin,
+              depth == 0 ? MapLeafDepth.foreground : MapLeafDepth.air,
+              10,
+              .3,
+              bottom: 2000,
+            )..age = 4;
+            motion.leaves
+              ..clear()
+              ..add(leaf);
+            Offset animalPosition() => creature == null
+                ? motion.bees.single.position
+                : motion.creaturePose(creature).position;
+            for (var frame = 0; frame < 90; frame++) {
+              final before = animalPosition();
+              // Co-locate the leaf each frame to compare the force at the same
+              // point, without gravity and flutter changing its test position.
+              leaf.position = before;
+              if (frame == 0 || frame == 12 || frame == 30) {
+                final tapDirection = frame == 30 ? -delta : delta;
+                final touch = before - tapDirection + parallax * depth;
+                motion.tapAt(
+                  touch,
+                  canopyPosition: touch - parallax,
+                  scale: scale,
+                );
+              }
+              motion.advance(1 / 60);
+              final leafDrift =
+                  Offset(
+                    motion.breeze +
+                        math.sin(motion.time * 2.2 + leaf.phase) * 15,
+                    14 + leaf.size * .4,
+                  ) /
+                  60;
+              final leafPush = leaf.position - before - leafDrift;
+              final animalPush = animalPosition() - before;
+              expect(
+                (animalPush - leafPush).distance,
+                lessThan(1e-8),
+                reason: '$kind scale=$scale depth=$depth frame=$frame',
+              );
+              if (frame < 30) {
+                expect(animalPush.dx * delta.dx, greaterThan(0));
+                expect(animalPush.dy * delta.dy, greaterThan(0));
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
   test(
     'leaves stay visible in flight and leave only after reaching ground',
     () {
@@ -96,7 +186,7 @@ void main() {
     },
   );
 
-  test('a touched bee grows in place, then shrinks as it flies away', () {
+  test('a touched bee grows while immediately moving away, then shrinks', () {
     final motion = MapAmbientMotion(seed: 4);
     const view = Rect.fromLTWH(0, 0, 600, 724);
     motion.setView(view);
@@ -110,18 +200,19 @@ void main() {
     expect(motion.startleBeeAt(origin, scale: 1), isTrue);
     expect(bee.perched, isFalse);
     expect(bee.flower, isNot(flower));
-    expect(view.contains(bee.destination), isTrue);
+    expect((Offset.zero & motion.sourceSize).contains(bee.destination), isTrue);
+
     expect(motion.bees.last.destination, otherDestination);
     advance(motion, .15);
-    expect(bee.position, origin);
+    expect((bee.position - origin).distance, inExclusiveRange(15, 40));
     expect(bee.visualScale, greaterThan(1.5));
     advance(motion, .3);
-    expect((bee.position - origin).distance, greaterThan(50));
+    expect((bee.position - origin).distance, inExclusiveRange(20, 75));
     final departingScale = bee.visualScale;
     advance(motion, .2);
     expect(bee.visualScale, lessThan(departingScale));
-    advance(motion, .5);
-    expect((bee.position - origin).distance, greaterThan(100));
+    advance(motion, 1.5);
+    expect((bee.position - origin).distance, inExclusiveRange(20, 110));
     expect(bee.startled, isFalse);
     expect(bee.visualScale, lessThanOrEqualTo(1));
     for (var i = 0; i < 1000 && !bee.perched; i++) {
@@ -166,23 +257,27 @@ void main() {
 
       advance(motion, .12);
       final pop = motion.creaturePose(creature);
-      expect(pop.position, origin.position, reason: '$kind');
+      expect(
+        (pop.position - origin.position).distance,
+        greaterThan(1),
+        reason: '$kind',
+      );
       expect(pop.visualScale, greaterThan(1.2), reason: '$kind');
 
-      advance(motion, .28);
+      advance(motion, .4);
       final escape = motion.creaturePose(creature);
       expect(
-        escape.position.dx,
-        greaterThan(origin.position.dx + 4),
+        (escape.position - origin.position).distance,
+        greaterThan(4),
         reason: '$kind',
       );
       expect(escape.visualScale, lessThan(pop.visualScale), reason: '$kind');
 
-      advance(motion, 1.5);
+      advance(motion, 2);
       final resumed = motion.creaturePose(creature);
       expect(resumed.startled, isFalse, reason: '$kind');
-      expect(resumed.visualScale, 1);
       if (kind == MapCreatureKind.fish) {
+        expect(resumed.visualScale, 1);
         expect(
           resumed.position.dx,
           inInclusiveRange(
@@ -191,6 +286,7 @@ void main() {
           ),
         );
       } else {
+        expect(resumed.visualScale, inInclusiveRange(.4, 1.0));
         expect(
           resumed.position.dx,
           inInclusiveRange(0, motion.sourceSize.width),
@@ -198,6 +294,203 @@ void main() {
         expect(
           resumed.position.dy,
           inInclusiveRange(0, motion.sourceSize.height),
+        );
+      }
+    }
+  });
+
+  test('only direct taps grow animals; nearby taps flee immediately', () {
+    for (final kind in MapCreatureKind.values) {
+      for (final nearby in [false, true]) {
+        final animal = MapCreatureDefinition(
+          kind: kind,
+          center: const Offset(600, 400),
+          travel: const Offset(350, 300),
+          size: 30,
+        );
+        final far = MapCreatureDefinition(
+          kind: kind,
+          center: const Offset(1100, 400),
+          travel: const Offset(30, 18),
+          size: 30,
+        );
+        final motion = MapAmbientMotion(
+          seed: 4,
+          beeCount: 0,
+          creatures: [animal, far],
+          sourceSize: const Size(1400, 900),
+        )..setView(const Rect.fromLTWH(0, 0, 1400, 900));
+        final origin = motion.creaturePose(animal);
+        final touch = origin.position - Offset(nearby ? 85 : 10, 0);
+        motion.tapAt(touch, canopyPosition: touch, scale: 1);
+        final immediate = motion.creaturePose(animal);
+        expect(immediate.startled, isTrue, reason: '$kind nearby=$nearby');
+        expect(immediate.position, origin.position);
+        expect(immediate.visualScale, origin.visualScale);
+        expect(immediate.facing, origin.facing);
+        expect(immediate.wingBeat, origin.wingBeat);
+        var previous = immediate;
+        for (var frame = 1; frame <= 135; frame++) {
+          motion.advance(1 / 60);
+          final pose = motion.creaturePose(animal);
+          expect(
+            (pose.position - previous.position).distance,
+            lessThan(nearby ? 4.2 : 5),
+            reason: '$kind nearby=$nearby jumped at frame $frame',
+          );
+          expect(
+            (pose.visualScale - previous.visualScale).abs(),
+            lessThan(.32),
+          );
+          if (frame == 1) {
+            expect(
+              (pose.position - origin.position).distance,
+              greaterThan(2),
+              reason: '$kind nearby=$nearby must respond on its first frame',
+            );
+          }
+          if (frame == 9) {
+            if (nearby) {
+              expect(pose.visualScale, 1);
+              expect(
+                pose.position.dx - origin.position.dx,
+                inExclusiveRange(12, 32),
+              );
+            } else {
+              expect(
+                (pose.position - origin.position).distance,
+                inExclusiveRange(15, 40),
+              );
+              expect(pose.visualScale, greaterThan(1.5));
+            }
+          } else if (frame == 27) {
+            expect(
+              (pose.position - origin.position).distance,
+              inExclusiveRange(20, nearby ? 60 : 75),
+            );
+          }
+          if (pose.startled) {
+            expect(
+              (pose.position - origin.position).distance,
+              // Direct touches get a modest boost; nearby puffs stay unchanged.
+              lessThan(nearby ? 100 : 115),
+            );
+          }
+          if (nearby) expect(pose.visualScale, 1);
+          previous = pose;
+        }
+        expect(motion.creaturePose(animal).visualScale, 1);
+        expect(motion.creaturePose(animal).startled, isFalse);
+        expect(motion.creaturePose(far).startled, isFalse);
+      }
+    }
+  });
+
+  test(
+    'one tap grows only the closest animal and scares neighbors across planes',
+    () {
+      const butterfly = MapCreatureDefinition(
+        kind: MapCreatureKind.butterfly,
+        center: Offset(400, 400),
+        travel: Offset(30, 20),
+        size: 30,
+      );
+      for (final touchBee in [false, true]) {
+        final motion =
+            MapAmbientMotion(seed: 3, beeCount: 1, creatures: [butterfly])
+              ..setView(
+                const Rect.fromLTWH(0, 0, 900, 724),
+                terrainOffset: const Offset(50, -10),
+              );
+        final bee = motion.bees.single
+          ..position = const Offset(410, 400)
+          ..depth = 1
+          ..rest = 10;
+        final terrainTouch = touchBee ? bee.position : butterfly.center;
+        final foregroundTouch = terrainTouch + const Offset(50, -10);
+        final leaf = MapLeaf(
+          foregroundTouch + const Offset(0, 30),
+          MapLeafDepth.foreground,
+          10,
+          0,
+        );
+        motion.leaves
+          ..clear()
+          ..add(leaf);
+        motion.tapAt(foregroundTouch, canopyPosition: terrainTouch, scale: 1);
+        expect(bee.startled, isTrue);
+        expect(motion.creaturePose(butterfly).startled, isTrue);
+        expect(leaf.impulse.dy, greaterThan(0));
+        expect(motion.gustCount, 1);
+        advance(motion, .15);
+        expect(
+          bee.visualScale,
+          touchBee ? greaterThan(1.5) : closeTo(.42, .00001),
+        );
+        expect(
+          motion.creaturePose(butterfly).visualScale,
+          touchBee ? 1 : greaterThan(1.5),
+        );
+        if (touchBee) {
+          expect(
+            (bee.position - terrainTouch).distance,
+            inExclusiveRange(15, 40),
+          );
+          expect(
+            motion.creaturePose(butterfly).position.dx,
+            lessThan(butterfly.center.dx),
+          );
+        } else {
+          expect(
+            (motion.creaturePose(butterfly).position - terrainTouch).distance,
+            inExclusiveRange(15, 40),
+          );
+          expect(bee.position.dx, greaterThan(410));
+        }
+      }
+    },
+  );
+
+  test('nearby escapes are radial for bees and every creature kind', () {
+    for (final kind in [null, ...MapCreatureKind.values]) {
+      for (final delta in [
+        const Offset(-60, -60),
+        const Offset(60, -60),
+        const Offset(-60, 60),
+        const Offset(60, 60),
+      ]) {
+        final creature = kind == null
+            ? null
+            : MapCreatureDefinition(
+                kind: kind,
+                center: const Offset(500, 400),
+                travel: const Offset(400, 300),
+                size: 30,
+              );
+        final motion = MapAmbientMotion(
+          seed: 9,
+          beeCount: kind == null ? 1 : 0,
+          creatures: [?creature],
+          sourceSize: const Size(1200, 900),
+        )..setView(const Rect.fromLTWH(0, 0, 1200, 900));
+        const origin = Offset(500, 400);
+        if (kind == null) motion.bees.single.position = origin;
+        final touch = origin - delta;
+        motion.tapAt(touch, canopyPosition: touch, scale: 1);
+        advance(motion, .15);
+        final position = creature == null
+            ? motion.bees.single.position
+            : motion.creaturePose(creature).position;
+        final movement = position - origin;
+        expect(
+          movement.dx * delta.dx,
+          greaterThan(0),
+          reason: '$kind $delta horizontal',
+        );
+        expect(
+          movement.dy * delta.dy,
+          greaterThan(0),
+          reason: '$kind $delta vertical',
         );
       }
     }
@@ -341,7 +634,7 @@ void main() {
     },
   );
 
-  test('repeated scares can carry insects far across the panorama', () {
+  test('repeated short scares can gradually leave the birth area', () {
     for (final kind in [
       MapCreatureKind.butterfly,
       MapCreatureKind.dragonfly,
@@ -359,13 +652,18 @@ void main() {
         creatures: [creature],
         sourceSize: const Size(1800, 724),
       )..setView(const Rect.fromLTWH(550, 0, 700, 724));
-      for (var touch = 0; touch < 6; touch++) {
+      for (var touch = 0; touch < 16; touch++) {
         final current = motion.creaturePose(creature).position;
         final left = (current.dx - 350).clamp(0.0, 1100.0);
         motion.setView(Rect.fromLTWH(left, 0, 700, 724));
         motion.puff(current + const Offset(30, 0), scale: 1);
         expect(motion.creaturePose(creature).startled, isTrue, reason: '$kind');
-        advance(motion, .65);
+        advance(motion, 1.25);
+        expect(
+          (motion.creaturePose(creature).position - current).distance,
+          lessThan(71),
+          reason: '$kind: each escape must stay short',
+        );
       }
       final traveled =
           (motion.creaturePose(creature).position - creature.center).distance;
@@ -411,14 +709,15 @@ void main() {
       for (var frame = 0; frame < 130; frame++) {
         motion.advance(1 / 60);
         final fishPosition = motion.creaturePose(fish).position;
-        expect(fishPosition.dx, inInclusiveRange(380, 420));
-        expect(fishPosition.dy, inInclusiveRange(545, 555));
+        // Rounded bank curves can accumulate floating-point round-off.
+        expect(fishPosition.dx, inInclusiveRange(380 - 1e-9, 420 + 1e-9));
+        expect(fishPosition.dy, inInclusiveRange(545 - 1e-9, 555 + 1e-9));
       }
       expect(motion.creaturePose(fish).startled, isFalse);
     },
   );
 
-  test('a fish at the water edge turns and visibly darts inside it', () {
+  test('a fish at the water edge follows the bank instead of reversing', () {
     const fish = MapCreatureDefinition(
       kind: MapCreatureKind.fish,
       center: Offset(400, 550),
@@ -432,12 +731,19 @@ void main() {
     expect(start.dx, closeTo(420, .00001));
     // The click is inside the water, on the fish's left. Its first requested
     // escape direction is right, but the right edge has no room left.
+    motion.puff(start - const Offset(8, 0), scale: 1);
+    expect(motion.creaturePose(fish).startled, isTrue);
+    // The first movement follows the bank vertically, not back toward the tap.
+    var firstMovement = start;
+    for (var frame = 0; frame < 20 && firstMovement == start; frame++) {
+      motion.advance(1 / 60);
+      firstMovement = motion.creaturePose(fish).position;
+    }
+    expect((firstMovement - start).distance, greaterThan(0));
     expect(
-      motion.startleCreatureAt(start - const Offset(8, 0), scale: 1),
-      isTrue,
+      (firstMovement - start).dy.abs(),
+      greaterThan((firstMovement - start).dx.abs()),
     );
-    advance(motion, .45);
-    expect(motion.creaturePose(fish).position.dx, lessThan(start.dx - 10));
     for (var frame = 0; frame < 120; frame++) {
       final position = motion.creaturePose(fish).position;
       expect(position.dx, inInclusiveRange(380, 420));
@@ -534,40 +840,46 @@ void main() {
     },
   );
 
-  test('puff radius follows screen scale and ignores invisible creatures', () {
-    for (final kind in MapCreatureKind.values) {
-      final near = MapCreatureDefinition(
-        kind: kind,
-        center: const Offset(200, 350),
-        travel: const Offset(20, 5),
-        size: 30,
-      );
-      final offscreen = MapCreatureDefinition(
-        kind: kind,
-        center: const Offset(900, 350),
-        travel: const Offset(20, 5),
-        size: 30,
-      );
-      final sourceDistance = kind == MapCreatureKind.fish ? 150.0 : 180.0;
-      final farTap = near.center + Offset(sourceDistance, 0);
-      final motion = MapAmbientMotion(
-        seed: 4,
-        beeCount: 0,
-        creatures: [near, offscreen],
-      )..setView(const Rect.fromLTWH(0, 0, 500, 724));
-
-      motion.puff(farTap, scale: 1);
-      expect(motion.creaturePose(near).startled, isFalse, reason: '$kind');
-      motion.puff(farTap, scale: .5);
-      expect(motion.creaturePose(near).startled, isTrue, reason: '$kind');
-      motion.puff(offscreen.center, scale: .5);
-      expect(
-        motion.creaturePose(offscreen).startled,
-        isFalse,
-        reason: '$kind: the offscreen creature should remain undisturbed',
-      );
-    }
-  });
+  test(
+    'puff radius matches leaves in map coordinates at every screen scale',
+    () {
+      for (final kind in MapCreatureKind.values) {
+        final near = MapCreatureDefinition(
+          kind: kind,
+          center: const Offset(200, 350),
+          travel: const Offset(20, 5),
+          size: 30,
+        );
+        final offscreen = MapCreatureDefinition(
+          kind: kind,
+          center: const Offset(900, 350),
+          travel: const Offset(20, 5),
+          size: 30,
+        );
+        final motion = MapAmbientMotion(
+          seed: 4,
+          beeCount: 0,
+          creatures: [near, offscreen],
+        )..setView(const Rect.fromLTWH(0, 0, 500, 724));
+        for (final scale in [.5, 1.0, 2.0]) {
+          motion.puff(near.center + const Offset(230, 0), scale: scale);
+          expect(
+            motion.creaturePose(near).startled,
+            isFalse,
+            reason: '$kind scale=$scale',
+          );
+        }
+        motion.puff(near.center + const Offset(180, 0), scale: 2);
+        expect(motion.creaturePose(near).startled, isTrue, reason: '$kind');
+        motion.puff(offscreen.center, scale: .5);
+        expect(
+          motion.creaturePose(offscreen).startled,
+          isFalse,
+          reason: '$kind: the offscreen creature should remain undisturbed',
+        );
+      }
+    },
+  );
 
   test('puffs use terrain coordinates and can restart an escape', () {
     const butterfly = MapCreatureDefinition(
@@ -602,7 +914,7 @@ void main() {
       closeTo(beforeRetouch.visualScale, .00001),
     );
     advance(motion, .12);
-    expect(motion.creaturePose(butterfly).visualScale, greaterThan(1.2));
+    expect(motion.creaturePose(butterfly).visualScale, 1);
   });
 
   test(
@@ -615,13 +927,19 @@ void main() {
         final bee = motion.bees.first;
         for (var i = 0; i < 10; i++) {
           final position = bee.position;
+          motion.setView(
+            Rect.fromCenter(center: position, width: 500, height: 600),
+          );
           final size = bee.visualScale;
           expect(motion.startleBeeAt(position, scale: .6), isTrue);
           expect(bee.position, position);
           expect(bee.visualScale, closeTo(size, .00001));
-          expect(view.contains(bee.destination), isTrue);
+          expect(
+            (Offset.zero & motion.sourceSize).contains(bee.destination),
+            isTrue,
+          );
           advance(motion, .4);
-          // A nearby map puff must not cancel the direct-touch reaction.
+          // A nearby puff redirects the escape without resetting position or size.
           motion.puff(bee.position + const Offset(50, 0));
           expect(bee.startled, isTrue);
         }
@@ -636,7 +954,7 @@ void main() {
         ..setView(const Rect.fromLTWH(400, 100, 800, 600));
       final bee = motion.bees.first..position = const Offset(800, 470);
       motion.startleBeeAt(bee.position, scale: 1);
-      final delta = bee.destination - bee.origin;
+      final delta = bee.impulse;
       directions.add(delta.dx < 0 ? 'left' : 'right');
       directions.add(delta.dy < 0 ? 'up' : 'down');
     }
@@ -644,49 +962,36 @@ void main() {
   });
 
   test('bees stay small on distant flowers and grow again when touched', () {
-    var distantLandings = 0;
-    for (var seed = 0; seed < 20; seed++) {
-      final motion = MapAmbientMotion(seed: seed)
-        ..setView(const Rect.fromLTWH(0, 0, 900, 724));
-      final bee = motion.bees.first;
-      motion.startleBeeAt(bee.position, scale: 1);
-      if (bee.flower < MapAmbientMotion.foregroundFlowerCount ||
-          bee.destination !=
-              MapAmbientMotion.flowers[bee.flower] - const Offset(0, 8)) {
-        continue;
-      }
-      advance(motion, .3);
-      var previousScale = bee.visualScale;
-      for (var frame = 0; frame < 90 && !bee.perched; frame++) {
-        motion.advance(1 / 60);
-        expect(bee.visualScale, lessThanOrEqualTo(previousScale + .00001));
-        previousScale = bee.visualScale;
-      }
-      expect(bee.perched, isTrue);
-      expect(bee.visualScale, closeTo(.42, .00001));
-      final landing = bee.position;
-      // Terrain movement carries perched bees and their finger-sized targets.
-      motion.setView(
-        const Rect.fromLTWH(0, 0, 900, 724),
-        terrainOffset: const Offset(50, -10),
-      );
-      expect(motion.beePosition(bee), landing + const Offset(50, -10));
-      advance(motion, .3);
-      expect(bee.position, landing);
-      expect(bee.visualScale, closeTo(.42, .00001));
-      expect(
-        motion.startleBeeAt(
-          motion.beePosition(bee) + const Offset(23, 0),
-          scale: 1,
-        ),
-        isTrue,
-      );
-      advance(motion, .15);
-      expect(bee.position, landing);
-      expect(bee.visualScale, greaterThan(1.5));
-      distantLandings++;
+    final motion = MapAmbientMotion(seed: 6)
+      ..setView(const Rect.fromLTWH(0, 0, 900, 724));
+    final bee = motion.bees.first;
+    // Let the ordinary flower route reach the background naturally.
+    for (
+      var frame = 0;
+      frame < 18000 && !(bee.perched && bee.depth == 1);
+      frame++
+    ) {
+      motion.advance(1 / 60);
     }
-    expect(distantLandings, greaterThan(0));
+    expect(bee.perched, isTrue);
+    expect(bee.depth, 1);
+    expect(bee.visualScale, closeTo(.42, .00001));
+    final landing = bee.position;
+    motion.setView(
+      const Rect.fromLTWH(0, 0, 900, 724),
+      terrainOffset: const Offset(50, -10),
+    );
+    expect(motion.beePosition(bee), landing + const Offset(50, -10));
+    expect(
+      motion.startleBeeAt(
+        motion.beePosition(bee) + const Offset(23, 0),
+        scale: 1,
+      ),
+      isTrue,
+    );
+    advance(motion, .15);
+    expect((bee.position - landing).distance, inExclusiveRange(15, 40));
+    expect(bee.visualScale, greaterThan(1.5));
   });
 
   test(

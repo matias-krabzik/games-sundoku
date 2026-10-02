@@ -45,6 +45,7 @@ class MapLayerDefinition {
     this.horizontalPadding = 0,
     this.verticalPadding = 0,
     this.motion = const MapLayerMotion(),
+    this.patch,
   }) : assert(horizontalPadding >= 0),
        assert(verticalPadding >= 0);
 
@@ -55,6 +56,20 @@ class MapLayerDefinition {
   final double horizontalPadding;
   final double verticalPadding;
   final MapLayerMotion motion;
+  final MapLayerPatch? patch;
+}
+
+/// A local artwork revision, in padded image pixels. The original art remains
+/// untouched outside this region so existing paths and parallax layers align.
+class MapLayerPatch {
+  const MapLayerPatch({
+    required this.asset,
+    required this.bounds,
+    this.feather = 12,
+  });
+  final String asset;
+  final Rect bounds;
+  final double feather;
 }
 
 class MapCameraDefinition {

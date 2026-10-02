@@ -119,16 +119,30 @@ void main() {
       await tester.tapAt(const Offset(740, 200));
       await tester.pump();
       expect(motion.gustCount, 1);
+      painter = ambientPainter(tester, MapLeafDepth.foreground);
+      final nearbyBee = motion.bees.first;
+      final markerCenter = tester.getCenter(
+        find.byKey(const ValueKey('marker')),
+      );
+      nearbyBee
+        ..cancelEscape()
+        ..position =
+            (markerCenter + const Offset(0, 65) - painter.origin) /
+            painter.scale
+        ..depth = 0
+        ..rest = 10;
       await tester.tap(find.byKey(const ValueKey('marker')));
       await tester.pump();
       expect(selected, 1);
-      expect(motion.gustCount, 1);
+      expect(motion.gustCount, 2);
+      expect(nearbyBee.startled, isTrue);
+      expect(nearbyBee.directlyTouched, isFalse);
       final startOrigin = painter.origin;
       final startAir = ambientPainter(tester, MapLeafDepth.air).origin;
       await tester.dragFrom(const Offset(650, 280), const Offset(-220, 0));
       await frames(tester, 5);
       expect(scroll.offset, greaterThan(150));
-      expect(motion.gustCount, 1);
+      expect(motion.gustCount, 2);
       painter = ambientPainter(tester, MapLeafDepth.foreground);
       expect(
         painter.origin.dx - startOrigin.dx,
@@ -150,10 +164,10 @@ void main() {
       await tester.tapAt(const Offset(573, 360));
       await tester.pump();
       expect(bee.startled, isTrue);
-      expect(motion.gustCount, 1);
+      expect(motion.gustCount, 3);
       await frames(tester, 8);
       expect(bee.visualScale, greaterThan(1));
-      expect(bee.position, beforePop);
+      expect((bee.position - beforePop).distance, inExclusiveRange(20, 45));
       painter = ambientPainter(tester, MapLeafDepth.foreground);
       final beforeDrag = scroll.offset;
       await tester.dragFrom(
@@ -162,7 +176,7 @@ void main() {
       );
       await frames(tester, 5);
       expect(scroll.offset, greaterThan(beforeDrag + 50));
-      expect(motion.gustCount, 1);
+      expect(motion.gustCount, 3);
       await tester.pumpWidget(scene(scroll, visible: false));
       await tester.pump();
       final pausedTime = motion.time;

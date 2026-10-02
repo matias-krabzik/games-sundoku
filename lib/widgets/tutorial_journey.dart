@@ -16,6 +16,7 @@ import 'sudoku_notes.dart';
 import 'sudoku_time_summary.dart';
 import 'tutorial_celebration.dart';
 import 'tutorial_story.dart';
+import 'tutorial_lesson_card.dart';
 import 'tutorial_block_controls.dart';
 import 'ui_surface_art.dart';
 import 'world_completion_recap.dart';
@@ -334,7 +335,9 @@ class TutorialJourney extends StatelessWidget {
                         ? GameLayout.maxPlayBoardSize + 32
                         : wide
                         ? 950
-                        : (_playing ? double.infinity : 502),
+                        : (_playing
+                              ? double.infinity
+                              : GameLayout.maxTutorialTextWidth + 32),
                   ),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -803,31 +806,4 @@ class TutorialJourney extends StatelessWidget {
       },
     );
   }
-}
-
-class TutorialLessonCard extends StatelessWidget {
-  const TutorialLessonCard({
-    super.key,
-    required this.message,
-    required this.messageKey,
-    this.progress,
-    this.onFinished,
-    this.controller,
-  });
-  final String message;
-  final String messageKey;
-  final String? progress;
-  final VoidCallback? onFinished;
-  final TutorialStoryController? controller;
-
-  @override
-  Widget build(BuildContext context) => TutorialStory(
-    key: ValueKey(messageKey),
-    lines: [message, ?progress],
-    tip: null,
-    interactive: false,
-    textStyle: homeText(20).copyWith(height: 1.3),
-    onFinished: onFinished,
-    controller: controller,
-  );
 }

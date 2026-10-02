@@ -66,7 +66,7 @@ class NotesTutorialDemo extends StatelessWidget {
             notes: {NotesLesson.target: frame.notes},
             notesMode: frame.notesMode,
             highlightedIndices: frame.highlighted,
-            highlightKey: step,
+            highlightKey: 'notes-lesson-board',
             reveal: step == 4
                 ? SudokuBoardReveal.column
                 : step == 5
@@ -127,87 +127,120 @@ class NotesTutorialDemo extends StatelessWidget {
           surface: UiSurface.goldCreamCard,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                ExcludeSemantics(
-                  child: _DemoEmphasis(
-                    active: frame.cue == 0,
-                    child: SudokuNotesButton(
-                      active: frame.notesMode,
-                      onPressed: null,
-                      dimWhenDisabled: false,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ExcludeSemantics(
-                  child: SizedBox.square(
-                    dimension: 66,
-                    child: UiSurfacePanel(
-                      surface: UiSurface.creamTile,
-                      child: AnimatedSwitcher(
-                        duration: reduced
-                            ? Duration.zero
-                            : const Duration(milliseconds: 300),
-                        transitionBuilder: (child, animation) =>
-                            ScaleTransition(
-                              scale: CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOutBack,
-                              ),
-                              child: FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              ),
-                            ),
-                        child: cell == null
-                            ? SudokuNotes(
-                                key: ValueKey(frame.notes.join(',')),
-                                notes: frame.notes,
-                              )
-                            : Center(
-                                key: const ValueKey('notes-demo-answer'),
-                                child: SudokuDigit(cell, size: 36),
-                              ),
+            child: LayoutBuilder(
+              builder: (context, bounds) {
+                final controls = <Widget>[
+                  ExcludeSemantics(
+                    child: _DemoEmphasis(
+                      active: frame.cue == 0,
+                      child: SudokuNotesButton(
+                        active: frame.notesMode,
+                        onPressed: null,
+                        dimWhenDisabled: false,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      caption,
-                      key: const ValueKey('notes-demo-caption'),
-                      style: homeText(16),
-                      textAlign: TextAlign.center,
+                  const SizedBox(width: 12),
+                  ExcludeSemantics(
+                    child: SizedBox.square(
+                      dimension: 66,
+                      child: UiSurfacePanel(
+                        surface: UiSurface.creamTile,
+                        child: AnimatedSwitcher(
+                          duration: reduced
+                              ? Duration.zero
+                              : const Duration(milliseconds: 300),
+                          transitionBuilder: (child, animation) =>
+                              ScaleTransition(
+                                scale: CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutBack,
+                                ),
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                ),
+                              ),
+                          child: cell == null
+                              ? SudokuNotes(
+                                  key: ValueKey(frame.notes.join(',')),
+                                  notes: frame.notes,
+                                )
+                              : Center(
+                                  key: const ValueKey('notes-demo-answer'),
+                                  child: SudokuDigit(cell, size: 36),
+                                ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ];
+                final captionWidget = Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    caption,
+                    key: const ValueKey('notes-demo-caption'),
+                    style: homeText(16),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+                if (bounds.maxWidth < 300) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: controls,
+                      ),
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight:
+                              MediaQuery.textScalerOf(context).scale(16) * 2.1,
+                        ),
+                        child: Center(child: captionWidget),
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    ...controls,
+                    const SizedBox(width: 12),
+                    Expanded(child: captionWidget),
+                  ],
+                );
+              },
             ),
           ),
         ),
       ];
       if (explanation case final story?) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [story, const SizedBox(height: 12), parts.last],
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    child: parts.last,
+                  ),
+                ),
+                const SizedBox(width: 24),
+                SizedBox(
+                  width: boardWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: parts.take(3).toList(),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 24),
-            SizedBox(
-              width: boardWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: parts.take(3).toList(),
-              ),
-            ),
+            const SizedBox(height: 12),
+            story,
           ],
         );
       }

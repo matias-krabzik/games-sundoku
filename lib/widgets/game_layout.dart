@@ -4,6 +4,7 @@ import 'dart:ui';
 abstract final class GameLayout {
   static const maxBoardSize = 430.0; // Compact game and tutorial.
   static const maxPlayBoardSize = 540.0;
+  static const maxTutorialTextWidth = 470.0;
   static const mobileBoardWidthFraction = 7 / 8;
   static const playBoardWidthFraction = .8;
   static const controlSize = 54.0;

@@ -2,7 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import 'tutorial_activity.dart';
+import 'tutorial_story.dart';
 import 'tutorial_story_navigation.dart';
+import 'home_art.dart';
+import 'ui_surface_art.dart';
+
+/// Illustrated lesson title shared with the rules tutorial.
+class TutorialLessonTitle extends StatelessWidget {
+  const TutorialLessonTitle({super.key, required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
+    final text = Text(
+      title,
+      key: const ValueKey('intro-header-title'),
+      textAlign: TextAlign.center,
+      maxLines: largeText ? null : 1,
+      style: homeText(largeText ? 18 : 22),
+    );
+    return UiSurfacePanel(
+      key: const ValueKey('intro-header'),
+      surface: UiSurface.goldCreamPanel,
+      padding: const EdgeInsets.fromLTRB(24, 19, 24, 22),
+      child: SizedBox(
+        width: double.infinity,
+        child: largeText ? text : FittedBox(fit: BoxFit.scaleDown, child: text),
+      ),
+    );
+  }
+}
 
 /// Shared story header: progress stays above the lesson title.
 class TutorialStepHeader extends StatelessWidget {
@@ -79,10 +109,15 @@ class TutorialPresentation extends StatefulWidget {
     required this.step,
     required this.demonstrationDuration,
     required this.builder,
+    this.scene,
     this.readingPause = const Duration(seconds: 2),
     this.onAdvance,
   });
   final Object step;
+
+  /// Steps with the same scene keep its entrance and mounted content intact.
+  /// Defaults to [step] for lessons that introduce a new scene at every step.
+  final Object? scene;
   final Duration demonstrationDuration;
   final Duration readingPause;
   final VoidCallback? onAdvance;
@@ -109,6 +144,7 @@ class TutorialPresentationState extends State<TutorialPresentation>
   bool _narrated = false;
   bool _queued = false;
   bool _advanced = false;
+  bool _waitingForNext = false;
   bool _active = false;
   ValueListenable<bool>? _activity;
   bool _reduced = false;
@@ -117,6 +153,22 @@ class TutorialPresentationState extends State<TutorialPresentation>
   Animation<double> get entrance => _entrance;
   Animation<double> get demonstration => _demonstration;
   bool get storyVisible => _entrance.isCompleted;
+
+  /// Completes this step without advancing; the next press may change steps.
+  /// A manual reveal cancels automatic advance until the owning flow moves on.
+  bool finishAnimations(TutorialStoryController story) {
+    final storyChanged = story.finish();
+    if (!storyChanged && _entrance.isCompleted && _demonstration.isCompleted) {
+      return false;
+    }
+    _waitingForNext = true;
+    _narrated = true;
+    _entrance.value = 1;
+    _demonstration.value = 1;
+    _reading.reset();
+    setState(() {});
+    return true;
+  }
 
   /// Connect to TutorialStory.onFinished, not a guessed typing duration.
   void storyFinished() {
@@ -143,10 +195,13 @@ class TutorialPresentationState extends State<TutorialPresentation>
   @override
   void didUpdateWidget(TutorialPresentation oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.step != widget.step) {
+    final sceneChanged =
+        (oldWidget.scene ?? oldWidget.step) != (widget.scene ?? widget.step);
+    if (oldWidget.step != widget.step || sceneChanged) {
       _narrated = false;
       _advanced = false;
-      _entrance.reset();
+      _waitingForNext = false;
+      if (sceneChanged) _entrance.reset();
       _demonstration.reset();
       _reading.reset();
       _demonstration.duration = widget.demonstrationDuration;
@@ -193,6 +248,7 @@ class TutorialPresentationState extends State<TutorialPresentation>
           _demonstration.forward();
         }
       } else if (_demonstration.isCompleted &&
+          !_waitingForNext &&
           !_accessible &&
           widget.onAdvance != null &&
           !_advanced) {

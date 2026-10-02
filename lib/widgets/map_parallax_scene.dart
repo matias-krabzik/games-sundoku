@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -60,6 +61,9 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
   bool _failedSensor = false;
   double _seconds = 0;
   double? _panY;
+  final Set<int> _pointers = {};
+  int? _tapPointer;
+  Offset _tapStart = Offset.zero;
 
   bool get _mobile =>
       !kIsWeb &&
@@ -256,11 +260,13 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
       final layers = {
         for (final layer in definition.layers)
           layer.id: RepaintBoundary(
-            child: Image.asset(
-              layer.asset,
-              fit: BoxFit.fill,
-              filterQuality: FilterQuality.medium,
-              excludeFromSemantics: true,
+            child: _MapLayerArtwork(
+              layer: layer,
+              scale: scale,
+              imageSize: Size(
+                world.width + 2 * layer.horizontalPadding * scale,
+                world.height + 2 * layer.verticalPadding * scale,
+              ),
             ),
           ),
       };
@@ -390,27 +396,45 @@ class _MapParallaxSceneState extends State<MapParallaxScene>
                   );
                 }
 
-                return GestureDetector(
+                return Listener(
                   behavior: HitTestBehavior.translucent,
-                  excludeFromSemantics: true,
-                  onTapUp: !enabled || ambient == null
-                      ? null
-                      : (details) {
-                          if (!_active || scale <= 0) return;
-                          final position =
-                              (details.localPosition - foregroundOrigin) /
-                              scale;
-                          if (_ambientArt.bee != null &&
-                              ambient.startleBeeAt(position, scale: scale)) {
-                            return;
-                          }
-                          ambient.puff(
-                            position,
-                            canopyPosition:
-                                (details.localPosition - terrainOrigin) / scale,
-                            scale: scale,
-                          );
-                        },
+                  // Observe taps without competing with level selection. A
+                  // scroll or multiple fingers cancels the ambient response.
+                  onPointerDown: (event) {
+                    _pointers.add(event.pointer);
+                    _tapPointer =
+                        _pointers.length == 1 && event.buttons == kPrimaryButton
+                        ? event.pointer
+                        : null;
+                    _tapStart = event.position;
+                  },
+                  onPointerMove: (event) {
+                    if (_tapPointer == event.pointer &&
+                        (event.position - _tapStart).distance > kTouchSlop) {
+                      _tapPointer = null;
+                    }
+                  },
+                  onPointerCancel: (event) {
+                    _pointers.remove(event.pointer);
+                    _tapPointer = null;
+                  },
+                  onPointerUp: (event) {
+                    _pointers.remove(event.pointer);
+                    final tapped = _tapPointer == event.pointer;
+                    _tapPointer = null;
+                    if (!tapped ||
+                        !enabled ||
+                        ambient == null ||
+                        !_active ||
+                        scale <= 0)
+                      return;
+                    ambient.tapAt(
+                      (event.localPosition - foregroundOrigin) / scale,
+                      canopyPosition:
+                          (event.localPosition - terrainOrigin) / scale,
+                      scale: scale,
+                    );
+                  },
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -454,3 +478,85 @@ double mapPathCameraOffset(
   Size world, {
   WorldMapDefinition definition = valleyMap,
 }) => pathCameraOffset(scroll, viewport, world, definition);
+
+/// Composes a local terrain revision before the layer receives any movement.
+/// Both images share registration; only the revised region is repainted.
+class _MapLayerArtwork extends StatelessWidget {
+  const _MapLayerArtwork({
+    required this.layer,
+    required this.scale,
+    required this.imageSize,
+  });
+  final MapLayerDefinition layer;
+  final double scale;
+  final Size imageSize;
+
+  Widget image(String asset) => Image.asset(
+    asset,
+    fit: BoxFit.fill,
+    filterQuality: FilterQuality.medium,
+    excludeFromSemantics: true,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final patch = layer.patch;
+    if (patch == null) return image(layer.asset);
+    final rect = Rect.fromLTWH(
+      patch.bounds.left * scale,
+      patch.bounds.top * scale,
+      patch.bounds.width * scale,
+      patch.bounds.height * scale,
+    );
+    Widget feather(Widget child, {required bool horizontal}) => ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) {
+        final edge =
+            (patch.feather *
+                    scale /
+                    (horizontal ? bounds.width : bounds.height))
+                .clamp(0.0, .5);
+        return LinearGradient(
+          begin: horizontal ? Alignment.centerLeft : Alignment.topCenter,
+          end: horizontal ? Alignment.centerRight : Alignment.bottomCenter,
+          colors: const [
+            Colors.transparent,
+            Colors.white,
+            Colors.white,
+            Colors.transparent,
+          ],
+          stops: [0, edge, 1 - edge, 1],
+        ).createShader(bounds);
+      },
+      child: child,
+    );
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        image(layer.asset),
+        Positioned.fromRect(
+          rect: rect,
+          child: feather(
+            feather(
+              ClipRect(
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: -rect.left,
+                      top: -rect.top,
+                      width: imageSize.width,
+                      height: imageSize.height,
+                      child: image(patch.asset),
+                    ),
+                  ],
+                ),
+              ),
+              horizontal: true,
+            ),
+            horizontal: false,
+          ),
+        ),
+      ],
+    );
+  }
+}

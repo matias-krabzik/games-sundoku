@@ -56,6 +56,42 @@ Future<void> _lesson(NotesTutorialController flow) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'skipping the notes lesson unlocks play without awarding progress',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      await repo.prepareDebugForest();
+      final before = repo.state.progress.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      );
+      final lesson = NotesTutorialController(repo);
+      await lesson.next();
+      expect(await lesson.skipTutorial(), isTrue);
+      lesson.dispose();
+
+      expect(repo.notesTutorialCompleted, isTrue);
+      expect(
+        repo.state.progress.map((key, value) => MapEntry(key, value.toJson())),
+        before,
+      );
+      expect(
+        repo.state.sessions.values.where(
+          (session) => session.levelId.startsWith('world-2'),
+        ),
+        isEmpty,
+      );
+      final game = await repo.startGeneratedLevel(1, worldId: 'world-2');
+      expect(game.nextPuzzleId, isNotNull);
+
+      final revision = repo.state.revision;
+      final review = NotesTutorialController(repo, replay: true);
+      expect(await review.skipTutorial(), isTrue);
+      review.dispose();
+      expect(repo.state.revision, revision);
+    },
+  );
+
   test('63 frozen puzzles are unique, singles-solvable and have a real note deduction', () {
     final seen = <String>{};
     for (var level = 1; level <= 21; level++) {
@@ -141,55 +177,63 @@ void main() {
     },
   );
 
-  test('tutorial is necessary, unscored, resumable and based only on visible clues', () async {
-    final repo = GameRepository.memory();
-    addTearDown(repo.close);
-    await expectLater(
-      repo.startGeneratedLevel(1, worldId: 'world-2'),
-      throwsStateError,
-    );
-    await repo.prepareDebugForest();
-    await expectLater(
-      repo.startGeneratedLevel(1, worldId: 'world-2'),
-      throwsStateError,
-    );
-    final initial = NotesLesson.initial.map((n) => n ?? 0).toList();
-    expect(SeededSudokus.candidates(initial, NotesLesson.target), [2, 7]);
-    expect(SeededSudokus.candidates(initial, NotesLesson.other), [7]);
-    expect(SeededSudokus.hasUniqueSolution(initial), isTrue);
-    final before = repo.state.progress.map((k, v) => MapEntry(k, v.toJson()));
-    var flow = NotesTutorialController(repo);
-    await flow.next();
-    await flow.toggle();
-    await flow.next();
-    await flow.number(2);
-    flow.dispose();
-    flow = NotesTutorialController(repo);
-    expect(flow.step, 2);
-    expect(flow.notesMode, isTrue);
-    expect(flow.notes, [2]);
-    await flow.number(7);
-    await flow.next();
-    await flow.toggle();
-    await flow.next();
-    await flow.number(7);
-    await flow.next();
-    await flow.toggle();
-    await flow.number(7);
-    await flow.next();
-    await flow.toggle();
-    await flow.number(2);
-    await flow.next();
-    await flow.next();
-    flow.dispose();
-    expect(repo.notesTutorialCompleted, isTrue);
-    expect(repo.notesUnlocked, isFalse);
-    expect(repo.state.progress.map((k, v) => MapEntry(k, v.toJson())), before);
-    expect(
-      repo.state.sessions.values.where((s) => s.levelId.startsWith('world-2')),
-      isEmpty,
-    );
-  });
+  test(
+    'notes tutorial is unscored, resumable and based only on visible clues',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      await expectLater(
+        repo.startGeneratedLevel(1, worldId: 'world-2'),
+        throwsStateError,
+      );
+      await repo.prepareDebugForest();
+      await expectLater(
+        repo.startGeneratedLevel(1, worldId: 'world-2'),
+        throwsStateError,
+      );
+      final initial = NotesLesson.initial.map((n) => n ?? 0).toList();
+      expect(SeededSudokus.candidates(initial, NotesLesson.target), [2, 7]);
+      expect(SeededSudokus.candidates(initial, NotesLesson.other), [7]);
+      expect(SeededSudokus.hasUniqueSolution(initial), isTrue);
+      final before = repo.state.progress.map((k, v) => MapEntry(k, v.toJson()));
+      var flow = NotesTutorialController(repo);
+      await flow.next();
+      await flow.toggle();
+      await flow.next();
+      await flow.number(2);
+      flow.dispose();
+      flow = NotesTutorialController(repo);
+      expect(flow.step, 2);
+      expect(flow.notesMode, isTrue);
+      expect(flow.notes, [2]);
+      await flow.number(7);
+      await flow.next();
+      await flow.toggle();
+      await flow.next();
+      await flow.number(7);
+      await flow.next();
+      await flow.toggle();
+      await flow.number(7);
+      await flow.next();
+      await flow.toggle();
+      await flow.number(2);
+      await flow.next();
+      await flow.next();
+      flow.dispose();
+      expect(repo.notesTutorialCompleted, isTrue);
+      expect(repo.notesUnlocked, isFalse);
+      expect(
+        repo.state.progress.map((k, v) => MapEntry(k, v.toJson())),
+        before,
+      );
+      expect(
+        repo.state.sessions.values.where(
+          (s) => s.levelId.startsWith('world-2'),
+        ),
+        isEmpty,
+      );
+    },
+  );
 
   test('practice remains local until third win, then notes persist in quick play and valley', () async {
     final repo = GameRepository.memory();

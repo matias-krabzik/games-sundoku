@@ -25,6 +25,59 @@ String writing(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('only a new scene repeats the entrance between steps', (
+    tester,
+  ) async {
+    var step = 0;
+    var scene = 'board';
+    late StateSetter update;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return TutorialPresentation(
+              step: step,
+              scene: scene,
+              demonstrationDuration: const Duration(seconds: 1),
+              builder: (context, presentation) => FadeTransition(
+                opacity: presentation.entrance,
+                child: const SizedBox.square(dimension: 100),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    final state = tester.state<TutorialPresentationState>(
+      find.byType(TutorialPresentation),
+    );
+    await frames(tester, 800);
+    state.storyFinished();
+    await frames(tester, 400);
+    expect(state.demonstration.value, greaterThan(0));
+    update(() => step++);
+    await tester.pump();
+    expect(state.entrance.value, 1);
+    expect(state.storyVisible, isTrue);
+    expect(state.demonstration.value, 0);
+    await frames(tester, 400);
+    expect(state.demonstration.value, 0);
+    state.storyFinished();
+    await frames(tester, 400);
+    expect(state.demonstration.value, greaterThan(0));
+
+    update(() => scene = 'another-layout');
+    await tester.pump();
+    expect(state.entrance.value, 0);
+    expect(state.storyVisible, isFalse);
+    expect(state.demonstration.value, 0);
+    await frames(tester, 800);
+    expect(state.entrance.value, 1);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('shared sequence pauses writing behind a route and in background', (
     tester,
   ) async {

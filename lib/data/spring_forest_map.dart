@@ -45,6 +45,11 @@ const springForestMap = WorldMapDefinition(
   markerSeparation: 2.0,
   terrainTilt: Offset(4, 3),
   allowVerticalPan: true,
+  gate: MapGateDefinition(
+    anchor: Offset(1919 / 2052, 103 / 644),
+    asset: 'assets/images/map/gate-sun.png',
+    sourceDiameter: 48,
+  ),
   camera: MapCameraDefinition(targetY: .61, strength: .35, maxTravel: .025),
   layers: [
     MapLayerDefinition(

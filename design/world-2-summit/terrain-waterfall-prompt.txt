@@ -1,0 +1,19 @@
+Terrain update, 2026-10-02. Generated using the built-in ImageGen tool.
+Final asset: assets/images/map/spring-forest/terrain.png
+Original backup: design/world-2-summit/terrain-before-waterfall.png
+The fountain and waterfall are part of the PNG itself; the former runtime
+patch is no longer applied to this layer.
+Verified 2172 x 724 RGBA; alpha 0..255; 505992 fully transparent pixels.
+
+Use case: precise-object-edit.
+INPUT 1 is the actual terrain.png asset to EDIT, a 2172 x 724 panoramic game terrain layer. INPUT 2 is ONLY the approved fountain-and-cascade design to integrate.
+Deliver the complete panoramic terrain.png from input 1 with ONE local revision to its far-right mountain: integrate the approved fountain and cascade directly into its rock face. Do not output a mountain close-up, do not crop, zoom, recenter or enlarge the mountain, do not rearrange the world.
+
+REGISTRATION IS CRITICAL. Preserve the exact 3:1 full canvas and exact input 1 framing, terrain silhouette, trees, pink tree, bridge, dry riverbed, all meadow flowers, foreground grass and every bend of the sandy path. The entire left and middle 88 percent must remain visually identical and in the same pixels. Preserve the upper mountain peaks and existing switchback path too. This is a local in-place asset edit, not a redesign of the full panorama.
+
+Place the fountain at the existing mountain's FAR RIGHT UPPER SHOULDER, to the RIGHT of the final path bend. In the 2172x724 source coordinates the empty circular pedestal center is around (1993,181). Fountain basin immediately beneath it. The cascade descends the right-hand rock face through small ledges toward about (2080,350), never crossing or interrupting the path. Only revise approximately x=1935..2165,y=145..380. Keep the scale appropriate: pedestal only about 60 source pixels wide. Match the stone fountain architecture and clean turquoise two-stage cascade from input 2 at this much smaller scale. Do not copy input 2's whole mountain or its different path layout.
+The fountain is carved into the same warm beige granite ledges, moss and grasses continue seamlessly around the basin, and surrounding rocks connect organically to the existing mountain. Ground the structure with matching contact shadows and consistent upper-left sunlight. No independent island/base and no pasted-on border. The last small pool and water channel nest into the cliff naturally. The top pedestal remains EMPTY: do not draw a sun, medallion or emblem, because the game renders its rotating sun separately.
+Match input 1's rounded, sunny, illustrated 3D mobile game style exactly. No new foreground base, no sky or cloud backdrop, no detached plants outside the existing outline, no text or UI. Preserve all existing alpha outside the terrain silhouette. Gray RGB values in transparent input pixels are not scenery; keep them fully transparent.
+Genuine transparent RGBA PNG background. Every pixel outside the requested foreground artwork must have zero alpha, including gaps between elements. No opaque background, no painted checkerboard, no scenery, no replacement backdrop, no wide halo. Preserve the foreground artwork and its clean antialiased edges.
+Extract or generate only the requested individual reusable UI artwork, never a complete screen or a flattened modal. Keep modal, card, panel and button surfaces blank, with no text, lettering, captions, labels or variable values. All UI text will be rendered separately with Flutter Text widgets. Reuse existing yellow buttons, cards and panels; do not redraw them as part of this asset. Keep the artwork independent from layout so Flutter can center the content and place yellow action buttons in the bottom action area.
+The requested foreground artwork is the original panoramic terrain layer itself. Preserve that entire layer and its original layout with just the integrated waterfall revision.

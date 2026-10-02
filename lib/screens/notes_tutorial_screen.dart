@@ -5,13 +5,12 @@ import 'package:flutter/material.dart';
 import '../controllers/notes_tutorial_controller.dart';
 import '../data/repositories/game_repository.dart';
 import '../widgets/game_layout.dart';
-import '../widgets/game_navigation_header.dart';
 import '../widgets/tutorial_activity.dart';
+import '../widgets/tutorial_lesson_card.dart';
 import '../widgets/tutorial_presentation.dart';
 import '../widgets/tutorial_story_navigation.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
-import '../widgets/map_chrome.dart';
 import '../widgets/notes_tutorial_demo.dart';
 import '../widgets/settings_art.dart';
 import '../widgets/skip_tutorial_button.dart';
@@ -34,7 +33,8 @@ class NotesTutorialScreen extends StatefulWidget {
 class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
   final _demoKey = GlobalKey();
   final _storyKey = GlobalKey();
-  bool _paused = false;
+  final _storyController = TutorialStoryController();
+  final _presentationKey = GlobalKey<TutorialPresentationState>();
   late final flow = NotesTutorialController(
     widget.repository,
     replay: widget.replay,
@@ -52,6 +52,15 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
     final last = flow.step == NotesLesson.texts.length - 1;
     if (!await flow.next() || !mounted) return;
     if (last) await _finish();
+  }
+
+  Future<void> _continueTutorial() async {
+    if (opening || flow.busy) return;
+    if (_presentationKey.currentState?.finishAnimations(_storyController) ==
+        true) {
+      return;
+    }
+    await _next();
   }
 
   Future<void> _skip() async {
@@ -81,50 +90,69 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
     }
   }
 
-  Widget _explanation(
-    TutorialPresentationState presentation, {
-    bool compact = false,
-  }) {
+  Widget _explanation(TutorialPresentationState presentation) {
     final step = flow.step;
-    return TutorialReveal(
-      visible: presentation.storyVisible,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TutorialStory(
-            key: _storyKey,
-            lines: [NotesLesson.texts[step]],
-            tip: null,
-            autoplay: presentation.storyVisible,
-            interactive: false,
-            onFinished: () {
-              if (flow.step == step) presentation.storyFinished();
-            },
-            padding: EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: compact ? 12 : 18,
-            ),
-            textStyle: homeText(compact ? 16 : 18, weight: FontWeight.w500),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: GameLayout.maxTutorialTextWidth,
+        ),
+        child: TutorialReveal(
+          visible: presentation.storyVisible,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LayoutBuilder(
+                builder: (context, bounds) => SizedBox(
+                  height: _explanationHeight(context, bounds.maxWidth),
+                  child: Center(
+                    child: TutorialLessonCard(
+                      key: _storyKey,
+                      message: NotesLesson.texts[step],
+                      messageKey: 'notes-lesson-$step',
+                      controller: _storyController,
+                      autoplay: presentation.storyVisible,
+                      onFinished: () {
+                        if (flow.step == step) presentation.storyFinished();
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              if (flow.error != null)
+                Text(
+                  flow.error!,
+                  textAlign: TextAlign.center,
+                  style: homeText(16),
+                ),
+            ],
           ),
-          if (flow.error != null)
-            Text(flow.error!, textAlign: TextAlign.center, style: homeText(16)),
-        ],
+        ),
       ),
     );
   }
 
   double _explanationHeight(BuildContext context, double width) {
+    final padding = TutorialStory.paddingOf(context);
     final painter = TextPainter(
-      text: TextSpan(
-        text: NotesLesson.texts[flow.step],
-        style: homeText(18, weight: FontWeight.w500),
-      ),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
-    )..layout(maxWidth: math.max(1, width - 48));
-    final height = painter.height + 36;
+      locale: Localizations.maybeLocaleOf(context),
+    );
+    // Reserve one slot for the lesson so changing text never moves the board.
+    var height = 0.0;
+    for (final text in NotesLesson.texts) {
+      painter.text = TextSpan(text: text, style: TutorialLessonCard.textStyle);
+      painter.layout(
+        maxWidth: math.max(
+          1,
+          math.min(width, GameLayout.maxTutorialTextWidth) - padding.horizontal,
+        ),
+      );
+      height = math.max(height, painter.height);
+    }
     painter.dispose();
-    return height;
+    return height + padding.vertical;
   }
 
   Widget _actions(bool horizontal) {
@@ -133,9 +161,9 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
       label: flow.step == NotesLesson.texts.length - 1
           ? (widget.replay ? 'Terminar repaso' : 'Practicar')
           : 'Siguiente',
-      fontSize: 24,
+      fontSize: 23,
       compact: true,
-      onPressed: flow.busy || opening ? null : _next,
+      onPressed: flow.busy || opening ? null : _continueTutorial,
     );
     final skip = SkipTutorialButton(
       key: const ValueKey('notes-lesson-skip'),
@@ -182,9 +210,11 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
             child: ListenableBuilder(
               listenable: flow,
               builder: (context, _) => TutorialActivity(
-                paused: _paused || flow.busy || opening,
+                paused: flow.busy || opening,
                 child: TutorialPresentation(
+                  key: _presentationKey,
                   step: flow.step,
+                  scene: 'notes-lesson-board',
                   demonstrationDuration: Duration(
                     milliseconds: NotesLesson.durations[flow.step],
                   ),
@@ -202,64 +232,18 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                   builder: (context, presentation) => Column(
                     children: [
                       Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: short ? 4 : 8,
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            MapWorldHeader(
-                              compact: short,
-                              onBack: () => Navigator.of(context).maybePop(),
-                            ),
-                            if (flow.step < NotesLesson.texts.length - 1)
-                              GameHeaderButton(
-                                key: const ValueKey('notes-lesson-pause'),
-                                label: _paused
-                                    ? 'Continuar tutorial'
-                                    : 'Pausar tutorial',
-                                onPressed: () =>
-                                    setState(() => _paused = !_paused),
-                                icon: Icon(
-                                  _paused
-                                      ? Icons.play_arrow_rounded
-                                      : Icons.pause_rounded,
-                                  color: homeNavy,
-                                  size: 30,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 660),
+                          constraints: const BoxConstraints(
+                            maxWidth: GameLayout.maxTutorialTextWidth,
+                          ),
                           child: TutorialStepHeader(
                             key: const ValueKey('notes-lesson-header'),
                             index: flow.step,
                             count: NotesLesson.texts.length,
-                            child: short
-                                ? Text(
-                                    'El lápiz de las ideas · ${flow.step + 1} / 8',
-                                    textAlign: TextAlign.center,
-                                    style: homeText(18),
-                                  )
-                                : Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'El lápiz de las ideas',
-                                        textAlign: TextAlign.center,
-                                        style: homeText(28),
-                                      ),
-                                      Text(
-                                        'Paso ${flow.step + 1} de ${NotesLesson.texts.length}',
-                                        style: homeText(16),
-                                      ),
-                                    ],
-                                  ),
+                            child: TutorialLessonTitle(
+                              title: NotesLesson.titles[flow.step],
+                            ),
                           ),
                         ),
                       ),
@@ -267,7 +251,7 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                         child: TutorialStoryGestures(
                           key: const ValueKey('notes-story-gestures'),
                           enabled: !flow.busy && !opening,
-                          onNext: _next,
+                          onNext: _continueTutorial,
                           onPrevious: flow.step > 0 ? flow.previous : null,
                           child: LayoutBuilder(
                             builder: (context, bounds) {
@@ -281,13 +265,17 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                               final widthLimit = wide
                                   ? (contentWidth - 24) * .5
                                   : contentWidth;
+                              final explanationHeight = _explanationHeight(
+                                context,
+                                contentWidth,
+                              );
                               final heightLimit = wide
-                                  ? (bounds.maxHeight - 26) / (1 + 1 / 9)
+                                  ? (bounds.maxHeight -
+                                            explanationHeight -
+                                            38) /
+                                        (1 + 1 / 9)
                                   : (bounds.maxHeight -
-                                            _explanationHeight(
-                                              context,
-                                              contentWidth,
-                                            ) -
+                                            explanationHeight -
                                             148) /
                                         (1 + 1 / 9);
                               final boardWidth = math.min(
@@ -303,7 +291,7 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                                 animation: presentation.demonstration,
                                 boardWidth: boardWidth,
                                 explanation: wide
-                                    ? _explanation(presentation, compact: short)
+                                    ? _explanation(presentation)
                                     : null,
                               );
                               return SingleChildScrollView(
@@ -333,15 +321,15 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                                                     mainAxisSize:
                                                         MainAxisSize.min,
                                                     children: [
-                                                      _explanation(
-                                                        presentation,
+                                                      SizedBox(
+                                                        width: boardWidth,
+                                                        child: demo,
                                                       ),
                                                       const SizedBox(
                                                         height: 12,
                                                       ),
-                                                      SizedBox(
-                                                        width: boardWidth,
-                                                        child: demo,
+                                                      _explanation(
+                                                        presentation,
                                                       ),
                                                     ],
                                                   ),

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import '../data/valley_map.dart';
+import 'map_animal_motion.dart';
+import 'map_radial_puff.dart';
 import 'world_map_definition.dart';
 
 enum MapLeafDepth { behindTrees, air, foreground }
@@ -33,12 +35,12 @@ class MapLeaf {
   double get opacity => position.dy >= bottom ? 0 : (age / .4).clamp(0.0, 1.0);
 }
 
-class MapBee {
-  MapBee(this.position, this.flower, this.phase)
+class MapBee extends MapAnimalMotion {
+  MapBee(Offset position, this.flower, this.phase)
     : origin = position,
-      destination = position;
+      destination = position,
+      super(position);
 
-  Offset position;
   Offset origin;
   Offset destination;
   int flower;
@@ -46,31 +48,13 @@ class MapBee {
   double flight = 1;
   double duration = 5;
   double rest = 0;
-  double facing = 1;
   double depth = 0;
   double _originDepth = 0;
   double _destinationDepth = 0;
-  bool startled = false;
-  double _startleScale = 1;
-  static const _growthFraction = .24;
-  static const _peakScale = 1.85;
   bool get perched => rest > 0;
 
-  double get _escapeProgress =>
-      ((flight - _growthFraction) / (1 - _growthFraction)).clamp(0.0, 1.0);
-
-  double get visualScale {
-    if (!startled) return _scaleAtDepth(depth);
-    if (flight < _growthFraction) {
-      final growth = 1 - math.pow(1 - flight / _growthFraction, 3);
-      return _startleScale + (_peakScale - _startleScale) * growth;
-    }
-    final shrink = 1 - math.pow(1 - _escapeProgress, 3);
-    return _peakScale +
-        (_scaleAtDepth(_destinationDepth) - _peakScale) * shrink;
-  }
-
-  static double _scaleAtDepth(double depth) => 1 - .58 * depth;
+  @override
+  double get restingScale => 1 - .58 * depth;
 
   double paintedWidth(double scale) =>
       (29 * scale).clamp(18.0, 40.0) * visualScale;
@@ -83,35 +67,72 @@ class _Gust {
   double age = 0;
 }
 
-class _CreatureReaction {
-  _CreatureReaction({
-    required this.origin,
-    required this.destination,
-    required this.startTime,
-    required this.startScale,
-  });
-
-  final Offset origin;
-  final Offset destination;
-  final double startTime;
-  final double startScale;
-
-  static const popDuration = .18;
-  static const escapeDuration = .72;
-  static const returnDuration = .9;
-  static const totalDuration = popDuration + escapeDuration + returnDuration;
-}
-
 enum _CreatureRoute { nearHome, exploring, returning }
 
-class _CreatureFlight {
-  _CreatureFlight(this.position, this.excursionIn) : target = position;
+class _CreatureFlight extends MapAnimalMotion {
+  _CreatureFlight(Offset position, this.excursionIn, this.wingPhase)
+    : target = position,
+      super(position);
 
-  Offset position;
   Offset target;
   double excursionIn;
-  double facing = 1;
+  double wingPhase;
+  double resumeProgress = 1;
   _CreatureRoute route = _CreatureRoute.nearHome;
+}
+
+class _FishFlight extends _CreatureFlight {
+  _FishFlight(Offset position, double phase, this.habitat)
+    : super(position, 0, phase);
+
+  final Rect habitat;
+  AnimalEscapePath? _waterRoute;
+  double _waterTravel = 0;
+  math.Random? _waterRandom;
+
+  @override
+  void flee({
+    required Offset touch,
+    required Rect bounds,
+    required math.Random random,
+    required bool direct,
+  }) {
+    super.flee(touch: touch, bounds: bounds, random: random, direct: direct);
+    _waterTravel = 0;
+    _waterRoute = null;
+    _waterRandom = random;
+  }
+
+  @override
+  Offset constrainMovement(Offset displacement, Rect bounds) {
+    var route = _waterRoute;
+    if (route == null) {
+      final desired = position + displacement;
+      if (desired.dx >= habitat.left &&
+          desired.dx <= habitat.right &&
+          desired.dy >= habitat.top &&
+          desired.dy <= habitat.bottom) {
+        return desired;
+      }
+      if (displacement.distance < .001) return position;
+      route = AnimalEscapePath.alongBank(
+        position,
+        displacement / displacement.distance,
+        MapRadialPuff.radius * 2,
+        habitat,
+        _waterRandom!,
+      );
+      _waterRoute = route;
+    }
+    _waterTravel += displacement.distance;
+    final point = route.at(
+      route.length < .001 ? 1 : (_waterTravel / route.length).clamp(0.0, 1.0),
+    );
+    return Offset(
+      point.dx.clamp(habitat.left, habitat.right),
+      point.dy.clamp(habitat.top, habitat.bottom),
+    );
+  }
 }
 
 /// Ambient positions use the configured panorama source coordinates.
@@ -138,10 +159,22 @@ class MapAmbientMotion {
        ),
        _random = math.Random(seed) {
     for (final creature in creatures) {
-      if (creature.kind == MapCreatureKind.fish) continue;
+      if (creature.kind == MapCreatureKind.fish) {
+        _creatureFlights[creature] = _FishFlight(
+          _fishPosition(creature, 0),
+          creature.phase,
+          Rect.fromCenter(
+            center: creature.center,
+            width: creature.travel.dx.abs() * 2,
+            height: creature.travel.dy.abs() * 2,
+          ),
+        );
+        continue;
+      }
       final flight = _CreatureFlight(
         creature.center,
         22 + _random.nextDouble() * 20,
+        creature.phase,
       );
       _creatureFlights[creature] = flight;
       _chooseFlightTarget(creature, flight);
@@ -160,7 +193,7 @@ class MapAmbientMotion {
 
   static const maxLeaves = 36;
   static const maxGusts = 4;
-  static const beeTouchDiameter = 48.0;
+  static const beeTouchDiameter = MapAnimalMotion.touchDiameter;
   static const foregroundFlowerCount = 10;
 
   // Compatibility for existing callers of the valley particle layout.
@@ -170,7 +203,6 @@ class MapAmbientMotion {
   final List<MapLeaf> leaves = [];
   final List<MapBee> bees = [];
   final List<_Gust> _gusts = [];
-  final Map<MapCreatureDefinition, _CreatureReaction> _creatureReactions = {};
   final Map<MapCreatureDefinition, _CreatureFlight> _creatureFlights = {};
   Rect _view = Rect.zero;
   Offset _terrainOffset = Offset.zero;
@@ -269,15 +301,27 @@ class MapAmbientMotion {
     _CreatureFlight flight,
     double dt,
   ) {
+    flight.resumeProgress = math.min(1, flight.resumeProgress + dt / .6);
+    final resume = flight.resumeProgress;
+    final speedFactor = resume * resume * (3 - 2 * resume);
+    if (creature.kind == MapCreatureKind.fish) {
+      // Resume swimming from the escape endpoint without snapping back to the
+      // old route. Both points stay inside the same water patch.
+      final delta = _fishPosition(creature, time) - flight.position;
+      flight.position += delta * (1 - math.exp(-dt * 1.4 * speedFactor));
+      if (delta.dx.abs() > .01) flight.facing = delta.dx.sign;
+      return;
+    }
     if (flight.route == _CreatureRoute.nearHome) {
       flight.excursionIn -= dt;
     }
-    final speed = switch (creature.kind) {
+    final cruisingSpeed = switch (creature.kind) {
       MapCreatureKind.butterfly => 64.0,
       MapCreatureKind.dragonfly => 105.0,
       MapCreatureKind.mayfly => 76.0,
       MapCreatureKind.fish => 0.0,
     };
+    final speed = cruisingSpeed * speedFactor;
     var remaining = dt;
     for (var leg = 0; leg < 3 && remaining > 0; leg++) {
       final delta = flight.target - flight.position;
@@ -293,6 +337,15 @@ class MapAmbientMotion {
       if (travel < distance) break;
       _chooseFlightTarget(creature, flight);
     }
+  }
+
+  static Offset _fishPosition(MapCreatureDefinition creature, double time) {
+    final phase = time * .55 + creature.phase;
+    return creature.center +
+        Offset(
+          math.sin(phase) * creature.travel.dx,
+          math.sin(phase * .55) * creature.travel.dy,
+        );
   }
 
   void setView(Rect view, {Offset terrainOffset = Offset.zero}) {
@@ -329,7 +382,7 @@ class MapAmbientMotion {
     // Relocate only completely offscreen bees, to an actual flower near the
     // new viewport. Visible bees keep their current route and full opacity.
     for (final bee in bees) {
-      if (!view.inflate(100).contains(beePosition(bee))) {
+      if (!bee.startled && !view.inflate(100).contains(beePosition(bee))) {
         final flower = _nearbyFlower(
           view.left + view.width * (bee == bees.first ? .25 : .75),
           foregroundOnly: true,
@@ -356,20 +409,15 @@ class MapAmbientMotion {
     return best;
   }
 
-  void _flyTo(
-    MapBee bee,
-    int flower, {
-    Offset? destination,
-    double? destinationDepth,
-  }) {
+  void _flyTo(MapBee bee, int flower) {
     bee.origin = bee.position;
     bee._originDepth = bee.depth;
-    bee._destinationDepth = destinationDepth ?? _flowerDepth(flower);
-    bee.destination = destination ?? flowerAnchors[flower] - const Offset(0, 8);
+    bee._destinationDepth = _flowerDepth(flower);
+    bee.destination = flowerAnchors[flower] - const Offset(0, 8);
     bee.flower = flower;
     bee.flight = 0;
     bee.rest = 0;
-    bee.startled = false;
+    bee.cancelEscape();
     bee.duration =
         3.5 +
         (bee.destination - bee.origin).distance / 65 +
@@ -377,236 +425,161 @@ class MapAmbientMotion {
     bee.facing = bee.destination.dx >= bee.origin.dx ? 1 : -1;
   }
 
-  /// A direct touch sends just the nearest bee darting across the visible map.
-  /// Hit areas retain a finger-sized target even on the smallest distant bees.
-  bool startleBeeAt(Offset position, {required double scale}) {
-    if (_view.isEmpty || scale <= 0 || !scale.isFinite) return false;
-    MapBee? target;
-    var nearest = double.infinity;
+  Iterable<
+    ({MapAnimalMotion animal, Offset touch, double distance, double radius})
+  >
+  _animalHits(Offset foregroundTouch, Offset terrainTouch, double scale) sync* {
     for (final bee in bees) {
-      final distance = (beePosition(bee) - position).distance;
-      final radius =
-          math.max(beeTouchDiameter / 2, bee.paintedWidth(scale) * .7) / scale;
-      if (distance <= radius && distance < nearest) {
-        target = bee;
-        nearest = distance;
-      }
-    }
-    if (target == null) return false;
-    final area = _view.intersect(
-      Rect.fromLTRB(
-        24,
-        sourceSize.height * (280 / 724),
-        sourceSize.width - 24,
-        sourceSize.height * (680 / 724),
-      ),
-    );
-    if (area.isEmpty) return false;
-    final bounds = area.deflate(math.min(24.0, area.shortestSide * .1));
-    final farFlowers = [
-      for (var i = foregroundFlowers; i < flowerAnchors.length; i++)
-        if (i != target.flower &&
-            _view.deflate(16).contains(_flowerPosition(i)) &&
-            (_flowerPosition(i) - beePosition(target)).distance > 80)
-          i,
-    ];
-    // Retapping in flight starts from the current position and size.
-    final currentScale = target.visualScale;
-    if (farFlowers.isNotEmpty && _random.nextBool()) {
-      _flyTo(target, farFlowers[_random.nextInt(farFlowers.length)]);
-    } else {
-      final destination = _escapeDestination(beePosition(target), bounds);
-      _flyTo(
-        target,
-        _nearbyFlower(destination.dx, excluding: target.flower),
-        destination: destination - _terrainOffset * target.depth,
-        destinationDepth: target.depth,
+      final paintedPosition = beePosition(bee);
+      final radius = math.max(
+        beeTouchDiameter / 2,
+        bee.paintedWidth(scale) * .7,
+      );
+      if (!_view.inflate(radius / scale).contains(paintedPosition)) continue;
+      yield (
+        animal: bee,
+        touch: foregroundTouch - _terrainOffset * bee.depth,
+        distance: (paintedPosition - foregroundTouch).distance * scale,
+        radius: radius,
       );
     }
-    target
-      ..startled = true
-      .._startleScale = currentScale
-      ..duration = .85 + _random.nextDouble() * .2;
-    return true;
-  }
-
-  /// Startles the nearest visible creature touched in terrain coordinates.
-  /// The hit target remains finger-sized even when the sprite is small.
-  bool startleCreatureAt(Offset position, {required double scale}) {
-    if (_view.isEmpty || scale <= 0 || !scale.isFinite) return false;
     final terrainView = _view.shift(-_terrainOffset);
-    MapCreatureDefinition? target;
-    var nearest = double.infinity;
     for (final creature in creatures) {
-      final pose = creaturePose(creature);
-      if (!terrainView.contains(pose.position)) continue;
-      final distance = (pose.position - position).distance;
+      final flight = _creatureFlights[creature]!;
       final spriteReach = creature.kind == MapCreatureKind.butterfly ? 1.1 : .7;
-      final radius =
-          math.max(
-            beeTouchDiameter / 2,
-            creature.size * scale * pose.visualScale * spriteReach,
-          ) /
-          scale;
-      if (distance <= radius && distance < nearest) {
-        target = creature;
-        nearest = distance;
+      final radius = math.max(
+        beeTouchDiameter / 2,
+        creature.size * scale * flight.visualScale * spriteReach,
+      );
+      if (!terrainView.inflate(radius / scale).contains(flight.position))
+        continue;
+      yield (
+        animal: flight,
+        touch: terrainTouch,
+        distance: (flight.position - terrainTouch).distance * scale,
+        radius: radius,
+      );
+    }
+  }
+
+  void _reactAnimal(
+    MapAnimalMotion animal,
+    Offset touch, {
+    required bool direct,
+  }) {
+    animal.flee(
+      touch: touch,
+      bounds: _flightBounds,
+      random: _random,
+      direct: direct,
+    );
+    if (animal is MapBee) {
+      animal
+        ..rest = 0
+        ..origin = animal.position;
+      if (direct) {
+        animal.flower = _nearbyFlower(
+          beePosition(animal).dx,
+          excluding: animal.flower,
+        );
       }
     }
-    if (target == null) return false;
-    _startleCreature(target, position, terrainView);
+  }
+
+  /// Isolated direct-hit helpers. Scene taps use [tapAt] so neighbors and leaves
+  /// also react, and only the nearest animal across all species grows.
+  bool startleBeeAt(Offset position, {required double scale}) =>
+      _directHit(position, position - _terrainOffset, scale, beesOnly: true);
+
+  bool startleCreatureAt(Offset position, {required double scale}) =>
+      _directHit(position + _terrainOffset, position, scale, beesOnly: false);
+
+  bool _directHit(
+    Offset foreground,
+    Offset terrain,
+    double scale, {
+    required bool beesOnly,
+  }) {
+    if (_view.isEmpty || scale <= 0 || !scale.isFinite) return false;
+    final hits =
+        _animalHits(foreground, terrain, scale)
+            .where(
+              (hit) =>
+                  (hit.animal is MapBee) == beesOnly &&
+                  hit.distance <= hit.radius,
+            )
+            .toList()
+          ..sort((a, b) => a.distance.compareTo(b.distance));
+    if (hits.isEmpty) return false;
+    _reactAnimal(hits.first.animal, hits.first.touch, direct: true);
     return true;
   }
 
-  void _startleCreature(
-    MapCreatureDefinition creature,
-    Offset touch,
-    Rect terrainView,
-  ) {
-    final pose = creaturePose(creature);
-    final isFish = creature.kind == MapCreatureKind.fish;
-    // Fish keep their water patch. Insects can escape anywhere in the map,
-    // including beyond the current camera view or their birthplace.
-    final reachX = creature.travel.dx.abs();
-    final habitat = Rect.fromLTRB(
-      creature.center.dx - reachX,
-      creature.center.dy - creature.travel.dy.abs(),
-      creature.center.dx + reachX,
-      creature.center.dy + creature.travel.dy.abs(),
-    );
-    final bounds = isFish ? habitat.intersect(terrainView) : _flightBounds;
-    if (bounds.isEmpty) return;
-    final fromTouch = pose.position - touch;
-    final direction = isFish
-        ? Offset(
-            fromTouch.dx.abs() < .001
-                ? (_random.nextBool() ? 1 : -1)
-                : fromTouch.dx.sign,
-            0,
-          )
-        : fromTouch.distance < .001
-        ? Offset.fromDirection(_random.nextDouble() * math.pi * 2)
-        : fromTouch / fromTouch.distance;
-    final distance = isFish ? reachX * 1.5 : 135.0;
-    final desired = pose.position + direction * distance;
-    var destination = Offset(
-      desired.dx.clamp(bounds.left, bounds.right),
-      desired.dy.clamp(bounds.top, bounds.bottom),
-    );
-    // At a habitat edge an outward touch can otherwise clamp the escape to
-    // the current point. Turn within the same water patch or flight area so
-    // the animal still makes a visible dart without crossing the boundary.
-    final minimumDart = isFish ? math.min(12.0, bounds.width * .3) : 25.0;
-    if ((destination - pose.position).distance < minimumDart) {
-      if (isFish) {
-        final leftRoom = pose.position.dx - bounds.left;
-        final rightRoom = bounds.right - pose.position.dx;
-        destination = Offset(
-          leftRoom >= rightRoom ? bounds.left : bounds.right,
-          pose.position.dy.clamp(bounds.top, bounds.bottom),
-        );
-      } else {
-        destination = _insideFlightBounds(pose.position - direction * distance);
-      }
-    }
-    // Retouching begins from the current interpolated position and scale.
-    _creatureReactions[creature] = _CreatureReaction(
-      origin: pose.position,
-      destination: destination,
-      startTime: time,
-      startScale: pose.visualScale,
-    );
+  void tapAt(
+    Offset position, {
+    required Offset canopyPosition,
+    required double scale,
+  }) {
+    if (_view.isEmpty) return;
+    _puffLeaves(position, canopyPosition);
+    _reactAt(position, canopyPosition, scale, allowDirect: true);
   }
 
-  Offset _escapeDestination(Offset origin, Rect bounds) {
-    var destination = bounds.center;
-    var farthest = -1.0;
-    final minimumDistance = math.min(140.0, bounds.shortestSide * .5);
-    for (var attempt = 0; attempt < 16; attempt++) {
-      final angle = _random.nextDouble() * math.pi * 2;
-      final distance = 180 + _random.nextDouble() * 140;
-      final candidate =
-          origin + Offset(math.cos(angle), math.sin(angle)) * distance;
-      final bounded = Offset(
-        candidate.dx.clamp(bounds.left, bounds.right),
-        candidate.dy.clamp(bounds.top, bounds.bottom),
-      );
-      final travel = (bounded - origin).distance;
-      if (travel > farthest) {
-        destination = bounded;
-        farthest = travel;
-      }
-      // Retry outward directions near an edge instead of barely moving.
-      if (travel >= minimumDistance) return bounded;
-    }
-    return destination;
-  }
-
-  /// A short puff from a free-map tap, never a permanent wind acceleration.
-  /// Nearby visible creatures react within a radius measured on the screen.
+  /// A free-map puff only startles nearby animals; it does not grow them.
   void puff(Offset position, {Offset? canopyPosition, double scale = 1}) {
     if (_view.isEmpty) return;
+    _puffLeaves(position, canopyPosition ?? position);
+    _reactAt(position, canopyPosition ?? position, scale, allowDirect: false);
+  }
+
+  void _reactAt(
+    Offset foreground,
+    Offset terrain,
+    double scale, {
+    required bool allowDirect,
+  }) {
+    if (scale <= 0 || !scale.isFinite) return;
+    final hits = _animalHits(foreground, terrain, scale).toList();
+    MapAnimalMotion? directTarget;
+    var nearest = double.infinity;
+    if (allowDirect) {
+      for (final hit in hits) {
+        if (hit.distance <= hit.radius && hit.distance < nearest) {
+          directTarget = hit.animal;
+          nearest = hit.distance;
+        }
+      }
+    }
+    for (final hit in hits) {
+      final direct = identical(hit.animal, directTarget);
+      if (direct || hit.distance / scale < MapRadialPuff.radius) {
+        _reactAnimal(hit.animal, hit.touch, direct: direct);
+      }
+    }
+  }
+
+  void _puffLeaves(Offset position, Offset canopyPosition) {
     if (_gusts.length == maxGusts) _gusts.removeAt(0);
-    _gusts.add(_Gust(position, canopyPosition ?? position));
+    _gusts.add(_Gust(position, canopyPosition));
     for (final leaf in leaves) {
       final center = leaf.depth == MapLeafDepth.foreground
           ? position
-          : (canopyPosition ?? position);
-      final delta = leaf.position - center;
-      final distance = delta.distance;
-      if (distance >= 220) continue;
-      final away = distance < 1 ? const Offset(0, -1) : delta / distance;
-      leaf.impulse += away * (115 * (1 - distance / 220));
-    }
-    for (final bee in bees) {
-      if (bee.startled) continue;
-      final delta = beePosition(bee) - position;
-      if (delta.distance > 130) continue;
-      final away = delta.distance < 1
-          ? const Offset(1, -.5)
-          : delta / delta.distance;
-      _flyTo(
-        bee,
-        bee.flower,
-        destination: Offset(
-          (bee.position.dx + away.dx * 65).clamp(20.0, sourceSize.width - 20),
-          (bee.position.dy - 35 + away.dy * 15).clamp(
-            sourceSize.height * (350 / 724),
-            sourceSize.height * (680 / 724),
-          ),
-        ),
-        destinationDepth: bee.depth,
-      );
-      bee.duration = 1.4;
-    }
-    if (scale <= 0 || !scale.isFinite) return;
-    final terrainTouch = canopyPosition ?? position;
-    final terrainView = _view.shift(-_terrainOffset);
-    for (final creature in creatures) {
-      final pose = creaturePose(creature);
-      if (!terrainView.contains(pose.position)) continue;
-      final radius = switch (creature.kind) {
-        MapCreatureKind.butterfly => 105.0,
-        MapCreatureKind.dragonfly => 100.0,
-        MapCreatureKind.mayfly => 95.0,
-        MapCreatureKind.fish => 80.0,
-      };
-      if ((pose.position - terrainTouch).distance * scale > radius) continue;
-      _startleCreature(creature, terrainTouch, terrainView);
+          : canopyPosition;
+      leaf.impulse += MapRadialPuff.impulseAt(leaf.position, center);
     }
   }
 
-  Offset windAt(Offset position, {bool foreground = false}) {
-    var wind = Offset(breeze, 0);
+  Offset windAt(Offset position, {bool foreground = false}) =>
+      Offset(breeze, 0) + _tapWindAt(position, depth: foreground ? 0 : 1);
+
+  Offset _tapWindAt(Offset position, {required double depth}) {
+    var wind = Offset.zero;
     for (final gust in _gusts) {
-      final delta =
-          position - (foreground ? gust.position : gust.canopyPosition);
-      final reach = (1 - delta.distance / 220).clamp(0.0, 1.0);
-      final strength = reach * math.pow(1 - gust.age / 2, 2) * 95;
-      final away = delta.distance < 1
-          ? const Offset(0, -1)
-          : delta / delta.distance;
-      wind += away * strength;
+      wind += MapRadialPuff.gustAt(
+        position,
+        Offset.lerp(gust.position, gust.canopyPosition, depth)!,
+        gust.age,
+      );
     }
     return wind;
   }
@@ -624,25 +597,39 @@ class MapAmbientMotion {
 
   void _step(double dt) {
     time += dt;
-    for (final entry in _creatureReactions.entries.toList()) {
-      final insect = entry.key.kind != MapCreatureKind.fish;
-      final duration = insect
-          ? _CreatureReaction.popDuration + _CreatureReaction.escapeDuration
-          : _CreatureReaction.totalDuration;
-      if (time - entry.value.startTime < duration) continue;
-      if (insect) {
-        _creatureFlights[entry.key]?.position = entry.value.destination;
-      }
-      _creatureReactions.remove(entry.key);
-    }
-    for (final entry in _creatureFlights.entries) {
-      if (_creatureReactions.containsKey(entry.key)) continue;
-      _advanceCreatureFlight(entry.key, entry.value, dt);
-    }
     for (final gust in _gusts) {
       gust.age += dt;
     }
-    _gusts.removeWhere((gust) => gust.age >= 2);
+    _gusts.removeWhere((gust) => gust.age >= MapRadialPuff.duration);
+    for (final entry in _creatureFlights.entries) {
+      final flight = entry.value;
+      final beatSpeed = switch (entry.key.kind) {
+        MapCreatureKind.butterfly => 22.0,
+        MapCreatureKind.dragonfly => 58.0,
+        MapCreatureKind.mayfly => 38.0,
+        MapCreatureKind.fish => 13.0,
+      };
+      flight.wingPhase += dt * beatSpeed * (flight.startled ? 1.6 : 1);
+      final previous = flight.position;
+      if (flight.advanceEscape(
+        dt,
+        gust: _tapWindAt(flight.position, depth: 1),
+      )) {
+        if (!flight.startled) flight.resumeProgress = 0;
+        if (!flight.startled && entry.key.kind != MapCreatureKind.fish) {
+          final heading = flight.position - previous;
+          final forward = heading.distance < .000001
+              ? Offset(flight.facing, 0)
+              : heading / heading.distance;
+          flight.target = _insideFlightBounds(flight.position + forward * 24);
+          if ((flight.target - flight.position).distance < 12) {
+            _chooseFlightTarget(entry.key, flight);
+          }
+        }
+        continue;
+      }
+      _advanceCreatureFlight(entry.key, flight, dt);
+    }
     if (pinkCanopy != null) {
       _pinkSpawnIn -= dt;
       if (_pinkSpawnIn <= 0) {
@@ -674,13 +661,20 @@ class MapAmbientMotion {
           : 14 + leaf.size * .4;
       leaf.position +=
           (Offset(wind.dx + flutter * 15, fall + wind.dy) + leaf.impulse) * dt;
-      leaf.impulse *= math.exp(-dt * 3.5);
+      leaf.impulse = MapRadialPuff.decay(leaf.impulse, dt);
       leaf.angle += dt * (.6 + wind.dx * .017 + flutter * .9);
     }
     // A leaf stays in flight across camera movements and is removed only once
     // it reaches the ground. Its age never makes it fade in mid-air.
     leaves.removeWhere((leaf) => leaf.position.dy >= leaf.bottom);
     for (final bee in bees) {
+      if (bee.advanceEscape(
+        dt,
+        gust: _tapWindAt(bee.position, depth: bee.depth),
+      )) {
+        if (!bee.startled) _flyTo(bee, bee.flower);
+        continue;
+      }
       if (bee.perched) {
         bee.rest -= dt;
         if (bee.rest <= 0) {
@@ -698,16 +692,11 @@ class MapAmbientMotion {
         continue;
       }
       bee.flight = math.min(1, bee.flight + dt / bee.duration);
-      // The initial pop stays anchored, including when interrupted mid-flight.
-      final t = bee.startled ? bee._escapeProgress : bee.flight;
-      if (bee.startled && t == 0) continue;
-      final ease = bee.startled
-          ? 1 - math.pow(1 - t, 3).toDouble()
-          : t * t * (3 - 2 * t);
+      final t = bee.flight;
+      final ease = t * t * (3 - 2 * t);
       bee.depth =
           bee._originDepth + (bee._destinationDepth - bee._originDepth) * ease;
-      // The escape follows its random heading; only ambient flights bob upward.
-      final arc = bee.startled ? 0.0 : math.sin(t * math.pi);
+      final arc = math.sin(t * math.pi);
       final wind = windAt(bee.position, foreground: true);
       bee.position =
           Offset.lerp(bee.origin, bee.destination, ease)! +
@@ -716,15 +705,7 @@ class MapAmbientMotion {
             (-35 + math.sin(time * 3.4 + bee.phase) * 4 + wind.dy * .15) * arc,
           );
       if (t >= 1) {
-        bee.startled = false;
-        // After avoiding a touch, return to the flower before resting.
-        if ((bee.destination - (flowerAnchors[bee.flower] - const Offset(0, 8)))
-                .distance >
-            1) {
-          _flyTo(bee, bee.flower);
-        } else {
-          bee.rest = 1.6 + _random.nextDouble() * 2.4;
-        }
+        bee.rest = 1.6 + _random.nextDouble() * 2.4;
       }
     }
   }
@@ -834,83 +815,13 @@ class MapAmbientMotion {
     bool startled,
   })
   creaturePose(MapCreatureDefinition creature) {
-    final speed = switch (creature.kind) {
-      MapCreatureKind.butterfly => .85,
-      MapCreatureKind.dragonfly => 1.3,
-      MapCreatureKind.mayfly => 1.7,
-      MapCreatureKind.fish => .55,
-    };
-    final phase = time * speed + creature.phase;
-    final flight = _creatureFlights[creature];
-    final ambientPosition =
-        flight?.position ??
-        creature.center +
-            Offset(
-              math.sin(phase) * creature.travel.dx,
-              math.sin(phase * .55) * creature.travel.dy,
-            );
-    final ambientFacing = flight?.facing ?? (math.cos(phase) >= 0 ? 1.0 : -1.0);
-    final reaction = _creatureReactions[creature];
-    final beatSpeed = switch (creature.kind) {
-      MapCreatureKind.butterfly => 22.0,
-      MapCreatureKind.dragonfly => 58.0,
-      MapCreatureKind.mayfly => 38.0,
-      MapCreatureKind.fish => 13.0,
-    };
-    if (reaction == null) {
-      return (
-        position: ambientPosition,
-        facing: ambientFacing,
-        wingBeat: math.sin(time * beatSpeed + creature.phase),
-        visualScale: 1.0,
-        startled: false,
-      );
-    }
-    final elapsed = time - reaction.startTime;
-    final peakScale = creature.kind == MapCreatureKind.fish ? 1.35 : 1.75;
-    Offset position;
-    double visualScale;
-    if (elapsed < _CreatureReaction.popDuration) {
-      final t = (elapsed / _CreatureReaction.popDuration).clamp(0.0, 1.0);
-      final ease = 1 - math.pow(1 - t, 3).toDouble();
-      position = reaction.origin;
-      visualScale =
-          reaction.startScale + (peakScale - reaction.startScale) * ease;
-    } else if (elapsed <
-        _CreatureReaction.popDuration + _CreatureReaction.escapeDuration) {
-      final t =
-          ((elapsed - _CreatureReaction.popDuration) /
-                  _CreatureReaction.escapeDuration)
-              .clamp(0.0, 1.0);
-      final ease = 1 - math.pow(1 - t, 3).toDouble();
-      position = Offset.lerp(reaction.origin, reaction.destination, ease)!;
-      visualScale = peakScale + (1 - peakScale) * ease;
-    } else if (creature.kind != MapCreatureKind.fish) {
-      position = reaction.destination;
-      visualScale = 1;
-    } else {
-      final t =
-          ((elapsed -
-                      _CreatureReaction.popDuration -
-                      _CreatureReaction.escapeDuration) /
-                  _CreatureReaction.returnDuration)
-              .clamp(0.0, 1.0);
-      final ease = t * t * (3 - 2 * t);
-      position = Offset.lerp(reaction.destination, ambientPosition, ease)!;
-      visualScale = 1;
-    }
-    final heading =
-        creature.kind != MapCreatureKind.fish ||
-            elapsed <
-                _CreatureReaction.popDuration + _CreatureReaction.escapeDuration
-        ? reaction.destination.dx - reaction.origin.dx
-        : ambientPosition.dx - reaction.destination.dx;
+    final flight = _creatureFlights[creature]!;
     return (
-      position: position,
-      facing: heading.abs() < .001 ? ambientFacing : heading.sign,
-      wingBeat: math.sin(time * beatSpeed * 1.6 + creature.phase),
-      visualScale: visualScale,
-      startled: true,
+      position: flight.position,
+      facing: flight.facing,
+      wingBeat: math.sin(flight.wingPhase),
+      visualScale: flight.visualScale,
+      startled: flight.startled,
     );
   }
 }

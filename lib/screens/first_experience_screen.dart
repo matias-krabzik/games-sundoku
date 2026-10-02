@@ -1695,16 +1695,12 @@ class _FlowHeader extends StatelessWidget {
             ),
           ),
         if (!welcome && !compact)
-          UiSurfacePanel(
-            key: const ValueKey('intro-header'),
-            surface: UiSurface.goldCreamPanel,
-            padding: const EdgeInsets.fromLTRB(24, 19, 24, 22),
-            child: SizedBox(
-              width: double.infinity,
-              child: largeText
-                  ? blockTitle
-                  : FittedBox(fit: BoxFit.scaleDown, child: blockTitle),
-            ),
+          TutorialLessonTitle(
+            title:
+                title ??
+                (expanded
+                    ? 'Tu tablero de sudoku'
+                    : 'Empecemos con 9 casillas'),
           ),
       ],
     );

@@ -18,6 +18,7 @@
 - Composición del asistente: botones amarillos de acción siempre en la zona inferior, dentro de `SafeArea`; el resto del contenido principal se centra en el espacio disponible encima. Mantener este orden también en horizontal, pantallas pequeñas y texto ampliado. Si hace falta desplazamiento, desplazar el contenido central sin taparlo con las acciones inferiores. Los encabezados y la navegación permanecen en su zona superior.
 - Los prompts y láminas antiguos con pantallas enteras o texto dibujado son referencias históricas de diseño. Para producir recursos nuevos se aplican estas reglas y la plantilla vigente de `design/first-experience/prompts.md`.
 - La introducción del nivel 1 es un único flujo por pasos. Conserva su estado y el bloque central elegido por el jugador. Las explicaciones de filas y columnas se muestran sobre el tablero real del juego, sin abrir pantallas ilustradas independientes.
+- Los tutoriales nuevos respetan el formato de «Reglas del sudoku»: reutilizar `TutorialLessonTitle`, `TutorialLessonCard`, el progreso segmentado y las acciones inferiores. No añadir Volver, Pausa ni Configuración al encabezado de una lección. «Siguiente» primero completa las animaciones pendientes sin cambiar de paso; otra pulsación avanza. Mantener el tablero montado y estable entre pasos de la misma escena. Las pautas completas están en `design/first-experience/implementacion.md`, sección «Formato compartido de los tutoriales».
 
 # Proyecto responsive
 

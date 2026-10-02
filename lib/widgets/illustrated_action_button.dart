@@ -19,6 +19,7 @@ class IllustratedActionButton extends StatelessWidget {
     this.showPlayIcon = true,
     this.leadingIcon,
     this.secondary = false,
+    this.surface,
     this.artPadding = EdgeInsets.zero,
     this.contentPadding = const EdgeInsets.fromLTRB(24, 10, 24, 17),
   });
@@ -30,6 +31,9 @@ class IllustratedActionButton extends StatelessWidget {
   final bool showPlayIcon;
   final Widget? leadingIcon;
   final bool secondary;
+
+  /// Overrides the artwork without changing the button's size.
+  final UiSurface? surface;
   final EdgeInsets artPadding;
   final EdgeInsets contentPadding;
 
@@ -71,15 +75,13 @@ class IllustratedActionButton extends StatelessWidget {
               children: [
                 Padding(
                   padding: artPadding,
-                  child: secondary
-                      ? UiSurfaceArt(
-                          UiSurface.blueButton,
-                          referenceSize: referenceSize,
-                        )
-                      : HomeArt(
-                          HomeSurface.play,
-                          playReferenceSize: referenceSize,
-                        ),
+                  child: UiSurfaceArt(
+                    surface ??
+                        (secondary
+                            ? UiSurface.blueButton
+                            : UiSurface.goldButton),
+                    referenceSize: referenceSize,
+                  ),
                 ),
                 Padding(
                   padding: contentPadding,

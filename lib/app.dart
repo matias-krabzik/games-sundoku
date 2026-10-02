@@ -247,6 +247,8 @@ class _SunDokuAppState extends State<SunDokuApp> {
       onSelectWorld: (selected) => unawaited(_switchWorld(context, selected)),
       onNextWorld: worldId == 'world-1'
           ? () => _switchWorld(context, 'world-2')
+          : worldId == 'world-2'
+          ? () => _switchWorld(context, 'world-3')
           : null,
       onReady: worldId == 'world-2' ? () => _forestReady(context) : null,
       onReturn: () => showNotesUnlock(context, _repository),
