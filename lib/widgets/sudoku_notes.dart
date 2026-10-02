@@ -84,12 +84,14 @@ class SudokuNotesButton extends StatelessWidget {
     required this.onPressed,
     this.dimension = 52,
     this.sound = true,
+    this.dimWhenDisabled = true,
   });
 
   final bool active;
   final VoidCallback? onPressed;
   final double dimension;
   final bool sound;
+  final bool dimWhenDisabled;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
@@ -106,7 +108,7 @@ class SudokuNotesButton extends StatelessWidget {
           UiSurfaceArt(active ? UiSurface.goldTile : UiSurface.creamTile),
           Center(
             child: Opacity(
-              opacity: onPressed == null ? .45 : 1,
+              opacity: onPressed == null && dimWhenDisabled ? .45 : 1,
               child: Image.asset(
                 'assets/images/tutorial/notes-pencil.png',
                 width: dimension * .75,

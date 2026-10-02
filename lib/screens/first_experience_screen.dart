@@ -20,6 +20,7 @@ import '../widgets/home_art.dart';
 import '../widgets/game_pause.dart';
 import '../widgets/illustrated_action_button.dart';
 import '../widgets/settings_art.dart';
+import '../widgets/skip_tutorial_button.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/score_feedback.dart';
 import '../data/level_catalog.dart';
@@ -28,6 +29,8 @@ import '../widgets/tutorial_block_controls.dart';
 import '../widgets/tutorial_journey.dart';
 import '../widgets/tutorial_celebration.dart';
 import '../widgets/tutorial_story_navigation.dart';
+import '../widgets/tutorial_activity.dart';
+import '../widgets/tutorial_presentation.dart';
 import '../widgets/ui_surface_art.dart';
 import '../widgets/victory_particles.dart';
 import '../widgets/developer_floating_menu.dart';
@@ -74,6 +77,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   // Preserve the board and focus when the responsive layout changes parents.
   final _stageKey = GlobalKey();
   final _storyKey = GlobalKey();
+  final _tutorialStory = TutorialStoryController();
   FirstExperienceStep? _finishedStoryStep;
   late final _blockDeal =
       AnimationController(
@@ -154,6 +158,49 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     }
   }
 
+  bool _finishTutorialAnimation() {
+    var changed = false;
+    if (_welcome && !_dokuReady) {
+      _dokuEntrance.value = 1;
+      _dokuReady = true;
+      changed = true;
+    }
+    if (_flow.step == FirstExperienceStep.blockIntroduction &&
+        _blockDeal.isAnimating) {
+      _blockDeal.value = 1;
+      changed = true;
+    }
+    if (_flow.step == FirstExperienceStep.expansion &&
+        (_blockTourPending || _blockTour.isAnimating)) {
+      _blockTourPending = false;
+      _blockTour.value = 1;
+      changed = true;
+    }
+    if (_flow.step == FirstExperienceStep.solvedExample &&
+        _solutionTour.isAnimating) {
+      _solutionTour.value = 1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tutorialStory.finish();
+      });
+      changed = true;
+    }
+    if (_tutorialStory.finish()) changed = true;
+    if (changed && mounted) setState(() {});
+    return changed;
+  }
+
+  Future<void> _continueTutorial() async {
+    if (_flow.isBusy || _skippingTutorial || _settingsOpen) return;
+    if (_finishTutorialAnimation()) return;
+    if (_navigationBlocked) return;
+    await _flow.advance();
+  }
+
+  Widget _tutorialSkipButton() => SkipTutorialButton(
+    key: const ValueKey('tutorial-skip'),
+    onPressed: _skippingTutorial || _flow.isBusy ? null : _skipTutorial,
+  );
+
   late final _dokuEntrance =
       AnimationController(
         vsync: this,
@@ -220,16 +267,18 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   bool _briefingPending = false;
   bool _briefingScheduled = false;
   bool _settingsOpen = false;
+  bool _skippingTutorial = false;
   bool _boardAnimating = false;
   SudokuCompletion? _pendingBoardCompletion;
   late SudokuCompletion? _previousCompletion = _flow.completion;
   bool get _finishingBoard => _pendingBoardCompletion != null;
   bool get _showGame =>
       _flow.step == FirstExperienceStep.playing || _finishingBoard;
-  bool get _showTutorialClose =>
+  bool get _showTutorialSkip =>
       !_showGame &&
-      (_flow.reviewOnly || _flow.session != null) &&
-      (_welcome || _flow.isStory);
+      (_flow.reviewOnly ||
+          (!_flow.isGeneratedLevel &&
+              _flow.step.index < FirstExperienceStep.playing.index));
   bool get _canSkipTutorialAnimations =>
       _flow.reviewOnly || _flow.session != null;
   bool get _navigationBlocked =>
@@ -239,6 +288,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               _blockTourPending ||
               _blockTour.isAnimating)) ||
       _settingsOpen ||
+      _skippingTutorial ||
       _openingNextLevel ||
       _flow.isBusy ||
       (_boardAnimating && (!_flow.isStory || !_canSkipTutorialAnimations)) ||
@@ -652,7 +702,8 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       }
     }
     if (_previousStep == FirstExperienceStep.givensIntroduction &&
-        _flow.step == FirstExperienceStep.playing) {
+        _flow.step == FirstExperienceStep.playing &&
+        _needsBriefing) {
       final from = _boardRect();
       _briefingPending = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -734,24 +785,31 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
   bool _developerExiting = false;
 
-  Future<void> _closeTutorial() async {
-    if (_navigationBlocked) return;
+  Future<void> _skipTutorial() async {
+    if (_skippingTutorial || _flow.isBusy || _settingsOpen) return;
+    setState(() => _skippingTutorial = true);
     try {
-      await _flow.pauseGame();
-      await _flow.flush();
-      if (!mounted) return;
-      setState(() => _developerExiting = true);
-      await WidgetsBinding.instance.endOfFrame;
-      if (mounted) await Navigator.of(context).maybePop();
-    } catch (_) {
-      if (mounted) {
-        setState(() => _developerExiting = false);
+      if (_flow.reviewOnly) {
+        if (mounted) await Navigator.of(context).maybePop();
+      } else if (!await _flow.skipTutorial() && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No pudimos guardar. Intenta salir otra vez.'),
+          SnackBar(
+            content: Text(
+              _flow.error ?? 'No pudimos saltar el tutorial. Intenta otra vez.',
+            ),
           ),
         );
       }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos saltar el tutorial. Intenta otra vez.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _skippingTutorial = false);
     }
   }
 
@@ -784,36 +842,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                 direction: Axis.vertical,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_showTutorialClose &&
-                      !(MediaQuery.sizeOf(context).aspectRatio > 1.2 &&
-                          MediaQuery.sizeOf(context).height < 600))
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        MediaQuery.sizeOf(context).width >= 700 ||
-                                MediaQuery.sizeOf(context).height >= 900
-                            ? 24
-                            : 8,
-                        MediaQuery.sizeOf(context).width >= 700 ||
-                                MediaQuery.sizeOf(context).height >= 900
-                            ? 32
-                            : 16,
-                        0,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        heightFactor: 1,
-                        child: GameHeaderButton(
-                          key: const ValueKey('tutorial-close'),
-                          label: 'Cerrar tutorial y volver al mapa',
-                          onPressed: _navigationBlocked ? null : _closeTutorial,
-                          icon: const SettingsIcon(
-                            SettingsGlyph.close,
-                            size: 33,
-                          ),
-                        ),
-                      ),
-                    ),
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, bounds) {
@@ -849,6 +877,13 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                                 FirstExperienceStep.expansion.index) {
                           content = TutorialJourney(
                             onLessonFinished: () => _storyFinished(storyStep),
+                            storyController: _tutorialStory,
+                            onRevealAnimation: _showTutorialSkip
+                                ? _finishTutorialAnimation
+                                : null,
+                            skipAction: _showTutorialSkip
+                                ? _tutorialSkipButton()
+                                : null,
                             solutionTour: _solutionTour,
                             navigationBlocked: _navigationBlocked,
                             finishingBoard: _finishingBoard,
@@ -923,26 +958,28 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                           content = _blockLayout(cells, motion);
                         }
                         if (!_flow.isStory) return content;
-                        return TutorialStoryGestures(
-                          key: const ValueKey('tutorial-story-gestures'),
-                          enabled: !_navigationBlocked,
-                          onNext: () {
-                            if (_navigationBlocked) return;
-                            if (_flow.reviewOnly &&
-                                _flow.storyIndex == _flow.storyCount - 1) {
-                              Navigator.of(context).pop();
-                            } else {
-                              _flow.advance();
-                            }
-                          },
-                          onPrevious: _flow.storyIndex > 0
-                              ? () {
-                                  if (!_navigationBlocked) {
-                                    _flow.previousStory();
+                        return TutorialActivity(
+                          child: TutorialStoryGestures(
+                            key: const ValueKey('tutorial-story-gestures'),
+                            enabled: !_navigationBlocked,
+                            onNext: () {
+                              if (_navigationBlocked) return;
+                              if (_flow.reviewOnly &&
+                                  _flow.storyIndex == _flow.storyCount - 1) {
+                                Navigator.of(context).pop();
+                              } else {
+                                _flow.advance();
+                              }
+                            },
+                            onPrevious: _flow.storyIndex > 0
+                                ? () {
+                                    if (!_navigationBlocked) {
+                                      _flow.previousStory();
+                                    }
                                   }
-                                }
-                              : null,
-                          child: content,
+                                : null,
+                            child: content,
+                          ),
                         );
                       },
                     ),
@@ -951,23 +988,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               ),
             ),
             if (_rewardFlightFrom != null) _rewardFlight(cells, motion),
-            if (_showTutorialClose &&
-                MediaQuery.sizeOf(context).aspectRatio > 1.2 &&
-                MediaQuery.sizeOf(context).height < 600)
-              Positioned(
-                right:
-                    MediaQuery.paddingOf(context).right +
-                    (MediaQuery.sizeOf(context).width >= 700 ? 32 : 16),
-                top:
-                    MediaQuery.paddingOf(context).top +
-                    (MediaQuery.sizeOf(context).width >= 700 ? 24 : 8),
-                child: GameHeaderButton(
-                  key: const ValueKey('tutorial-close'),
-                  label: 'Cerrar tutorial y volver al mapa',
-                  onPressed: _navigationBlocked ? null : _closeTutorial,
-                  icon: const SettingsIcon(SettingsGlyph.close, size: 33),
-                ),
-              ),
             if (_nextPhase != null) _nextBoardFlight(cells, motion),
             if (!_finishingBoard &&
                 (_flow.step == FirstExperienceStep.celebration ||
@@ -1117,12 +1137,11 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           children: [
-            TutorialStoryProgress(
+            TutorialStepHeader(
               index: _flow.storyIndex,
               count: _flow.storyCount,
+              child: _FlowHeader(welcome: _welcome),
             ),
-            const SizedBox(height: 8),
-            _FlowHeader(welcome: _welcome),
             const SizedBox(height: 12),
             Expanded(
               child: LayoutBuilder(
@@ -1181,13 +1200,25 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               ),
             ),
             const SizedBox(height: 12),
-            IllustratedActionButton(
-              key: ValueKey(_welcome ? 'intro-continue' : 'intro-start-block'),
-              compact: compact,
-              fontSize: 22,
-              showPlayIcon: MediaQuery.textScalerOf(context).scale(16) <= 24,
-              label: _flow.isBusy ? 'Guardando…' : 'Siguiente',
-              onPressed: _navigationBlocked ? null : _flow.advance,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IllustratedActionButton(
+                  key: ValueKey(
+                    _welcome ? 'intro-continue' : 'intro-start-block',
+                  ),
+                  compact: compact,
+                  fontSize: 22,
+                  showPlayIcon:
+                      MediaQuery.textScalerOf(context).scale(16) <= 24,
+                  label: _flow.isBusy ? 'Guardando…' : 'Siguiente',
+                  onPressed: _flow.isBusy || _skippingTutorial
+                      ? null
+                      : _continueTutorial,
+                ),
+                const SizedBox(height: 6),
+                _tutorialSkipButton(),
+              ],
             ),
           ],
         ),
@@ -1308,6 +1339,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                       )
                     : const SizedBox(width: double.infinity),
               ),
+              if (_showTutorialSkip) ...[
+                const SizedBox(height: 6),
+                _tutorialSkipButton(),
+              ],
             ],
           ),
         ),
@@ -1448,10 +1483,11 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     mainAxisSize: MainAxisSize.min,
     children: [
       if (_explaining) ...[
-        _IntroReveal(
+        TutorialReveal(
           visible: _dokuReady,
           child: TutorialStory(
             key: _storyKey,
+            controller: _tutorialStory,
             autoplay: _dokuReady,
             interactive: false,
             onFinished: () => _storyFinished(FirstExperienceStep.welcome),
@@ -1483,42 +1519,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
         ),
     ],
   );
-}
-
-/// Keeps its layout space while hiding interaction, focus and semantics.
-class _IntroReveal extends StatelessWidget {
-  const _IntroReveal({required this.visible, required this.child});
-  final bool visible;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final reduced =
-        MediaQuery.disableAnimationsOf(context) ||
-        MediaQuery.accessibleNavigationOf(context);
-    final duration = reduced
-        ? Duration.zero
-        : const Duration(milliseconds: 350);
-    return IgnorePointer(
-      ignoring: !visible,
-      child: ExcludeSemantics(
-        excluding: !visible,
-        child: ExcludeFocus(
-          excluding: !visible,
-          child: AnimatedOpacity(
-            opacity: visible ? 1 : 0,
-            duration: duration,
-            child: AnimatedSlide(
-              offset: visible ? Offset.zero : const Offset(0, .04),
-              duration: duration,
-              curve: Curves.easeOut,
-              child: child,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _WorldBackdrop extends StatelessWidget {

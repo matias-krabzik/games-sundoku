@@ -3,7 +3,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'home_art.dart';
+import 'tutorial_activity.dart';
 import 'ui_surface_art.dart';
+
+/// Lets the primary action reveal the current story before advancing.
+class TutorialStoryController {
+  _TutorialStoryState? _state;
+
+  bool finish() {
+    final state = _state;
+    if (state == null || state._reveal.isCompleted) return false;
+    state._finish();
+    return true;
+  }
+}
 
 /// A short, skippable reveal that keeps the final paragraph's layout intact.
 class TutorialStory extends StatefulWidget {
@@ -19,6 +32,7 @@ class TutorialStory extends StatefulWidget {
     this.showPanel = true,
     this.textStyle,
     this.padding,
+    this.controller,
   });
 
   final bool autoplay;
@@ -31,6 +45,7 @@ class TutorialStory extends StatefulWidget {
   final bool showPanel;
   final TextStyle? textStyle;
   final EdgeInsets? padding;
+  final TutorialStoryController? controller;
 
   static const sentences = [
     '¡Hola! Vamos a descubrir el sudoku.',
@@ -57,14 +72,15 @@ class _TutorialStoryState extends State<TutorialStory>
   late final AnimationController _reveal;
   late int _typingEnd;
   late int _duration;
-  bool _started = false;
   bool _focused = false;
+  ValueListenable<bool>? _activity;
 
   @override
   void initState() {
     super.initState();
     _reveal = AnimationController(vsync: this)
       ..addStatusListener(_statusChanged);
+    widget.controller?._state = this;
     _configureTiming();
   }
 
@@ -100,40 +116,54 @@ class _TutorialStoryState extends State<TutorialStory>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final activity = TutorialActivity.of(context);
+    if (activity != _activity) {
+      _activity?.removeListener(_begin);
+      _activity = activity;
+      _activity?.addListener(_begin);
+    }
     _begin();
   }
 
   @override
   void didUpdateWidget(TutorialStory oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      if (oldWidget.controller?._state == this) {
+        oldWidget.controller?._state = null;
+      }
+      widget.controller?._state = this;
+    }
     if (!listEquals(oldWidget.lines, widget.lines) ||
         oldWidget.tip != widget.tip) {
-      _started = false;
       _reveal.reset();
       _configureTiming();
       _begin();
       return;
     }
-    if (!oldWidget.autoplay && widget.autoplay) _begin();
-    if (oldWidget.animate && !widget.animate) _finish();
+    _begin();
   }
 
   void _begin() {
-    if (!widget.autoplay) return;
+    if (!widget.autoplay || _activity?.value == false) {
+      _reveal.stop();
+      return;
+    }
     if (!widget.animate ||
         MediaQuery.disableAnimationsOf(context) ||
         MediaQuery.accessibleNavigationOf(context)) {
       _finish();
-    } else if (!_started) {
+    } else if (!_reveal.isAnimating && !_reveal.isCompleted) {
       _reveal.forward();
     }
-    _started = true;
   }
 
   void _finish() => _reveal.value = 1;
 
   @override
   void dispose() {
+    if (widget.controller?._state == this) widget.controller?._state = null;
+    _activity?.removeListener(_begin);
     _reveal.dispose();
     super.dispose();
   }

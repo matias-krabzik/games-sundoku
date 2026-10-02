@@ -36,6 +36,9 @@ class TutorialJourney extends StatelessWidget {
     this.onWorldCompleted,
     this.navigationBlocked = false,
     this.onLessonFinished,
+    this.storyController,
+    this.onRevealAnimation,
+    this.skipAction,
     this.solutionTour = const AlwaysStoppedAnimation(1),
     this.finishingBoard = false,
     this.rewardAnimation = const AlwaysStoppedAnimation(1),
@@ -56,6 +59,9 @@ class TutorialJourney extends StatelessWidget {
   final VoidCallback? onWorldCompleted;
   final bool navigationBlocked;
   final VoidCallback? onLessonFinished;
+  final TutorialStoryController? storyController;
+  final bool Function()? onRevealAnimation;
+  final Widget? skipAction;
   final Animation<double> solutionTour;
   final bool finishingBoard;
   final Animation<double> rewardAnimation;
@@ -159,6 +165,7 @@ class TutorialJourney extends StatelessWidget {
             };
 
   Future<void> _advance() async {
+    if (onRevealAnimation?.call() == true) return;
     if (navigationBlocked) return;
     if (flow.step == FirstExperienceStep.complete ||
         (flow.reviewOnly && flow.storyIndex == flow.storyCount - 1)) {
@@ -519,6 +526,7 @@ class TutorialJourney extends StatelessWidget {
                                         );
                                         return TutorialLessonCard(
                                           message: tour.message,
+                                          controller: storyController,
                                           messageKey:
                                               'solution-tour-${tour.phase}',
                                           onFinished: tour.finished
@@ -530,6 +538,7 @@ class TutorialJourney extends StatelessWidget {
                                   else if (!_playing)
                                     TutorialLessonCard(
                                       onFinished: onLessonFinished,
+                                      controller: storyController,
                                       message: _message,
                                       messageKey:
                                           '${flow.step}-${flow.gameCell}-${flow.playMessage}',
@@ -760,15 +769,27 @@ class TutorialJourney extends StatelessWidget {
                             (flow.error != null && !flow.readyToPlay))
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
-                            child: IllustratedActionButton(
-                              key: const ValueKey('tutorial-next'),
-                              compact: bounds.maxHeight < 650,
-                              showPlayIcon: !_playing,
-                              fontSize: 23,
-                              label: flow.isBusy ? 'Guardando…' : _action,
-                              onPressed: flow.isBusy || navigationBlocked
-                                  ? null
-                                  : _advance,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IllustratedActionButton(
+                                  key: const ValueKey('tutorial-next'),
+                                  compact: bounds.maxHeight < 650,
+                                  showPlayIcon: !_playing,
+                                  fontSize: 23,
+                                  label: flow.isBusy ? 'Guardando…' : _action,
+                                  onPressed:
+                                      flow.isBusy ||
+                                          (navigationBlocked &&
+                                              onRevealAnimation == null)
+                                      ? null
+                                      : _advance,
+                                ),
+                                if (skipAction != null) ...[
+                                  const SizedBox(height: 6),
+                                  skipAction!,
+                                ],
+                              ],
                             ),
                           ),
                       ],
@@ -791,11 +812,13 @@ class TutorialLessonCard extends StatelessWidget {
     required this.messageKey,
     this.progress,
     this.onFinished,
+    this.controller,
   });
   final String message;
   final String messageKey;
   final String? progress;
   final VoidCallback? onFinished;
+  final TutorialStoryController? controller;
 
   @override
   Widget build(BuildContext context) => TutorialStory(
@@ -805,5 +828,6 @@ class TutorialLessonCard extends StatelessWidget {
     interactive: false,
     textStyle: homeText(20).copyWith(height: 1.3),
     onFinished: onFinished,
+    controller: controller,
   );
 }

@@ -110,6 +110,25 @@ Future<void> _showFlow(WidgetTester tester, GameRepository repository) async {
 }
 
 void main() {
+  testWidgets('skip button opens the first board before the story finishes', (
+    tester,
+  ) async {
+    final repository = GameRepository.memory();
+    addTearDown(repository.dispose);
+    _configure(tester, size: const Size(320, 568));
+    await _showFlow(tester, repository);
+
+    final skip = find.byKey(const ValueKey('tutorial-skip'));
+    expect(skip, findsOneWidget);
+    await _tap(tester, skip);
+
+    expect(find.byKey(const ValueKey('tutorial-skip')), findsNothing);
+    expect(find.byType(SudokuBoard), findsOneWidget);
+    expect(repository.state.sessions, hasLength(1));
+    expect(repository.state.totalLights, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('tutorial DEV menu exits to the previous screen', (tester) async {
     final repository = GameRepository.memory();
     addTearDown(repository.dispose);
@@ -201,7 +220,7 @@ void main() {
     expect(repository.state.modules[FirstExperienceController.moduleKey], {
       'homeIntroductionShown': true,
     });
-    expect(find.byKey(const ValueKey('tutorial-close')), findsNothing);
+    expect(find.byKey(const ValueKey('tutorial-skip')), findsOneWidget);
     Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
     await _settle(tester);
     expect(find.byType(MapScreen), findsOneWidget);
@@ -222,11 +241,15 @@ void main() {
     expect(find.byType(FirstExperienceScreen), findsNothing);
     final saved = repository.state.modules[FirstExperienceController.moduleKey];
     await _tap(tester, review);
-    final close = find.byKey(const ValueKey('tutorial-close'));
-    expect(close, findsOneWidget);
-    expect(tester.getRect(close).right, closeTo(320 - 16, .01));
-    expect(tester.getRect(close).top, closeTo(8, .01));
-    await _tap(tester, close);
+    final skip = find.byKey(const ValueKey('tutorial-skip'));
+    expect(skip, findsOneWidget);
+    final next = _continue.evaluate().isNotEmpty ? _continue : _startBlock;
+    expect(tester.getRect(skip).top, greaterThan(tester.getRect(next).bottom));
+    expect(
+      tester.getRect(skip).center.dx,
+      closeTo(tester.getRect(next).center.dx, .01),
+    );
+    await _tap(tester, skip);
     expect(find.byType(MapScreen), findsOneWidget);
     await _tap(tester, review);
     expect(
@@ -306,7 +329,7 @@ void main() {
   });
 
   testWidgets(
-    'welcome and block cannot be skipped while their text is typing',
+    'continue reveals the current text, then advances on the next tap',
     (tester) async {
       final repository = GameRepository.memory();
       addTearDown(repository.dispose);
@@ -321,46 +344,41 @@ void main() {
               .text!;
       expect(
         tester.widget<IllustratedActionButton>(_continue).onPressed,
-        isNull,
-      );
-      await tester.tap(_continue);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pump(const Duration(milliseconds: 900));
-      expect(
-        visibleText().length,
-        lessThan(TutorialStory.sentences.join('\n').length),
-      );
-      expect(repository.state.modules, isEmpty);
-      await tester.pump(const Duration(seconds: 8));
-      await tester.pump();
-      expect(
-        tester.widget<IllustratedActionButton>(_continue).onPressed,
         isNotNull,
       );
       await _tap(tester, _continue);
       expect(
+        visibleText().replaceAll('\n', ' '),
+        TutorialStory.sentences.join(' '),
+      );
+      expect(repository.state.modules, isEmpty);
+      await _tap(tester, _continue);
+      expect(
         tester.widget<IllustratedActionButton>(_startBlock).onPressed,
-        isNull,
+        isNotNull,
       );
       expect(
-        tester
-            .widget<TutorialStoryGestures>(find.byType(TutorialStoryGestures))
-            .enabled,
-        false,
+        tester.getRect(find.byKey(const ValueKey('tutorial-skip'))).top,
+        greaterThan(tester.getRect(_startBlock).bottom),
       );
-      await tester.tap(_startBlock);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pump();
+      tester.view.physicalSize = const Size(844, 390);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _settle(tester);
+      expect(tester.takeException(), isNull);
+      expect(_startBlock.hitTestable(), findsOneWidget);
+      expect(
+        tester.getRect(find.byKey(const ValueKey('tutorial-skip'))).top,
+        greaterThan(tester.getRect(_startBlock).bottom),
+      );
+      tester.view.physicalSize = const Size(390, 844);
+      tester.platformDispatcher.textScaleFactorTestValue = 1;
+      await _settle(tester);
+      await _tap(tester, _startBlock);
       expect(
         (repository.state.modules[FirstExperienceController.moduleKey]
             as Map)['step'],
         'blockIntroduction',
-      );
-      await tester.pump(const Duration(seconds: 8));
-      await tester.pump();
-      expect(
-        tester.widget<IllustratedActionButton>(_startBlock).onPressed,
-        isNotNull,
       );
       await _tap(tester, _startBlock);
       expect(
@@ -655,6 +673,9 @@ void main() {
             reason: 'The label must render on one line: $scenario',
           );
           final actionRect = tester.getRect(tutorialAction);
+          final skipRect = tester.getRect(
+            find.byKey(const ValueKey('tutorial-skip')),
+          );
           expect(actionRect.left, greaterThanOrEqualTo(0), reason: scenario);
           expect(
             actionRect.right,
@@ -662,7 +683,12 @@ void main() {
             reason: scenario,
           );
           expect(
-            size.height - 24 - actionRect.bottom,
+            skipRect.top,
+            greaterThanOrEqualTo(actionRect.bottom),
+            reason: scenario,
+          );
+          expect(
+            size.height - 24 - skipRect.bottom,
             inInclusiveRange(0, 28),
             reason: scenario,
           );
@@ -678,7 +704,7 @@ void main() {
   );
 
   testWidgets(
-    'welcome action stays at the safe bottom while scaled content scrolls',
+    'welcome actions stay at the safe bottom while scaled content scrolls',
     (tester) async {
       final repository = await GameRepository.open(MemorySaveStore());
       addTearDown(repository.dispose);
@@ -704,6 +730,8 @@ void main() {
           expect(tester.takeException(), isNull, reason: scenario);
           expect(_continue.hitTestable(), findsOneWidget, reason: scenario);
           final actionRect = tester.getRect(_continue);
+          final skip = find.byKey(const ValueKey('tutorial-skip'));
+          final skipRect = tester.getRect(skip);
           expect(actionRect.left, greaterThanOrEqualTo(0), reason: scenario);
           expect(
             actionRect.right,
@@ -711,10 +739,14 @@ void main() {
             reason: scenario,
           );
           expect(
-            size.height - 24 - actionRect.bottom,
+            skipRect.top,
+            greaterThanOrEqualTo(actionRect.bottom),
+            reason: scenario,
+          );
+          expect(
+            size.height - 24 - skipRect.bottom,
             inInclusiveRange(0, 28),
-            reason:
-                'The yellow action must remain at the safe bottom: $scenario',
+            reason: 'The action area must remain at the safe bottom: $scenario',
           );
 
           final scrollable = find.descendant(

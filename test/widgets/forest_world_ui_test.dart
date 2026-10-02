@@ -55,7 +55,7 @@ void main() {
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
   testWidgets(
-    'tutorial locks next for typing and required actions; small and enlarged layouts remain usable',
+    'tutorial advances once per tap and keeps actions visible at every size',
     (tester) async {
       final repo = GameRepository.memory();
       await repo.prepareDebugForest();
@@ -90,25 +90,42 @@ void main() {
 
       await render(const Size(390, 844), 1, reduced: false);
       final next = find.byKey(const ValueKey('notes-lesson-next'));
-      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
-      await _frames(tester, 65);
-      await tester.tap(next);
-      await _frames(tester, 50);
-      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
-      final pencil = find.byType(SudokuNotesButton);
-      await tester.ensureVisible(pencil);
-      await tester.tap(pencil);
-      await _frames(tester);
       expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
       await tester.tap(next);
-      await _frames(tester, 60);
-      final scope = tester.widget<NotesTutorialScreen>(
-        find.byType(NotesTutorialScreen),
+      await _frames(tester, 5);
+      expect(repo.state.modules[NotesLesson.key], containsPair('step', 1));
+      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
+      await tester.tap(next);
+      for (
+        var frame = 0;
+        frame < 100 &&
+            tester
+                    .widget<SudokuBoard>(find.byType(SudokuBoard))
+                    .notes[NotesLesson.target]
+                    ?.length !=
+                2;
+        frame++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(repo.state.modules[NotesLesson.key], containsPair('step', 2));
+      final board = tester.widget<SudokuBoard>(find.byType(SudokuBoard));
+      expect(board.notes[NotesLesson.target], [2, 7]);
+      expect(board.onSelect, isNull);
+      expect(
+        tester
+            .widget<TutorialNumberTray>(find.byType(TutorialNumberTray))
+            .onSelected,
+        isNull,
       );
       expect(
-        scope.repository.state.modules[NotesLesson.key],
-        containsPair('step', 2),
+        tester
+            .widget<SudokuNotesButton>(find.byType(SudokuNotesButton))
+            .onPressed,
+        isNull,
       );
+      await tester.tap(find.byKey(const ValueKey('notes-lesson-pause')));
+      await _frames(tester, 2);
       await _capture(tester, boundary, 'tutorial-mobile');
       for (final size in [
         const Size(320, 568),
@@ -119,11 +136,24 @@ void main() {
         expect(tester.takeException(), isNull);
         final rect = tester.getRect(next);
         expect(rect.bottom, lessThanOrEqualTo(size.height));
+        final skip = find.byKey(const ValueKey('notes-lesson-skip'));
+        if (size.height < 520 && size.width >= 650) {
+          expect(tester.getRect(skip).left, greaterThan(rect.right));
+        } else {
+          expect(tester.getRect(skip).top, greaterThan(rect.bottom));
+        }
+        expect(tester.getRect(skip).bottom, lessThanOrEqualTo(size.height));
+        expect(skip.hitTestable(), findsOneWidget);
         expect(
           tester.getSize(find.byType(SudokuBoard)).width,
           lessThanOrEqualTo(430),
         );
       }
+      final skip = find.byKey(const ValueKey('notes-lesson-skip'));
+      expect(skip.hitTestable(), findsOneWidget);
+      await tester.tap(skip);
+      await _frames(tester);
+      expect(repo.notesTutorialCompleted, isTrue);
       await tester.pumpWidget(const SizedBox());
       await repo.close();
       await tester.binding.setSurfaceSize(null);
@@ -234,39 +264,14 @@ void main() {
         await _frames(tester);
       }
 
-      Future<void> pencil() async {
-        final finder = find.byType(SudokuNotesButton);
-        await tester.ensureVisible(finder);
-        await tester.tap(finder);
-        await _frames(tester);
+      for (
+        var step = 0;
+        step < NotesLesson.texts.length &&
+            find.byType(NotesTutorialScreen).evaluate().isNotEmpty;
+        step++
+      ) {
+        await next();
       }
-
-      Future<void> number(int n) async {
-        final tray = tester.widget<TutorialNumberTray>(
-          find.byType(TutorialNumberTray),
-        );
-        expect(tray.available, contains(n));
-        tray.onSelected!(n);
-        await _frames(tester);
-      }
-
-      await next();
-      await pencil();
-      await next();
-      await number(2);
-      await number(7);
-      await next();
-      await pencil();
-      await next();
-      await number(7);
-      await next();
-      await pencil();
-      await number(7);
-      await next();
-      await pencil();
-      await number(2);
-      await next();
-      await next();
       expect(repo.notesTutorialCompleted, isTrue);
       expect(repo.notesUnlocked, isFalse);
       expect(find.byType(NotesTutorialScreen), findsNothing);

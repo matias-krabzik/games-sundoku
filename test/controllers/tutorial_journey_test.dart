@@ -55,6 +55,64 @@ Future<void> solve(FirstExperienceController flow) async {
 
 void main() {
   test(
+    'skipping the introduction starts the first board without rewards',
+    () async {
+      final repo = GameRepository.memory();
+      addTearDown(repo.close);
+      final flow = FirstExperienceController(repo);
+      addTearDown(flow.dispose);
+
+      expect(await flow.skipTutorial(), isTrue);
+      expect(flow.step, FirstExperienceStep.playing);
+      expect(flow.readyToPlay, isTrue);
+      expect(flow.session, isNotNull);
+      expect(flow.cells, unorderedEquals(List.generate(9, (i) => i + 1)));
+      expect(repo.state.totalLights, 0);
+      final saved =
+          repo.state.modules[FirstExperienceController.moduleKey] as Map;
+      expect(saved['step'], FirstExperienceStep.playing.name);
+      expect(saved['briefingAccepted'], isTrue);
+
+      final reopened = FirstExperienceController(repo);
+      addTearDown(reopened.dispose);
+      expect(reopened.session?.id, flow.session?.id);
+      expect(reopened.boardValues, flow.boardValues);
+    },
+  );
+
+  test(
+    'skipping preserves the chosen block and failed saves can be retried',
+    () async {
+      final store = _FailingStore();
+      final repo = await GameRepository.open(store);
+      addTearDown(repo.close);
+      final flow = FirstExperienceController(repo);
+      addTearDown(flow.dispose);
+      await flow.begin();
+      await flow.startBlock();
+      flow.selectCell(0);
+      await flow.placeNumber(8);
+      flow.selectCell(4);
+      await flow.placeNumber(1);
+
+      store.fail = true;
+      expect(await flow.skipTutorial(), isFalse);
+      expect(flow.step, FirstExperienceStep.block);
+      expect(flow.session, isNull);
+      expect(flow.cells[0], 8);
+      expect(flow.cells[4], 1);
+
+      store.fail = false;
+      expect(await flow.skipTutorial(), isTrue);
+      expect(flow.cells[0], 8);
+      expect(flow.cells[4], 1);
+      expect(flow.puzzleDefinition!.solution[30], 8);
+      expect(flow.puzzleDefinition!.solution[40], 1);
+      expect(repo.state.totalLights, 0);
+    },
+  );
+
+  test(
     'solved example becomes the same clues and first playable puzzle',
     () async {
       final repo = GameRepository.memory();

@@ -368,6 +368,19 @@ class FirstExperienceController extends ChangeNotifier {
     }
   }
 
+  /// Goes straight from any lesson to its playable board without awarding progress.
+  Future<bool> skipTutorial() async {
+    if (_disposed ||
+        _isBusy ||
+        reviewOnly ||
+        isGeneratedLevel ||
+        step.index >= FirstExperienceStep.playing.index) {
+      return false;
+    }
+    await _prepareGames(briefingAccepted: true);
+    return _error == null && step == FirstExperienceStep.playing;
+  }
+
   /// Starts another practice session while preserving earned stars and unlocks.
   Future<void> restartGames() async {
     if (isGeneratedLevel) throw StateError('This level cannot be replayed');
@@ -387,9 +400,13 @@ class FirstExperienceController extends ChangeNotifier {
     );
   }
 
-  Future<void> _prepareGames() async {
+  Future<void> _prepareGames({bool briefingAccepted = false}) async {
     if (session != null) {
-      await _save(FirstExperienceStep.playing, exampleCenter);
+      await _save(
+        FirstExperienceStep.playing,
+        exampleCenter,
+        changes: {if (briefingAccepted) 'briefingAccepted': true},
+      );
       if (_error == null) await resumeGame();
       return;
     }
@@ -403,6 +420,7 @@ class FirstExperienceController extends ChangeNotifier {
           'step': FirstExperienceStep.playing.name,
           'cells': exampleCenter,
           'gameIndex': 0,
+          if (briefingAccepted) 'briefingAccepted': true,
         },
       );
       _cells = List.unmodifiable(exampleCenter);

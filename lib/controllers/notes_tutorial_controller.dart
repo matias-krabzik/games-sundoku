@@ -33,15 +33,79 @@ class NotesLesson {
         values[i],
   ];
   static const texts = [
-    '¡Bienvenido al Bosque de la Cumbre! En la casilla iluminada podrían ir el 2 o el 7. Si aún no sabes cuál, puedes anotar los dos.',
-    'El lápiz guarda tus ideas en pequeño. Tócalo para empezar a anotar.',
-    'Toca el 2 y después el 7. Cada anotación tiene su lugar en la pequeña cuadrícula. ¡Todavía no son respuestas!',
-    'Apaga el lápiz para volver a poner números grandes.',
-    'Mira la columna iluminada: tiene todos los números menos el 7. ¡Pon el 7 en la casilla vacía!',
-    'Vuelve a la casilla de tus notas. Ahora hay un 7 en su fila, así que aquí no puede ir otro. Enciende el lápiz y toca el 7 para borrarlo.',
-    '¡Solo queda el 2! Apaga el lápiz y toca el 2 para poner tu respuesta.',
-    '¡Ya sabes usar el lápiz! Las pistas grandes no cambian y tus notas te ayudan a pensar. Practica durante las tres rondas del primer juego. Al terminarlo, podrás usar el lápiz cuando quieras.',
+    'En esta casilla podrían ir el 2 o el 7. Mira cómo el lápiz nos ayuda a decidir.',
+    'Encendemos el lápiz. Ahora los números se guardan como pequeñas ideas.',
+    'Anotamos el 2 y el 7. Son posibilidades, todavía no son respuestas.',
+    'Apagamos el lápiz para volver a escribir respuestas grandes.',
+    'En la columna iluminada solo falta el 7. Ya podemos colocarlo.',
+    'Ahora hay un 7 en la misma fila. Lo quitamos de nuestras notas: aquí no se puede repetir.',
+    '¡Solo queda el 2! Apagamos el lápiz y lo convertimos en la respuesta.',
+    'Anota posibilidades, descarta las que no encajan y resuelve. El lápiz te acompañará en el primer juego; al completarlo, quedará desbloqueado.',
   ];
+
+  static const durations = [900, 1500, 2600, 1500, 1900, 2600, 2800, 900];
+
+  /// Canonical boundaries also repair old saves that advanced without actions.
+  static Json stateAfter(int step) => {
+    'notesMode': step == 1 || step == 2 || step == 5,
+    'notes': step >= 6 || step < 2
+        ? <int>[]
+        : step == 5
+        ? [2]
+        : [2, 7],
+    'placed7': step >= 4,
+    'placed2': step >= 6,
+  };
+
+  /// A deterministic, unscored demonstration. Playback never writes a save.
+  static NotesDemoFrame frameAt(int step, int milliseconds) {
+    final state = stateAfter(step - 1);
+    final actions = switch (step) {
+      1 => [(850, 0)],
+      2 => [(900, 2), (1900, 7)],
+      3 => [(850, 0)],
+      4 => [(1100, 7)],
+      5 => [(700, 0), (1800, 7)],
+      6 => [(700, 0), (1800, 2)],
+      _ => <(int, int)>[],
+    };
+    int? cue;
+    for (final (at, number) in actions) {
+      if (milliseconds >= at - 450 && milliseconds < at + 350) cue = number;
+      if (milliseconds < at) continue;
+      if (number == 0) {
+        state['notesMode'] = state['notesMode'] != true;
+      } else if (state['notesMode'] == true) {
+        final notes = (state['notes'] as List<int>).toList();
+        notes.contains(number) ? notes.remove(number) : notes.add(number);
+        state['notes'] = notes..sort();
+      } else {
+        state[number == 7 ? 'placed7' : 'placed2'] = true;
+        if (number == 2) state['notes'] = <int>[];
+      }
+    }
+    return NotesDemoFrame(step: step, state: state, cue: cue);
+  }
+}
+
+class NotesDemoFrame {
+  const NotesDemoFrame({required this.step, required this.state, this.cue});
+  final int step;
+  final Json state;
+
+  /// Zero highlights the pencil; 2 and 7 highlight their number controls.
+  final int? cue;
+  bool get notesMode => state['notesMode'] == true;
+  List<int> get notes => state['notes'] as List<int>;
+  int get selected => step == 4 ? NotesLesson.other : NotesLesson.target;
+  List<int?> get cells => [...NotesLesson.initial]
+    ..[NotesLesson.other] = state['placed7'] == true ? 7 : null
+    ..[NotesLesson.target] = state['placed2'] == true ? 2 : null;
+  List<int> get highlighted => step == 4
+      ? [for (var i = 0; i < 9; i++) i * 9 + NotesLesson.other % 9]
+      : step == 5
+      ? List.generate(9, (i) => i)
+      : [NotesLesson.target];
 }
 
 class NotesTutorialController extends ChangeNotifier {
@@ -140,8 +204,22 @@ class NotesTutorialController extends ChangeNotifier {
   }
 
   Future<bool> next() async {
-    if (busy || !actionComplete) return false;
-    await _save(step == 7 ? {'completed': true} : {'step': step + 1});
+    if (busy) return false;
+    await _save({
+      ...NotesLesson.stateAfter(step),
+      if (step == 7) 'completed': true else 'step': step + 1,
+    });
+    return error == null;
+  }
+
+  Future<void> previous() async {
+    if (busy || step == 0) return;
+    await _save({...NotesLesson.stateAfter(step - 2), 'step': step - 1});
+  }
+
+  Future<bool> skipTutorial() async {
+    if (busy) return false;
+    await _save({'step': 7, 'completed': true, 'notesMode': false});
     return error == null;
   }
 
