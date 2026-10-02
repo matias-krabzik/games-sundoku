@@ -74,6 +74,10 @@ void main() {
             size.height - padding.bottom,
           );
           final board = tester.getRect(scene.board);
+          final status = tester.getRect(
+            find.byKey(const ValueKey('game-status-slot')),
+          );
+          expect(board.top - status.bottom, closeTo(12, .1));
           expect(tester.state(scene.board), same(state));
           expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
           expect(board.center.dx, closeTo(safe.center.dx, 1), reason: '$size');

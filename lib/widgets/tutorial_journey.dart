@@ -351,27 +351,6 @@ class TutorialJourney extends StatelessWidget {
                           .60,
                         ),
                         const SizedBox(height: 8),
-                        if (_playing) ...[
-                          _gameUi(
-                            SizedBox(
-                              width: statusWidth,
-                              child: GameplayStatusBar(
-                                scale: statusScale,
-                                points: flow.points,
-                                illustrated: desktopPlay,
-                                trailing: GameTimerControls(
-                                  flow: flow,
-                                  scale: statusScale,
-                                  blocked: navigationBlocked,
-                                  showPause: !desktopPlay,
-                                ),
-                              ),
-                            ),
-                            'status',
-                            .70,
-                          ),
-                          const SizedBox(height: 4),
-                        ],
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, body) {
@@ -386,7 +365,18 @@ class TutorialJourney extends StatelessWidget {
                               final textScaler = MediaQuery.textScalerOf(
                                 context,
                               );
-                              var extraHeight = 0.0;
+                              final statusHeight = desktopPlay
+                                  ? math.max(76.0, textScaler.scale(20) + 36)
+                                  : math.max(
+                                          (42 * statusScale)
+                                              .clamp(42, 54)
+                                              .toDouble(),
+                                          textScaler.scale(20 * statusScale) *
+                                              1.5,
+                                        ) +
+                                        8;
+                              var extraHeight = statusHeight + 12;
+
                               if (_playing && !sideInformation) {
                                 if (help != null) {
                                   extraHeight += math.max(
@@ -587,6 +577,31 @@ class TutorialJourney extends StatelessWidget {
                                       : null,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    SizedBox(
+                                      key: const ValueKey('game-status-slot'),
+                                      height: statusHeight,
+                                      child: Center(
+                                        child: _gameUi(
+                                          SizedBox(
+                                            width: statusWidth,
+                                            child: GameplayStatusBar(
+                                              scale: statusScale,
+                                              points: flow.points,
+                                              illustrated: desktopPlay,
+                                              trailing: GameTimerControls(
+                                                flow: flow,
+                                                scale: statusScale,
+                                                blocked: navigationBlocked,
+                                                showPause: !desktopPlay,
+                                              ),
+                                            ),
+                                          ),
+                                          'status',
+                                          .70,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
                                     boardArea,
                                     const SizedBox(height: 16),
                                     SizedBox(
