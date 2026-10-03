@@ -89,7 +89,15 @@ tamaños y las comparaciones visuales obligatorias están en W3-06.
 
 ## Cierre
 
-- [ ] F01–F11 pasan con resultado estático y animaciones reducidas.
-- [ ] No cambia el tamaño o la posición del tablero sin justificación de espacio.
-- [ ] Sin scroll de partida, desbordes ni acciones fuera de SafeArea.
-- [ ] Capturas comparativas de teléfono, iPad y escritorio revisadas.
+- [x] F01–F11 pasan con resultado estático y animaciones reducidas.
+- [x] No cambia el tamaño o la posición del tablero sin justificación de espacio.
+- [x] Sin scroll de partida, desbordes ni acciones fuera de SafeArea.
+- [x] Capturas comparativas de teléfono, iPad y escritorio revisadas.
+
+
+## Implementación · 03/10/2026
+
+Resultado estático, condiciones de entrada, HUD, reintento y recuperación del
+resultado final integrados. [Informe, capturas y límites de validación](gameplay/README.md).
+F01–F11 se comprobaron con pruebas de dominio/controlador/widgets; la comprobación
+en simulador iOS y host Playables real se mantiene pendiente para W3-06.

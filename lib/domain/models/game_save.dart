@@ -59,7 +59,7 @@ class GameSave {
        modules = immutableJson(modules),
        extra = immutableJson(extra);
 
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
   final int revision;
   final PlayerProfile player;
   final GameSettings settings;
@@ -158,6 +158,10 @@ class GameSave {
           session.puzzles.length != level.puzzleIds.length) {
         throw const FormatException('Invalid session reference');
       }
+      if (session.rulesMode == SessionRulesMode.challenge &&
+          level.worldId != 'world-3') {
+        throw const FormatException('Challenge rules outside world 3');
+      }
       if (session.canResume && !pendingLevels.add(session.levelId)) {
         throw const FormatException('Multiple pending attempts for one level');
       }
@@ -169,8 +173,23 @@ class GameSave {
         throw const FormatException('Active session reference is inconsistent');
       }
       var foundPending = false;
+      var awaitingResult = false;
       for (var i = 0; i < session.puzzles.length; i++) {
         final board = session.puzzles[i];
+        if (awaitingResult &&
+            (board.status != PlayStatus.pending ||
+                board.elapsedMs != 0 ||
+                board.points != 0 ||
+                board.mistakes != 0 ||
+                board.hintsUsed != 0 ||
+                board.attempt?.result != null)) {
+          throw const FormatException(
+            'Round started before acknowledging result',
+          );
+        }
+        awaitingResult =
+            awaitingResult ||
+            (board.attempt?.result != null && !board.attempt!.acknowledged);
         if (board.status != PlayStatus.completed) {
           foundPending = true;
         } else if (foundPending) {
@@ -181,6 +200,13 @@ class GameSave {
           throw const FormatException('Missing session puzzle');
         }
         session.puzzles[i].validate(puzzle);
+        if (board.attempt case final attempt?) {
+          if ('${attempt.rules.worldId}/level-${attempt.rules.level}' !=
+              session.levelId) {
+            throw const FormatException('Rules belong to another level');
+          }
+          attempt.validate(board, puzzle);
+        }
       }
     }
     if (activeSessionId != null &&

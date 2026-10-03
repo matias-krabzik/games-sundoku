@@ -74,12 +74,14 @@ el catálogo antes de registrar sus tableros, pero no se puede iniciar hasta ten
 
 - Cada nivel del mapa declara **tres sudokus**, en orden. La cantidad sale de
   `puzzleIds.length`; otros niveles pueden tener otra cantidad.
-- Cada sudoku completado aporta una luz dentro de ese intento. Al completar todos
+- Cada sudoku aprobado aporta una luz dentro de ese intento. En sesiones
+  heredadas, resolver ya equivale a aprobar; en desafíos se evalúan sus reglas. Al completar todos
   se termina el intento. Los requisitos del siguiente nivel se evalúan sobre los
   mejores resultados guardados.
-- Volver a entrar devuelve el intento pendiente. Repetir un nivel terminado crea
-  otro intento con los mismos tableros. `restart: true` abandona el pendiente sin
-  borrar récords. Se admite un intento pendiente por nivel.
+- Volver a entrar devuelve la sesión pendiente. Los niveles de aventura ganados
+  no admiten repetición, salvo la práctica del nivel 1 del mundo 1. `restart: true`
+  conserva esa restricción; no es el reintento de una ronda fallida. Hay una sesión
+  pendiente por nivel y `retryRound` solo reinicia el intento fallido de esa ronda.
 - Las luces conservan el máximo logrado en un intento. No se suman repeticiones
   del mismo sudoku para desbloquear el siguiente nivel.
 - La definición guarda tablero inicial, solución, seed y versión del generador.
@@ -194,8 +196,10 @@ la fórmula de puntos y el paso para pedir nombre siguen pendientes.
 5. Los IDs son permanentes. Los niveles nuevos se agregan mediante `addLevel`;
    cambiar tableros requiere nuevos IDs y una decisión de migración.
 
-La versión inicial es 1; antes no existía guardado en disco que migrar. El esquema
-SQLite tiene su propia versión, independiente del JSON. Si el historial crece,
+La versión actual del JSON es **2**. `SaveCodec` incluye la migración 1→2 que
+marca como `legacy` todas las sesiones existentes, sin recalificar su progreso.
+La versión inicial fue 1; antes no existía guardado en disco que migrar. El esquema
+SQLite conserva su versión 1 y es independiente del JSON. Si el historial crece,
 el repositorio permite separar o archivar intentos sin cambiar las pantallas.
 
 ## Verificación
@@ -207,3 +211,47 @@ interfaz mantienen las reglas y animaciones previas del mapa.
 
 Referencias: [SQLite en Flutter](https://docs.flutter.dev/cookbook/persistence/sqlite),
 [adaptador web](https://pub.dev/packages/sqflite_common_ffi_web).
+
+
+## Desafíos del mundo 3 (W3-02/03)
+
+La infraestructura está implementada, con creación opt-in por
+`GameRepository.open(enableWorld3Challenges: true)` o `GameRepository.memory`.
+La app activa el flag desde W3-03 al abrir el repositorio. El constructor conserva
+el valor predeterminado `false` para consumidores que no habiliten desafíos.
+Este flag no desactiva reglas ya guardadas ni modifica sesiones heredadas.
+
+Cada sesión serializa `rulesMode` (`legacy` o `challenge`). En desafíos, cada
+`PuzzleProgress.attempt` contiene token UUID, número de intento, token previo,
+reglas versionadas congeladas y resultado estable. El resultado conserva motivo,
+puntos, tiempo activo, errores, pistas y fecha; `acknowledged` distingue una
+victoria guardada de su presentación reconocida. Campos ausentes o resultados
+incoherentes en una sesión nueva se rechazan; no se convierte en modo libre.
+
+Cero vidas, vencimiento y tablero resuelto debajo de la meta producen `failed`,
+sin estrella ni desbloqueo. El repositorio confirma resultado, estrella y récord
+junto a la jugada terminal en una sola escritura. El contador visual no escribe
+puntos ni otorga premios. `pendingResult` bloquea la siguiente ronda hasta
+`acknowledgeRoundResult(session, puzzle, attemptId: ...)`, que es idempotente.
+
+`retryRound(session, puzzle, attemptId: ...)` conserva otras rondas y reinicia solo
+el tablero fallido, su puntaje, notas, vidas y reloj. Mantiene el sudoku y las reglas.
+El token previo permite ignorar un doble toque sin reiniciar otra vez el intento.
+No suma puntos fallidos a récords ni habilita repetir niveles ganados.
+
+El controlador confirma tiempo activo antes de la entrada, detiene reloj al fallar
+y utiliza un timer dedicado al límite; al pausar/suspender confirma el tramo
+pendiente sin contar tiempo oculto. Si falla una escritura conserva el último
+estado publicado y permite reintentar el guardado, sin pérdidas ni premios locales
+anticipados. Playables mantiene su garantía propia: confirma primero en memoria
+y reintenta la sincronización cloud mediante `flush`; no equivale a un ACK remoto.
+
+[Evidencia y límites de plataformas](../design/world-3-crossed-rivers/gameplay-specs/persistence/README.md).
+
+
+W3-03 presenta el resultado pendiente antes de reanudar. También permite abrir la
+tercera victoria de una sesión ya completada para ver su resultado; esto no crea
+un intento ni permite repetir el nivel. Tras reconocerla, vuelve a aplicar el
+bloqueo de niveles ganados. `challengeStartedAttempt` guarda qué intento pasó
+por la confirmación de inicio; las condiciones y el resultado no consumen tiempo.
+[Flujo visible y pruebas](../design/world-3-crossed-rivers/gameplay-specs/gameplay/README.md).

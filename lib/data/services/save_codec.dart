@@ -21,7 +21,7 @@ class SaveCodec {
       throw const FormatException('Save belongs to a newer app version');
     }
     while (version < GameSave.schemaVersion) {
-      final migration = migrations[version];
+      final migration = migrations[version] ?? (version == 1 ? _fromOne : null);
       if (migration == null) {
         throw FormatException('Missing migration from $version');
       }
@@ -34,3 +34,14 @@ class SaveCodec {
     return GameSave.fromJson(data);
   }
 }
+
+// Schema 1 did not enforce challenge rules. Mark the entire session, including
+// untouched rounds, explicitly so later upgrades cannot impose new requirements.
+Json _fromOne(Json source) => {
+  ...source,
+  'schemaVersion': 2,
+  'sessions': {
+    for (final entry in jsonObject(source['sessions'] ?? {}).entries)
+      entry.key: {...jsonObject(entry.value), 'rulesMode': 'legacy'},
+  },
+};

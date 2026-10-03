@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models/game_save.dart';
+import '../../domain/models/round_attempt.dart';
+import '../../domain/scoring/adventure_challenge.dart';
 import '../../domain/scoring/sudoku_scoring.dart';
 import '../../domain/generation/seeded_sudokus.dart';
 import '../../domain/models/game_session.dart';
@@ -20,15 +22,22 @@ import '../services/save_codec.dart';
 import '../services/save_store.dart';
 
 class GameRepository extends ChangeNotifier {
-  GameRepository._(this._store, this._save, this._codec, this._now);
+  GameRepository._(
+    this._store,
+    this._save,
+    this._codec,
+    this._now,
+    this.enableWorld3Challenges,
+  );
 
-  factory GameRepository.memory() {
+  factory GameRepository.memory({bool enableWorld3Challenges = false}) {
     final store = MemorySaveStore();
     final repo = GameRepository._(
       store,
       _fresh(DateTime.now),
       const SaveCodec(),
       DateTime.now,
+      enableWorld3Challenges,
     );
     repo._tail = store.write(
       repo._codec.encode(repo._save),
@@ -41,12 +50,19 @@ class GameRepository extends ChangeNotifier {
     SaveStore store, {
     SaveCodec codec = const SaveCodec(),
     DateTime Function()? now,
+    bool enableWorld3Challenges = false,
   }) async {
     final clock = now ?? DateTime.now;
     try {
       final source = await store.read();
       final save = source == null ? _fresh(clock) : codec.decode(source);
-      final repo = GameRepository._(store, save, codec, clock);
+      final repo = GameRepository._(
+        store,
+        save,
+        codec,
+        clock,
+        enableWorld3Challenges,
+      );
       if (source == null) {
         await store.write(codec.encode(save), expectedRevision: -1);
       }
@@ -91,6 +107,9 @@ class GameRepository extends ChangeNotifier {
   final SaveStore _store;
   final SaveCodec _codec;
   final DateTime Function() _now;
+  // Opt-in until the complete result/retry UI is integrated in W3-03.
+  // Existing snapshots are always enforced, independently of this rollout flag.
+  final bool enableWorld3Challenges;
   GameSave _save;
   Future<void> _tail = Future.value();
   bool _closed = false;
@@ -319,6 +338,35 @@ class GameRepository extends ChangeNotifier {
     });
   }
 
+  /// Preview the next round without starting or changing an attempt.
+  RoundChallengeRules? previewChallenge(int number, {required String worldId}) {
+    final levelId = mapLevelId(number, worldId: worldId);
+    final existing = state.sessions.values
+        .where((s) => s.levelId == levelId && s.canResume)
+        .firstOrNull;
+    if (existing != null) {
+      if (existing.rulesMode == SessionRulesMode.legacy) return null;
+      return (existing.pendingResult ??
+              existing.puzzles.firstWhere((p) => !p.terminal))
+          .attempt!
+          .rules;
+    }
+    if (!enableWorld3Challenges ||
+        worldId != 'world-3' ||
+        (state.progress[levelId]?.bestLights ?? 0) >= 3) {
+      return null;
+    }
+    final id = state.levels[levelId]!.puzzleIds.first;
+    final puzzle =
+        state.puzzles[id] ??
+        SeededSudokus.create(id: id, seed: '${state.player.id}/$id');
+    return AdventureChallenges.forPuzzle(
+      worldId: worldId,
+      level: number,
+      puzzle: puzzle,
+    );
+  }
+
   /// Materialize and save all three definitions before opening the game route.
   Future<GameSession> startGeneratedLevel(
     int number, {
@@ -499,7 +547,10 @@ class GameRepository extends ChangeNotifier {
       }
       if (!(level.worldId == 'world-1' && levelId == mapLevelId(1)) &&
           adventureWorlds.containsKey(level.worldId) &&
-          ((save.progress[levelId]?.bestLights ?? 0) >= level.requiredLights ||
+          (((save.progress[levelId]?.bestLights ?? 0) >= level.requiredLights &&
+                  !save.sessions.values.any(
+                    (s) => s.levelId == levelId && s.pendingResult != null,
+                  )) ||
               restart)) {
         throw StateError('This level cannot be replayed');
       }
@@ -526,7 +577,10 @@ class GameRepository extends ChangeNotifier {
       };
       GameSession? pending;
       for (final session in sessions.values) {
-        if (session.levelId == levelId && session.canResume) pending = session;
+        if (session.levelId == levelId &&
+            (session.canResume || session.pendingResult != null)) {
+          pending = session;
+        }
       }
       if (pending != null && !restart) {
         sessionId = pending.id;
@@ -542,7 +596,18 @@ class GameRepository extends ChangeNotifier {
           if (puzzle == null) {
             throw StateError('Register the level sudokus before playing');
           }
-          return PuzzleProgress.initial(puzzle);
+          final rules = enableWorld3Challenges && level.worldId == 'world-3'
+              ? AdventureChallenges.forPuzzle(
+                  worldId: level.worldId,
+                  level: int.parse(levelId.substring('world-3/level-'.length)),
+                  puzzle: puzzle,
+                )
+              : null;
+          return PuzzleProgress.initial(puzzle).copyWith(
+            attempt: rules == null
+                ? null
+                : RoundAttempt(id: const Uuid().v4(), rules: rules),
+          );
         }).toList();
         sessionId = const Uuid().v4();
         sessions[sessionId] = GameSession(
@@ -550,6 +615,9 @@ class GameRepository extends ChangeNotifier {
           playerId: save.player.id,
           levelId: levelId,
           puzzles: boards,
+          rulesMode: boards.first.attempt == null
+              ? SessionRulesMode.legacy
+              : SessionRulesMode.challenge,
           startedAt: _now(),
           updatedAt: _now(),
         );
@@ -557,7 +625,8 @@ class GameRepository extends ChangeNotifier {
       return save.copyWith(
         puzzles: registered,
         sessions: sessions,
-        activeSessionId: sessionId,
+        activeSessionId: sessions[sessionId]!.canResume ? sessionId : null,
+        clearActiveSession: !sessions[sessionId]!.canResume,
         modules: moduleKey == null
             ? save.modules
             : {
@@ -608,18 +677,28 @@ class GameRepository extends ChangeNotifier {
     if (milliseconds < 0) throw ArgumentError.value(milliseconds);
     if (milliseconds == 0) return save;
     final session = _playable(save, sessionId, puzzleId);
-    final puzzles = session.puzzles
-        .map(
-          (p) => p.puzzleId == puzzleId
-              ? p.copyWith(elapsedMs: p.elapsedMs + milliseconds)
-              : p,
-        )
-        .toList();
-    return save.copyWith(
-      sessions: {
-        ...save.sessions,
-        sessionId: session.copyWith(puzzles: puzzles, updatedAt: _now()),
-      },
+    final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+    if (board.attempt == null) {
+      return save.copyWith(
+        sessions: {
+          ...save.sessions,
+          sessionId: session.copyWith(
+            puzzles: session.puzzles
+                .map(
+                  (p) => p.puzzleId == puzzleId
+                      ? p.copyWith(elapsedMs: p.elapsedMs + milliseconds)
+                      : p,
+                )
+                .toList(),
+            updatedAt: _now(),
+          ),
+        },
+      );
+    }
+    return _replaceBoard(
+      save,
+      session,
+      board.copyWith(elapsedMs: board.elapsedMs + milliseconds),
     );
   });
 
@@ -787,6 +866,9 @@ class GameRepository extends ChangeNotifier {
       if (session == null || session.status == PlayStatus.abandoned) {
         throw StateError('No session to restart');
       }
+      if (session.rulesMode == SessionRulesMode.challenge) {
+        throw StateError('Use retryRound for failed challenge rounds');
+      }
       final lastCompleted = session.puzzles.lastIndexWhere(
         (p) => p.status == PlayStatus.completed,
       );
@@ -827,6 +909,9 @@ class GameRepository extends ChangeNotifier {
       _update((save) {
         final session = _playable(save, sessionId, puzzleId);
         final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+        if (board.attempt?.rules.allowsHints == false) {
+          throw StateError('This challenge does not allow hints');
+        }
         return _replaceBoard(
           save,
           session,
@@ -850,6 +935,9 @@ class GameRepository extends ChangeNotifier {
     }
     final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
     final old = board.cells[index];
+    if (hint && board.attempt?.rules.allowsHints == false) {
+      throw StateError('This challenge does not allow hints');
+    }
     final number = hint ? definition.solution[index] : value;
     if (old.value == number && old.notes.isEmpty) return save;
     final isError = definition.hasError(index, number);
@@ -879,7 +967,7 @@ class GameRepository extends ChangeNotifier {
     return _replaceBoard(
       save,
       session,
-      solved
+      solved && updated.attempt == null
           ? updated.copyWith(status: PlayStatus.completed, completedAt: _now())
           : updated,
     );
@@ -890,6 +978,7 @@ class GameRepository extends ChangeNotifier {
     GameSession session,
     PuzzleProgress board,
   ) {
+    board = _resolveChallenge(save.puzzles[board.puzzleId]!, board);
     final puzzles = session.puzzles
         .map((p) => p.puzzleId == board.puzzleId ? board : p)
         .toList();
@@ -899,10 +988,10 @@ class GameRepository extends ChangeNotifier {
       updatedAt: _now(),
       status: done
           ? PlayStatus.completed
-          : board.status == PlayStatus.completed
+          : board.terminal
           ? PlayStatus.paused
           : session.status,
-      completedAt: done ? _now() : null,
+      completedAt: done ? session.completedAt ?? _now() : null,
     );
     final record = save.progress[session.levelId] ?? LevelRecord();
     final bestTime = done
@@ -925,6 +1014,96 @@ class GameRepository extends ChangeNotifier {
       clearActiveSession: done && save.activeSessionId == session.id,
     );
   }
+
+  PuzzleProgress _resolveChallenge(
+    SudokuDefinition puzzle,
+    PuzzleProgress board,
+  ) {
+    final attempt = board.attempt;
+    if (attempt == null || attempt.result != null) return board;
+    final assessment = attempt.rules.evaluate(puzzle, board);
+    if (!assessment.terminal) return board;
+    final finished = _now();
+    return board.copyWith(
+      status: assessment.won ? PlayStatus.completed : PlayStatus.failed,
+      completedAt: assessment.won ? finished : null,
+      attempt: attempt.copyWith(
+        result: RoundResult(
+          outcome: assessment.outcome,
+          points: board.points,
+          elapsedMs: board.elapsedMs,
+          mistakes: board.mistakes,
+          hintsUsed: board.hintsUsed,
+          finishedAt: finished,
+        ),
+      ),
+    );
+  }
+
+  /// Acknowledge the saved win once. This does not award a second star.
+  Future<void> acknowledgeRoundResult(
+    String sessionId,
+    String puzzleId, {
+    required String attemptId,
+  }) => _update((save) {
+    final session = save.sessions[sessionId];
+    final board = session?.puzzles
+        .where((p) => p.puzzleId == puzzleId)
+        .firstOrNull;
+    final attempt = board?.attempt;
+    if (session == null ||
+        board == null ||
+        attempt == null ||
+        attempt.id != attemptId ||
+        attempt.result?.outcome != ChallengeOutcome.won) {
+      throw StateError('No matching won attempt to continue');
+    }
+    if (attempt.acknowledged) return save;
+    if (session.pendingResult?.puzzleId != puzzleId) {
+      throw StateError('Another result must be acknowledged first');
+    }
+    return _replaceBoard(
+      save,
+      session,
+      board.copyWith(attempt: attempt.copyWith(acknowledged: true)),
+    );
+  });
+
+  /// Retry only this failed round, retaining the original rules and definition.
+  Future<void> retryRound(
+    String sessionId,
+    String puzzleId, {
+    required String attemptId,
+  }) => _update((save) {
+    final session = save.sessions[sessionId];
+    final board = session?.puzzles
+        .where((p) => p.puzzleId == puzzleId)
+        .firstOrNull;
+    final attempt = board?.attempt;
+    if (session == null ||
+        !session.canResume ||
+        board == null ||
+        attempt == null) {
+      throw StateError('No challenge round to retry');
+    }
+    if (attempt.previousId == attemptId) return save; // repeated/delayed tap
+    if (attempt.id != attemptId ||
+        board.status != PlayStatus.failed ||
+        session.pendingResult?.puzzleId != puzzleId) {
+      throw StateError('Only the current failed attempt can be retried');
+    }
+    final reset = PuzzleProgress.initial(save.puzzles[puzzleId]!).copyWith(
+      extra: board.extra,
+      attempt: RoundAttempt(
+        id: const Uuid().v4(),
+        number: attempt.number + 1,
+        previousId: attempt.id,
+        rules: attempt.rules,
+        extra: attempt.extra,
+      ),
+    );
+    return _replaceBoard(save, session, reset);
+  });
 
   GameSession _playable(GameSave save, String sessionId, String puzzleId) {
     final session = save.sessions[sessionId];

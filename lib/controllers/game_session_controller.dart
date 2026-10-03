@@ -27,16 +27,35 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
   final PlayablesRuntime? _playables;
   final Duration checkpointInterval;
   Timer? _timer;
+  Timer? _deadlineTimer;
 
   void _startTimer() {
     _timer ??= Timer.periodic(checkpointInterval, (_) {
       if (_clock.isRunning) unawaited(checkpoint().catchError((Object _) {}));
     });
+    _deadlineTimer?.cancel();
+    final board = repository.state.sessions[_sessionId]?.puzzles
+        .where((p) => p.puzzleId == _puzzleId)
+        .firstOrNull;
+    final limit = board?.attempt?.rules.timeLimitMs;
+    if (limit != null && !board!.terminal) {
+      final remaining = limit - elapsedMs;
+      _deadlineTimer = Timer(
+        Duration(milliseconds: remaining < 0 ? 0 : remaining),
+        () {
+          if (_clock.isRunning) {
+            unawaited(checkpoint().catchError((Object _) {}));
+          }
+        },
+      );
+    }
   }
 
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
+    _deadlineTimer?.cancel();
+    _deadlineTimer = null;
   }
 
   String? _sessionId;
@@ -78,7 +97,16 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
     _wantsToPlay = resumeOnForeground || _foreground;
     return _enqueue(() async {
       await _pause();
-      final puzzleId = repository.state.sessions[sessionId]?.nextPuzzleId;
+      final session = repository.state.sessions[sessionId];
+      final puzzleId = session?.nextPuzzleId;
+      if (session?.pendingResult != null) {
+        _sessionId = sessionId;
+        _puzzleId = session!.pendingResult!.puzzleId;
+        _wantsToPlay = false;
+        _clock.reset();
+        _savedMs = 0;
+        return;
+      }
       if (puzzleId == null) throw StateError('No pending sudoku');
       _sessionId = sessionId;
       _puzzleId = puzzleId;
@@ -103,6 +131,17 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
     if (delta <= 0) return;
     await repository.addElapsed(session, puzzle, delta);
     _savedMs = elapsed;
+    if (repository.state.sessions[session]?.puzzles
+            .where((p) => p.puzzleId == puzzle)
+            .firstOrNull
+            ?.terminal ==
+        true) {
+      _clock.stop();
+      _stopTimer();
+      _wantsToPlay = false;
+      _clock.reset();
+      _savedMs = 0;
+    }
   }
 
   Future<void> checkpoint() => _enqueue(_checkpoint);
@@ -130,16 +169,21 @@ class GameSessionController extends ChangeNotifier with WidgetsBindingObserver {
         _clock.stop();
         try {
           await _checkpoint();
+          if (repository.state.sessions[_sessionId]?.pendingResult != null) {
+            return;
+          }
           await action(_sessionId!, _puzzleId!);
         } finally {
           final next = repository.state.sessions[_sessionId]?.nextPuzzleId;
           if (next != _puzzleId) {
+            _stopTimer();
             _wantsToPlay = false;
             _clock.reset();
             _savedMs = 0;
             _puzzleId = null;
           } else if (_foreground && !_disposed && _wantsToPlay) {
             _clock.start();
+            _startTimer();
           }
         }
       });

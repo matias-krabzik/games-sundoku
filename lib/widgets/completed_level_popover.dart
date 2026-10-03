@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../domain/models/game_save.dart';
 import '../data/world_catalog.dart';
 import '../domain/models/game_session.dart';
+import '../domain/scoring/adventure_challenge.dart';
 import 'game_pause.dart';
 import 'home_art.dart';
 import 'illustrated_action_button.dart';
@@ -21,6 +22,7 @@ class LevelSummaryRoute extends RawDialogRoute<bool> {
     required int lights,
     required GameSession? session,
     required LevelRecord record,
+    RoundChallengeRules? challenge,
   }) : super(
          barrierDismissible: true,
          barrierColor: const Color(0x99072346),
@@ -35,6 +37,7 @@ class LevelSummaryRoute extends RawDialogRoute<bool> {
                lights: lights,
                session: session,
                record: record,
+               challenge: challenge,
                onContinue: () => Navigator.of(context).pop(true),
                onOk: () => Navigator.of(context).pop(false),
              ),
@@ -73,6 +76,7 @@ class LevelSummaryCard extends StatelessWidget {
     required this.record,
     required this.onContinue,
     required this.onOk,
+    this.challenge,
     super.key,
   });
 
@@ -83,11 +87,15 @@ class LevelSummaryCard extends StatelessWidget {
   final LevelRecord record;
   final VoidCallback onContinue;
   final VoidCallback onOk;
+  final RoundChallengeRules? challenge;
 
   bool get _isPracticeComplete =>
       (worldId == 'world-1' && level == 1) && lights >= 3;
   bool get _isComplete =>
-      _isPracticeComplete || (session?.canResume != true && lights >= 3);
+      _isPracticeComplete ||
+      (session?.canResume != true &&
+          session?.pendingResult == null &&
+          lights >= 3);
   bool get _isNewLevel => session == null && lights == 0;
 
   List<_RoundSummary> get _rounds {
@@ -161,7 +169,8 @@ class LevelSummaryCard extends StatelessWidget {
         if (_isNewLevel) {
           final width = math.min(440.0, bounds.maxWidth);
           final height = math.min(
-            360.0 + (textScale - 1).clamp(0.0, 1.0) * 80,
+            (challenge == null ? 360.0 : 500.0) +
+                (textScale - 1).clamp(0.0, 1.0) * 80,
             bounds.maxHeight,
           );
           final dense = bounds.maxWidth < 360 || bounds.maxHeight < 420;
@@ -210,7 +219,13 @@ class LevelSummaryCard extends StatelessWidget {
                                 const SizedBox(width: 20),
                                 Expanded(
                                   flex: 6,
-                                  child: _roundCards(dense: dense),
+                                  child: Column(
+                                    children: [
+                                      _roundCards(dense: dense),
+                                      if (challenge != null)
+                                        _challengeConditions(),
+                                    ],
+                                  ),
                                 ),
                               ],
                             )
@@ -220,6 +235,7 @@ class LevelSummaryCard extends StatelessWidget {
                                 _challengeHeading(dense: dense),
                                 SizedBox(height: dense ? 12 : 16),
                                 _roundCards(dense: dense),
+                                if (challenge != null) _challengeConditions(),
                               ],
                             ),
                     ),
@@ -231,7 +247,11 @@ class LevelSummaryCard extends StatelessWidget {
                 primaryKey: _isComplete
                     ? null
                     : const ValueKey('level-summary-continue'),
-                primaryLabel: _isComplete ? null : 'Continuar',
+                primaryLabel: _isComplete
+                    ? null
+                    : session?.pendingResult != null
+                    ? 'Ver resultado'
+                    : 'Continuar',
                 primaryFontSize: dense ? 17 : 20,
                 onPrimary: onContinue,
                 onOk: onOk,
@@ -308,7 +328,18 @@ class LevelSummaryCard extends StatelessWidget {
 
   Widget _newLevelSummary({required bool dense}) => Column(
     children: [
-      Expanded(child: _heading(dense: dense)),
+      Expanded(
+        child: challenge == null
+            ? _heading(dense: dense)
+            : SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _heading(dense: dense, flexible: false),
+                    if (challenge != null) _challengeConditions(),
+                  ],
+                ),
+              ),
+      ),
       SizedBox(height: dense ? 5 : 10),
       _SummaryActions(
         primaryKey: const ValueKey('level-summary-play'),
@@ -321,51 +352,68 @@ class LevelSummaryCard extends StatelessWidget {
     ],
   );
 
-  Widget _heading({required bool dense}) => Column(
-    children: [
-      _fitText(
-        'MUNDO ${adventureWorld(worldId).number}',
-        homeText(dense ? 12 : 14).copyWith(color: const Color(0xFFAC691C)),
-      ),
-      _fitText(adventureWorld(worldId).name, homeText(dense ? 22 : 27)),
-      SizedBox(height: dense ? 2 : 6),
-      _fitText('Nivel $level', homeText(dense ? 27 : 34)),
-      _fitText(
-        _isPracticeComplete
-            ? '¡Lo hiciste muy bien!'
-            : _isComplete
-            ? '¡Completado!'
-            : 'En progreso',
-        homeText(dense ? 16 : 20).copyWith(
-          color: _isComplete
-              ? const Color(0xFF2C873E)
-              : const Color(0xFF9A630B),
-        ),
-      ),
-      SizedBox(height: dense ? 3 : 7),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) {
-          final earned = index < lights;
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: dense ? 2 : 4),
-            child: MapIcon(
-              earned ? MapGlyph.goldStar : MapGlyph.emptyStar,
-              size: dense ? 28 : 37,
-            ),
-          );
-        }),
-      ),
-      SizedBox(height: dense ? 2 : 6),
-      if (!_isNewLevel)
-        _fitText(
-          _isPracticeComplete
-              ? 'Práctica completada'
-              : '$_completedRounds de 3 rondas completadas',
-          homeText(dense ? 13 : 16, weight: FontWeight.w600),
-        ),
-    ],
+  Widget _challengeConditions() => Padding(
+    key: const ValueKey('level-challenge-conditions'),
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Text(
+      '${challenge!.initialLives} ${challenge!.initialLives == 1 ? 'vida' : 'vidas'} por ronda · ${formatPlayTime(challenge!.timeLimitMs)}\n'
+      'Meta: ${challenge!.targetPoints} puntos'
+      '${challenge!.allowsHints ? '' : '\nSin errores ni pistas'}',
+      textAlign: TextAlign.center,
+      style: homeText(17),
+    ),
   );
+
+  Widget _heading({required bool dense, bool flexible = true}) {
+    Widget headingText(String text, TextStyle style) => flexible
+        ? _fitText(text, style)
+        : Text(text, style: style, textAlign: TextAlign.center);
+    return Column(
+      children: [
+        headingText(
+          'MUNDO ${adventureWorld(worldId).number}',
+          homeText(dense ? 12 : 14).copyWith(color: const Color(0xFFAC691C)),
+        ),
+        headingText(adventureWorld(worldId).name, homeText(dense ? 22 : 27)),
+        SizedBox(height: dense ? 2 : 6),
+        headingText('Nivel $level', homeText(dense ? 27 : 34)),
+        headingText(
+          _isPracticeComplete
+              ? '¡Lo hiciste muy bien!'
+              : _isComplete
+              ? '¡Completado!'
+              : 'En progreso',
+          homeText(dense ? 16 : 20).copyWith(
+            color: _isComplete
+                ? const Color(0xFF2C873E)
+                : const Color(0xFF9A630B),
+          ),
+        ),
+        SizedBox(height: dense ? 3 : 7),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(3, (index) {
+            final earned = index < lights;
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: dense ? 2 : 4),
+              child: MapIcon(
+                earned ? MapGlyph.goldStar : MapGlyph.emptyStar,
+                size: dense ? 28 : 37,
+              ),
+            );
+          }),
+        ),
+        SizedBox(height: dense ? 2 : 6),
+        if (!_isNewLevel)
+          headingText(
+            _isPracticeComplete
+                ? 'Práctica completada'
+                : '$_completedRounds de 3 rondas completadas',
+            homeText(dense ? 13 : 16, weight: FontWeight.w600),
+          ),
+      ],
+    );
+  }
 
   Widget _challengeHeading({required bool dense}) {
     final stars = (worldId == 'world-1' && level == 1)
@@ -375,7 +423,7 @@ class LevelSummaryCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'VALLE DEL SOL',
+          adventureWorld(worldId).name.toUpperCase(),
           style: homeText(dense ? 12 : 14)
               .copyWith(color: const Color(0xFF9A630B), letterSpacing: .6),
           textAlign: TextAlign.center,

@@ -1,8 +1,11 @@
 import 'json_data.dart';
+import 'round_attempt.dart';
 import 'score_progress.dart';
 import 'sudoku_definition.dart';
 
-enum PlayStatus { pending, active, paused, completed, abandoned }
+enum PlayStatus { pending, active, paused, completed, abandoned, failed }
+
+enum SessionRulesMode { legacy, challenge }
 
 enum ValueSource { player, hint }
 
@@ -50,6 +53,7 @@ class PuzzleProgress {
     this.points = 0,
     this.scoring = const ScoreProgress(),
     this.completedAt,
+    this.attempt,
     Json extra = const {},
   }) : cells = List.unmodifiable(cells),
        extra = immutableJson(extra) {
@@ -76,6 +80,9 @@ class PuzzleProgress {
   final int points;
   final ScoreProgress scoring;
   final DateTime? completedAt;
+  final RoundAttempt? attempt;
+  bool get terminal =>
+      status == PlayStatus.completed || status == PlayStatus.failed;
   final Json extra;
 
   void validate(SudokuDefinition puzzle) {
@@ -106,6 +113,7 @@ class PuzzleProgress {
     int? points,
     ScoreProgress? scoring,
     DateTime? completedAt,
+    RoundAttempt? attempt,
     Json? extra,
   }) => PuzzleProgress(
     puzzleId: puzzleId,
@@ -117,6 +125,7 @@ class PuzzleProgress {
     points: points ?? this.points,
     scoring: scoring ?? this.scoring,
     completedAt: completedAt ?? this.completedAt,
+    attempt: attempt ?? this.attempt,
     extra: extra ?? this.extra,
   );
 
@@ -132,6 +141,9 @@ class PuzzleProgress {
     points: nonNegative(json['points']),
     scoring: ScoreProgress.fromJson(jsonObject(json['scoring'] ?? {})),
     completedAt: dateFromJson(json['completedAt']),
+    attempt: json['attempt'] == null
+        ? null
+        : RoundAttempt.fromJson(jsonObject(json['attempt'])),
     extra: json,
   );
 
@@ -146,6 +158,7 @@ class PuzzleProgress {
     'points': points,
     'scoring': scoring.toJson(),
     'completedAt': dateToJson(completedAt),
+    'attempt': attempt?.toJson(),
   };
 }
 
@@ -159,6 +172,7 @@ class GameSession {
     required this.updatedAt,
     this.status = PlayStatus.paused,
     this.completedAt,
+    this.rulesMode = SessionRulesMode.legacy,
     Json extra = const {},
   }) : puzzles = List.unmodifiable(puzzles),
        extra = immutableJson(extra) {
@@ -166,7 +180,13 @@ class GameSession {
         puzzles.isEmpty ||
         puzzles.map((p) => p.puzzleId).toSet().length != puzzles.length ||
         (status == PlayStatus.completed) != (completedAt != null) ||
-        (status == PlayStatus.completed) != (lights == puzzles.length)) {
+        (status == PlayStatus.completed) != (lights == puzzles.length) ||
+        puzzles.any(
+          (p) =>
+              (p.attempt != null) != (rulesMode == SessionRulesMode.challenge),
+        ) ||
+        (rulesMode == SessionRulesMode.legacy &&
+            puzzles.any((p) => p.status == PlayStatus.failed))) {
       throw const FormatException('Invalid session');
     }
   }
@@ -179,19 +199,34 @@ class GameSession {
   final DateTime startedAt;
   final DateTime updatedAt;
   final DateTime? completedAt;
+  final SessionRulesMode rulesMode;
   final Json extra;
   int get lights =>
       puzzles.where((p) => p.status == PlayStatus.completed).length;
   int get elapsedMs => puzzles.fold(0, (sum, p) => sum + p.elapsedMs);
-  int get points => puzzles.fold(0, (sum, p) => sum + p.points);
+  int get points => puzzles.fold(
+    0,
+    (sum, p) =>
+        sum +
+        (rulesMode == SessionRulesMode.challenge &&
+                p.status == PlayStatus.failed
+            ? 0
+            : p.points),
+  );
   bool get canResume =>
       status == PlayStatus.active || status == PlayStatus.paused;
   String? get nextPuzzleId {
+    if (pendingResult != null) return null;
     for (final puzzle in puzzles) {
+      if (puzzle.status == PlayStatus.failed) return null;
       if (puzzle.status != PlayStatus.completed) return puzzle.puzzleId;
     }
     return null;
   }
+
+  PuzzleProgress? get pendingResult => puzzles
+      .where((p) => p.attempt?.result != null && !p.attempt!.acknowledged)
+      .firstOrNull;
 
   GameSession copyWith({
     List<PuzzleProgress>? puzzles,
@@ -207,6 +242,7 @@ class GameSession {
     startedAt: startedAt,
     updatedAt: updatedAt ?? this.updatedAt,
     completedAt: completedAt ?? this.completedAt,
+    rulesMode: rulesMode,
     extra: extra,
   );
 
@@ -221,6 +257,7 @@ class GameSession {
     startedAt: dateFromJson(json['startedAt'])!,
     updatedAt: dateFromJson(json['updatedAt'])!,
     completedAt: dateFromJson(json['completedAt']),
+    rulesMode: SessionRulesMode.values.byName(json['rulesMode'] as String),
     extra: json,
   );
 
@@ -234,5 +271,6 @@ class GameSession {
     'startedAt': dateToJson(startedAt),
     'updatedAt': dateToJson(updatedAt),
     'completedAt': dateToJson(completedAt),
+    'rulesMode': rulesMode.name,
   };
 }

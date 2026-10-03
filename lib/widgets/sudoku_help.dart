@@ -13,11 +13,13 @@ class SudokuHelpButton extends StatelessWidget {
     required this.onPressed,
     this.active = false,
     this.dimension = GameLayout.controlSize - 2,
+    this.disabledReason,
   });
 
   final VoidCallback? onPressed;
   final bool active;
   final double dimension;
+  final String? disabledReason;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
@@ -25,7 +27,9 @@ class SudokuHelpButton extends StatelessWidget {
     child: Semantics(
       selected: active,
       child: JuicyPress(
-        label: active ? 'Cerrar ayuda' : 'Ayuda para esta casilla: −77 puntos',
+        label:
+            disabledReason ??
+            (active ? 'Cerrar ayuda' : 'Ayuda para esta casilla: −77 puntos'),
         onPressed: onPressed,
         onFeedback: () => GameFeedbackScope.tap(context),
         builder: (_, _) => Stack(

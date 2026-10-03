@@ -123,7 +123,34 @@ Usar almacenamiento temporal; nunca modificar el guardado real para simular fall
 
 ## Cierre
 
-- [ ] Transiciones y rechazos implementados en dominio/repositorio.
-- [ ] S01–S14 verificados, incluida reapertura real y fallos de escritura.
-- [ ] Sesiones heredadas y nuevas distinguibles sin perder progreso.
-- [ ] UI todavía no requiere una animación para guardar o avanzar correctamente.
+- [x] Transiciones y rechazos implementados en dominio/repositorio.
+- [x] S01–S14 verificados, incluida reapertura real y fallos de escritura.
+- [x] Sesiones heredadas y nuevas distinguibles sin perder progreso.
+- [x] UI todavía no requiere una animación para guardar o avanzar correctamente.
+
+## Implementación de esta etapa
+
+Cerrada el 03/10/2026; [pruebas y alcance](persistence/README.md).
+
+- JSON de guardado en versión 2, con migración automática 1→2. Las sesiones
+  anteriores reciben `rulesMode: legacy`; todas sus rondas mantienen las reglas
+  originales, incluidas las que aún no empezaron. Los campos desconocidos se
+  conservan. La versión física de SQLite permanece en 1 (mismo payload JSON).
+- `rulesMode: challenge` exige `RoundAttempt` en cada ronda, con reglas inmutables,
+  token, número de intento, token anterior y resultado opcional. Perder esos
+  campos o importar un resultado incoherente rechaza el guardado, sin reemplazarlo.
+- `PlayStatus.failed` pertenece al tablero fallido. La sesión queda pausada y
+  recuperable; `pendingResult` conserva la presentación pendiente y `nextPuzzleId`
+  bloquea el avance. Una sesión completada también puede tener su último resultado
+  pendiente, accesible por su ID aunque no admita repetir el nivel.
+- `acknowledgeRoundResult` reconoce una victoria usando su token; deja disponible
+  la siguiente ronda. El controlador la activa cuando la UI esté lista, para no
+  consumir tiempo durante la transición. Repetir el reconocimiento no avanza otra
+  ronda ni concede otro premio. `retryRound` reinicia exclusivamente el fallo
+  actual, usando el mismo sudoku y reglas; las llamadas repetidas son inocuas.
+- `GameSessionController` confirma el tramo de tiempo antes de cada entrada y
+  programa un vencimiento dedicado, independiente del checkpoint periódico.
+  A cero guarda el fallo y detiene reloj/entrada; pausa y suspensión no cuentan.
+- `enableWorld3Challenges` controla solo la creación de sesiones nuevas. En esta
+  etapa permanece desactivado por defecto; los snapshots existentes siempre se
+  respetan aun si se reabre con el flag desactivado. W3-03 conectará el flujo visible.

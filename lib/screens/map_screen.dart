@@ -496,6 +496,7 @@ class _MapScreenState extends State<MapScreen>
             lights: _progress.lightsFor(target),
             session: _progress.sessionFor(target),
             record: _progress.recordFor(target),
+            challenge: _progress.challengeFor(target),
           ),
         );
         if (!mounted || continueGame != true) return;

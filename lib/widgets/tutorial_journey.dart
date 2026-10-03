@@ -76,7 +76,9 @@ class TutorialJourney extends StatelessWidget {
   final Key? gameBoardSlotKey;
 
   bool get _playing =>
-      flow.step == FirstExperienceStep.playing || finishingBoard;
+      flow.step == FirstExperienceStep.playing ||
+      flow.challengeOverlay ||
+      finishingBoard;
   bool get _celebrating =>
       !finishingBoard &&
       (flow.step == FirstExperienceStep.celebration ||
@@ -366,7 +368,7 @@ class TutorialJourney extends StatelessWidget {
                             builder: (context, body) {
                               final sideInformation =
                                   _playing &&
-                                  body.maxWidth >= 600 &&
+                                  body.maxWidth >= 480 &&
                                   body.maxHeight < 400;
                               final notesReading =
                                   flow.notesAvailable &&
@@ -375,6 +377,29 @@ class TutorialJourney extends StatelessWidget {
                               final textScaler = MediaQuery.textScalerOf(
                                 context,
                               );
+                              final notesLabel = SudokuNotesReading(
+                                notes: flow.selectedNotes,
+                                active: flow.notesMode,
+                              );
+                              double messageHeight(
+                                String message,
+                                double width, {
+                                double fontSize = 16,
+                              }) {
+                                final painter = TextPainter(
+                                  text: TextSpan(
+                                    text: message,
+                                    style: DefaultTextStyle.of(context).style
+                                        .merge(homeText(fontSize)),
+                                  ),
+                                  textDirection: Directionality.of(context),
+                                  textScaler: textScaler,
+                                )..layout(maxWidth: math.max(1, width));
+                                final height = painter.height;
+                                painter.dispose();
+                                return height;
+                              }
+
                               final statusHeight = desktopPlay
                                   ? math.max(76.0, textScaler.scale(20) + 36)
                                   : math.max(
@@ -389,18 +414,39 @@ class TutorialJourney extends StatelessWidget {
 
                               if (_playing && !sideInformation) {
                                 if (help != null) {
-                                  extraHeight += math.max(
-                                    112,
-                                    textScaler.scale(18) * 4 + 40,
-                                  );
+                                  extraHeight +=
+                                      math.max(
+                                        56,
+                                        messageHeight(
+                                          help.message,
+                                          body.maxWidth - 48,
+                                          fontSize: 18,
+                                        ),
+                                      ) +
+                                      52;
                                 } else if (flow.playMessage.isNotEmpty) {
-                                  extraHeight += textScaler.scale(16) * 3 + 12;
+                                  extraHeight +=
+                                      messageHeight(
+                                        flow.playMessage,
+                                        body.maxWidth,
+                                      ) +
+                                      12;
                                 }
                                 if (notesReading) {
-                                  extraHeight += textScaler.scale(16) * 2 + 16;
+                                  extraHeight +=
+                                      messageHeight(
+                                        notesLabel.message,
+                                        body.maxWidth - 24,
+                                      ) +
+                                      16;
                                 }
                                 if (flow.error != null) {
-                                  extraHeight += textScaler.scale(16) * 3 + 16;
+                                  extraHeight +=
+                                      messageHeight(
+                                        flow.error!,
+                                        body.maxWidth - 16,
+                                      ) +
+                                      16;
                                 }
                               }
                               final boardWidth = _playing
@@ -433,22 +479,25 @@ class TutorialJourney extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (_playing) ...[
-                                    TutorialNumberTray(
-                                      horizontal: true,
-                                      showGuide: !desktopPlay,
-                                      buttonExtent: boardCellSize,
-                                      available: flow.availableGameNumbers,
-                                      notesMode: flow.notesMode,
-                                      selectedNotes: flow.selectedNotes,
-                                      onSelected:
-                                          !navigationBlocked &&
-                                              flow.readyToPlay &&
-                                              flow.gameCell != null &&
-                                              !flow.fixedIndices.contains(
-                                                flow.gameCell,
-                                              )
-                                          ? flow.placeGameNumber
-                                          : null,
+                                    SizedBox(
+                                      width: controlsWidth,
+                                      child: TutorialNumberTray(
+                                        horizontal: true,
+                                        showGuide: !desktopPlay,
+                                        buttonExtent: boardCellSize,
+                                        available: flow.availableGameNumbers,
+                                        notesMode: flow.notesMode,
+                                        selectedNotes: flow.selectedNotes,
+                                        onSelected:
+                                            !navigationBlocked &&
+                                                flow.readyToPlay &&
+                                                flow.gameCell != null &&
+                                                !flow.fixedIndices.contains(
+                                                  flow.gameCell,
+                                                )
+                                            ? flow.placeGameNumber
+                                            : null,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Padding(
@@ -494,6 +543,8 @@ class TutorialJourney extends StatelessWidget {
                                                       : null,
                                                 ),
                                               SudokuHelpButton(
+                                                disabledReason:
+                                                    flow.hintsAllowed ? null : 'Este desafío es sin pistas',
                                                 key: const ValueKey(
                                                   'game-help',
                                                 ),
@@ -513,10 +564,7 @@ class TutorialJourney extends StatelessWidget {
                                       ),
                                     ),
                                     if (notesReading && !sideInformation)
-                                      SudokuNotesReading(
-                                        notes: flow.selectedNotes,
-                                        active: flow.notesMode,
-                                      ),
+                                      notesLabel,
                                   ] else if (!_celebrating && wide == false)
                                     const SizedBox(height: 12),
                                   if (flow.step ==
@@ -599,6 +647,19 @@ class TutorialJourney extends StatelessWidget {
                                             child: GameplayStatusBar(
                                               scale: statusScale,
                                               points: flow.points,
+                                              initialLives: flow
+                                                  .challengeRules
+                                                  ?.initialLives,
+                                              remainingLives: flow
+                                                  .challengeRules
+                                                  ?.remainingLives(
+                                                    flow
+                                                        .puzzleProgress!
+                                                        .mistakes,
+                                                  ),
+                                              targetPoints: flow
+                                                  .challengeRules
+                                                  ?.targetPoints,
                                               illustrated: desktopPlay,
                                               trailing: GameTimerControls(
                                                 flow: flow,
@@ -617,7 +678,7 @@ class TutorialJourney extends StatelessWidget {
                                     boardArea,
                                     const SizedBox(height: 16),
                                     SizedBox(
-                                      width: controlsWidth,
+                                      width: body.maxWidth,
                                       child: _gameUi(
                                         information,
                                         'controls',
@@ -629,7 +690,7 @@ class TutorialJourney extends StatelessWidget {
                                             flow.playMessage.isNotEmpty))
                                       ConstrainedBox(
                                         constraints: BoxConstraints(
-                                          maxWidth: boardWidth,
+                                          maxWidth: body.maxWidth,
                                         ),
                                         child: _gameUi(
                                           Padding(

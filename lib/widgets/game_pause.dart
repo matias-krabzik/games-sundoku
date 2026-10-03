@@ -70,7 +70,7 @@ class _GameTimerControlsState extends State<GameTimerControls> {
   @override
   Widget build(BuildContext context) {
     final time = Text(
-      formatPlayTime(widget.flow.elapsedMs),
+      formatPlayTime(widget.flow.displayTimeMs),
       key: const ValueKey('game-timer'),
       maxLines: 1,
       style: homeText(20 * widget.scale),

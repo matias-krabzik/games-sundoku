@@ -19,6 +19,8 @@ enum FirstExperienceStep {
   playing,
   celebration,
   complete,
+  challengeReady,
+  challengeResult,
 }
 
 /// Keep old enum names readable in saves; navigation uses this explicit order.

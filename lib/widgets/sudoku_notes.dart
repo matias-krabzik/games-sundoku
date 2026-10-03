@@ -152,20 +152,18 @@ class SudokuNotesReading extends StatelessWidget {
   final List<int> notes;
   final bool active;
 
+  String get message => notes.isNotEmpty
+      ? 'Anotaciones: ${describeNotes(notes)}'
+      : active
+      ? 'Lápiz activo. Toca un número para anotar.'
+      : 'Toca el lápiz para guardar posibilidades.';
+
   @override
   Widget build(BuildContext context) => Semantics(
     liveRegion: true,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Text(
-        notes.isNotEmpty
-            ? 'Anotaciones: ${describeNotes(notes)}'
-            : active
-            ? 'Lápiz activo. Toca un número para anotar.'
-            : 'Toca el lápiz para guardar posibilidades.',
-        style: homeText(16),
-        textAlign: TextAlign.center,
-      ),
+      child: Text(message, style: homeText(16), textAlign: TextAlign.center),
     ),
   );
 }

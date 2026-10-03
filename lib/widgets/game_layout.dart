@@ -40,7 +40,7 @@ abstract final class GameLayout {
       maxSize,
       math.min(viewport.width * playBoardWidthFraction, body.width),
     );
-    const spacing = 48.0; // Board/controls gaps and vertical breathing room.
+    const spacing = 60.0; // Board/controls gaps, tool padding and breathing room.
     final heightLimit =
         (body.height - spacing - extraHeight) /
         (1 + 2 * _boardContentFraction / 9);

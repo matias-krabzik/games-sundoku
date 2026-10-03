@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/models/game_save.dart';
 import '../domain/models/game_session.dart';
+import '../domain/scoring/adventure_challenge.dart';
 import 'level_catalog.dart';
 import 'world_catalog.dart';
 import 'repositories/game_repository.dart';
@@ -48,6 +49,9 @@ class LevelProgress extends ChangeNotifier {
 
   LevelRecord recordFor(int level) =>
       _repository.state.progress[_id(level)] ?? LevelRecord();
+
+  RoundChallengeRules? challengeFor(int level) =>
+      _repository.previewChallenge(level, worldId: worldId);
 
   /// Sum each level's best saved score, including an unfinished attempt.
   int get worldPoints => world.nodes.fold(0, (total, node) {

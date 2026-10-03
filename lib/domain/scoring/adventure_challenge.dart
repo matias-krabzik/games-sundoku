@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/game_session.dart';
+import '../models/json_data.dart';
 import '../models/sudoku_definition.dart';
 import 'sudoku_scoring.dart';
 
@@ -83,6 +84,7 @@ class RoundChallengeRules {
     required this.timeLimitMs,
     required this.requiresNoMistakes,
     required this.allowsHints,
+    this.extra = const {},
   });
 
   final String version;
@@ -97,7 +99,74 @@ class RoundChallengeRules {
   final int timeLimitMs;
   final bool requiresNoMistakes;
   final bool allowsHints;
+  final Json extra;
   ChallengeTimePolicy get timePolicy => ChallengeTimePolicy.activeTimeLimit;
+
+  factory RoundChallengeRules.fromJson(Json json) {
+    final rules = RoundChallengeRules._(
+      version: json['version'] as String,
+      scoringVersion: json['scoringVersion'] as String,
+      worldId: json['worldId'] as String,
+      level: json['level'] as int,
+      puzzleId: json['puzzleId'] as String,
+      initialLives: json['initialLives'] as int,
+      perfectPoints: json['perfectPoints'] as int,
+      targetPoints: json['targetPoints'] as int,
+      targetBasisPoints: json['targetBasisPoints'] as int,
+      timeLimitMs: json['timeLimitMs'] as int,
+      requiresNoMistakes: json['requiresNoMistakes'] as bool,
+      allowsHints: json['allowsHints'] as bool,
+      extra: immutableJson(json),
+    );
+    if (rules.version != AdventureChallenges.version ||
+        rules.scoringVersion != SudokuScoring.version ||
+        rules.worldId != 'world-3' ||
+        rules.level < 1 ||
+        rules.level > 30 ||
+        !rules.puzzleId.startsWith('${rules.worldId}/level-${rules.level}/') ||
+        rules.initialLives < 1 ||
+        rules.initialLives > 3 ||
+        rules.initialLives !=
+            (rules.level <= 10
+                ? 3
+                : rules.level <= 20
+                ? 2
+                : 1) ||
+        rules.requiresNoMistakes != (rules.level == 30) ||
+        rules.allowsHints != (rules.level != 30) ||
+        rules.perfectPoints <= 0 ||
+        rules.targetPoints <= 0 ||
+        rules.targetPoints > rules.perfectPoints ||
+        (rules.level < 30 && rules.targetPoints == rules.perfectPoints) ||
+        rules.targetBasisPoints <= 0 ||
+        rules.targetBasisPoints > AdventureChallenges.basis ||
+        rules.timeLimitMs <= 0 ||
+        json['timePolicy'] != ChallengeTimePolicy.activeTimeLimit.name ||
+        (rules.level == 30 &&
+            (!rules.requiresNoMistakes ||
+                rules.allowsHints ||
+                rules.targetPoints != rules.perfectPoints))) {
+      throw const FormatException('Invalid or unsupported challenge rules');
+    }
+    return rules;
+  }
+
+  Json toJson() => {
+    ...extra,
+    'version': version,
+    'scoringVersion': scoringVersion,
+    'worldId': worldId,
+    'level': level,
+    'puzzleId': puzzleId,
+    'initialLives': initialLives,
+    'perfectPoints': perfectPoints,
+    'targetPoints': targetPoints,
+    'targetBasisPoints': targetBasisPoints,
+    'timeLimitMs': timeLimitMs,
+    'timePolicy': timePolicy.name,
+    'requiresNoMistakes': requiresNoMistakes,
+    'allowsHints': allowsHints,
+  };
 
   int remainingLives(int mistakes) {
     RangeError.checkNotNegative(mistakes, 'mistakes');

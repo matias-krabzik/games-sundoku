@@ -63,6 +63,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
     }
     final repository = await GameRepository.open(
       store,
+      enableWorld3Challenges: true,
       codec: runtime?.inPlayablesEnvironment == true
           ? const PlayablesSaveCodec()
           : const SaveCodec(),

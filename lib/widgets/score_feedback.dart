@@ -11,13 +11,21 @@ String formatScore(int points) => points.toString().replaceAllMapped(
 );
 
 class GameScoreCounter extends StatelessWidget {
-  const GameScoreCounter({super.key, required this.points, this.fontSize = 20});
+  const GameScoreCounter({
+    super.key,
+    required this.points,
+    this.fontSize = 20,
+    this.targetPoints,
+  });
   final int points;
   final double fontSize;
+  final int? targetPoints;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Puntaje: $points puntos',
+    label: targetPoints == null
+        ? 'Puntaje: $points puntos'
+        : '$points puntos. Meta: $targetPoints puntos',
     liveRegion: true,
     excludeSemantics: true,
     child: TweenAnimationBuilder<double>(
@@ -29,8 +37,12 @@ class GameScoreCounter extends StatelessWidget {
       builder: (context, scale, child) =>
           Transform.scale(scale: scale, child: child),
       child: Text(
-        '${formatScore(points)} pts',
-        key: const ValueKey('game-score'),
+        targetPoints == null
+            ? '${formatScore(points)} pts'
+            : '${formatScore(points)} / ${formatScore(targetPoints!)}',
+        key: ValueKey(
+          targetPoints == null ? 'game-score' : 'game-score-target',
+        ),
         maxLines: 1,
         style: homeText(fontSize),
       ),

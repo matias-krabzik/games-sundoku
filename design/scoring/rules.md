@@ -9,4 +9,30 @@
 - La barra muestra el puntaje de la ronda entre vidas y tiempo. Cada cambio muestra el importe total ganado o descontado junto a la jugada, subiendo y desapareciendo en un segundo; se omite el movimiento si el sistema solicita reducir animaciones.
 - El resumen de nivel muestra Ronda, Puntos y Tiempo, más sus totales. No tiene scroll. Oculta primero a Doku y reduce u oculta las miniaturas si falta altura, manteniendo visibles resultados y acciones.
 - Mapa! vuelve a la ruta anterior; Siguiente nivel X abre directamente el siguiente nivel pendiente y desbloqueado. Al terminar el nivel 10 solo queda Mapa!.
-- Los niveles 1–10 se desbloquean al completar las tres rondas, incluso con cero puntos. El puntaje no modifica vidas, estrellas ni desbloqueos. Cada nivel conserva su mejor resultado completo; repetir no duplica el total histórico.
+- Las sesiones heredadas mantienen su desbloqueo por tres rondas resueltas, incluso con cero puntos. Cada nivel conserva su mejor resultado completo; los reintentos no duplican el total histórico. Las nuevas reglas del mundo 3 se distinguen explícitamente por sesión.
+
+
+## Mundo 3: desafíos con resultado estático (W3-03)
+
+W3-01/02 implementan la política `world3-challenge-v1` y su guardado. W3-03 activa
+las sesiones nuevas en la app con vidas, meta, cuenta regresiva y reintento.
+La fórmula global de recompensas no cambia.
+Las sesiones anteriores conservan sus reglas durante las tres rondas; los mundos
+1, 2 y la partida rápida también mantienen el modo anterior.
+
+Cada sudoku nuevo del mundo 3 guarda una referencia perfecta calculada desde sus
+vacíos y grupos inicialmente incompletos, una meta progresiva del 85 al 100 %,
+3/2/1 vidas por tramo de diez niveles y un plazo de 120 s + 30 s por vacío
+(actualmente 21 minutos). Se gana resolviendo antes del límite, con vidas y meta
+alcanzada. El nivel 30 exige además cero errores y cero pistas; sus ayudas se
+rechazan antes de cobrar puntos. No hay bonus por rapidez.
+
+Resolver debajo de la meta o agotar vidas/tiempo guarda un resultado fallido sin
+estrella. Reintentar conserva el mismo sudoku y reglas, y no acumula puntos de
+intentos fallidos. La victoria se confirma al guardar, antes de cualquier contador
+visual, y reconocer su presentación no vuelve a premiar.
+
+[Calibración](../world-3-crossed-rivers/gameplay-specs/calibration/README.md) ·
+[Persistencia y pruebas](../world-3-crossed-rivers/gameplay-specs/persistence/README.md).
+
+[Flujo visible y capturas](../world-3-crossed-rivers/gameplay-specs/gameplay/README.md).

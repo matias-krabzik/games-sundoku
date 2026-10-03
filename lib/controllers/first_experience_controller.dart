@@ -7,6 +7,7 @@ import '../data/world_catalog.dart';
 import '../data/level_catalog.dart';
 import '../data/repositories/game_repository.dart';
 import '../domain/models/game_session.dart';
+import '../domain/scoring/adventure_challenge.dart';
 import '../domain/models/quick_play_difficulty.dart';
 import '../domain/help/sudoku_help.dart';
 import '../domain/models/json_data.dart';
@@ -65,6 +66,7 @@ class FirstExperienceController extends ChangeNotifier {
       hasSession: session != null,
     );
     _step = reviewOnly ? FirstExperienceStep.welcome : _savedStep;
+    repository.addListener(_repositoryChanged);
   }
 
   static const moduleKey = 'firstExperience';
@@ -86,9 +88,23 @@ class FirstExperienceController extends ChangeNotifier {
   bool get isPaused =>
       step == FirstExperienceStep.playing &&
       (_paused || _play?.isPaused == true);
-  int get elapsedMs => puzzleProgress?.status == PlayStatus.completed
+  int get elapsedMs => puzzleProgress?.terminal == true
       ? puzzleProgress!.elapsedMs
       : _play?.elapsedMs ?? puzzleProgress?.elapsedMs ?? 0;
+
+  bool get isChallenge => session?.rulesMode == SessionRulesMode.challenge;
+  RoundChallengeRules? get challengeRules => puzzleProgress?.attempt?.rules;
+  bool get challengeOverlay =>
+      step == FirstExperienceStep.challengeReady ||
+      step == FirstExperienceStep.challengeResult;
+  bool get hintsAllowed => challengeRules?.allowsHints ?? true;
+  int get displayTimeMs => challengeRules == null
+      ? elapsedMs
+      : ((challengeRules!.remainingTimeMs(elapsedMs) + 999) ~/ 1000) * 1000;
+
+  void _repositoryChanged() {
+    if (!_disposed && isChallenge) notifyListeners();
+  }
 
   final GameRepository repository;
   final bool reviewOnly;
@@ -120,13 +136,27 @@ class FirstExperienceController extends ChangeNotifier {
     }
   }
 
-  FirstExperienceStep get step =>
-      _step == FirstExperienceStep.playing &&
-          puzzleProgress?.status == PlayStatus.completed
-      ? gameIndex == roundCount - 1
-            ? FirstExperienceStep.complete
-            : FirstExperienceStep.celebration
-      : _step;
+  FirstExperienceStep get step {
+    if (!reviewOnly && isChallenge) {
+      if (session!.pendingResult != null) {
+        return FirstExperienceStep.challengeResult;
+      }
+      if (session!.status == PlayStatus.completed) {
+        return FirstExperienceStep.complete;
+      }
+      if (_module['challengeStartedAttempt'] != puzzleProgress?.attempt?.id) {
+        return FirstExperienceStep.challengeReady;
+      }
+      return FirstExperienceStep.playing;
+    }
+    return _step == FirstExperienceStep.playing &&
+            puzzleProgress?.status == PlayStatus.completed
+        ? gameIndex == roundCount - 1
+              ? FirstExperienceStep.complete
+              : FirstExperienceStep.celebration
+        : _step;
+  }
+
   List<int?> get cells => _cells;
   int? get selectedCell => _selectedCell;
   bool get isBusy => _isBusy;
@@ -138,8 +168,16 @@ class FirstExperienceController extends ChangeNotifier {
   int get filledCount => _cells.whereType<int>().length;
 
   GameSession? get session => repository.state.sessions[_module['sessionId']];
-  int get gameIndex =>
-      (_module['gameIndex'] as int? ?? 0).clamp(0, roundCount - 1);
+  int get gameIndex {
+    if (isChallenge) {
+      final current = session!.pendingResult?.puzzleId ?? session!.nextPuzzleId;
+      return current == null
+          ? roundCount - 1
+          : session!.puzzles.indexWhere((p) => p.puzzleId == current);
+    }
+    return (_module['gameIndex'] as int? ?? 0).clamp(0, roundCount - 1);
+  }
+
   PuzzleProgress? get puzzleProgress => session?.puzzles[gameIndex];
   SudokuDefinition? get puzzleDefinition =>
       repository.state.puzzles[puzzleProgress?.puzzleId];
@@ -212,7 +250,10 @@ class FirstExperienceController extends ChangeNotifier {
 
   int? get gameCell => _gameCell;
   bool get canShowHelp =>
-      readyToPlay && _gameCell != null && boardValues[_gameCell!] == null;
+      hintsAllowed &&
+      readyToPlay &&
+      _gameCell != null &&
+      boardValues[_gameCell!] == null;
   SudokuHelpTip? get helpTip => !_helpVisible || !canShowHelp
       ? null
       : helpEngine.explain(
@@ -319,7 +360,7 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   int get remaining => boardValues.where((n) => n == null).length;
-  String get playMessage => _feedback ?? '';
+  String get playMessage => challengeOverlay ? '' : _feedback ?? '';
 
   String get lessonMessage => _feedback ?? lesson?.message ?? '';
 
@@ -330,6 +371,27 @@ class FirstExperienceController extends ChangeNotifier {
 
   Future<void> advance({bool startClock = true}) async {
     if (_disposed || _isBusy) return;
+    if (step == FirstExperienceStep.challengeResult) {
+      final board = puzzleProgress!;
+      if (board.attempt!.result!.outcome != ChallengeOutcome.won) return;
+      await _run(() async {
+        await repository.acknowledgeRoundResult(
+          session!.id,
+          board.puzzleId,
+          attemptId: board.attempt!.id,
+        );
+        _gameCell = null;
+        _completion = null;
+        scoreFeedback = null;
+      });
+      if (startClock &&
+          !_disposed &&
+          _error == null &&
+          step != FirstExperienceStep.complete) {
+        await resumeGame();
+      }
+      return;
+    }
     if (reviewOnly) {
       if (storyIndex >= 0 && storyIndex < storyCount - 1) {
         await _save(tutorialStorySteps[storyIndex + 1], exampleCenter);
@@ -443,7 +505,10 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   Future<void> resumeGame() async {
-    if (_disposed || _isBusy || step != FirstExperienceStep.playing) {
+    if (_disposed ||
+        _isBusy ||
+        (step != FirstExperienceStep.playing &&
+            step != FirstExperienceStep.challengeReady)) {
       return;
     }
     // A developer reset can remove the session while retaining the tutorial's
@@ -457,7 +522,12 @@ class FirstExperienceController extends ChangeNotifier {
     }
     await _run(() async {
       if (isGeneratedLevel) {
-        await repository.saveModule(storageKey, {..._module, 'started': true});
+        await repository.saveModule(storageKey, {
+          ..._module,
+          'started': true,
+          if (isChallenge)
+            'challengeStartedAttempt': puzzleProgress!.attempt!.id,
+        });
       }
       await _player.start(session!.id);
       _paused = false;
@@ -466,6 +536,28 @@ class FirstExperienceController extends ChangeNotifier {
   }
 
   Future<void> requestPause() => _run(pauseGame);
+
+  Future<void> retryChallenge() async {
+    if (_disposed ||
+        _isBusy ||
+        step != FirstExperienceStep.challengeResult ||
+        puzzleProgress!.status != PlayStatus.failed) {
+      return;
+    }
+    final board = puzzleProgress!;
+    await _run(() async {
+      await repository.retryRound(
+        session!.id,
+        board.puzzleId,
+        attemptId: board.attempt!.id,
+      );
+      _gameCell = null;
+      _feedback = null;
+      _completion = null;
+      scoreFeedback = null;
+    });
+    if (!_disposed && _error == null) await resumeGame();
+  }
 
   Future<void> pauseGame() async {
     if (isGeneratedLevel) _paused = true;
@@ -548,7 +640,7 @@ class FirstExperienceController extends ChangeNotifier {
       if (incorrect) {
         _attention++;
         _completion = null;
-      } else {
+      } else if (!isChallenge || puzzleProgress!.attempt?.result == null) {
         _completion = SudokuCompletion.fromPosition(
           origin: index,
           wholeBoard: puzzleProgress!.status == PlayStatus.completed,
@@ -601,6 +693,7 @@ class FirstExperienceController extends ChangeNotifier {
     if (!kDebugMode || reviewOnly || _disposed || _isBusy || session == null) {
       return null;
     }
+    if (isChallenge) return null;
     final index = step == FirstExperienceStep.playing
         ? gameIndex - 1
         : (step == FirstExperienceStep.celebration ||
@@ -823,6 +916,7 @@ class FirstExperienceController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    repository.removeListener(_repositoryChanged);
     _play?.removeListener(_sessionChanged);
     _play?.dispose();
     super.dispose();

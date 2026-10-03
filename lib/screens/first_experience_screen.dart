@@ -35,6 +35,7 @@ import '../widgets/ui_surface_art.dart';
 import '../widgets/victory_particles.dart';
 import '../widgets/developer_floating_menu.dart';
 import '../widgets/world_journey_route.dart';
+import '../widgets/challenge_round_panel.dart';
 
 enum _NextSudokuPhase { leaving, entering }
 
@@ -273,7 +274,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   late SudokuCompletion? _previousCompletion = _flow.completion;
   bool get _finishingBoard => _pendingBoardCompletion != null;
   bool get _showGame =>
-      _flow.step == FirstExperienceStep.playing || _finishingBoard;
+      _flow.step == FirstExperienceStep.playing ||
+      _flow.challengeOverlay ||
+      _finishingBoard;
   bool get _showTutorialSkip =>
       !_showGame &&
       (_flow.reviewOnly ||
@@ -518,7 +521,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _flow.addListener(_changed);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (!_flow.isPaused || _flow.isQuickPlay) unawaited(_flow.resumeGame());
+        if (!_flow.challengeOverlay && (!_flow.isPaused || _flow.isQuickPlay)) {
+          unawaited(_flow.resumeGame());
+        }
         if (_flow.step == FirstExperienceStep.playing && _needsBriefing) {
           _openGameBriefing();
         }
@@ -1019,7 +1024,25 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                   ),
                 ),
               ),
-            if (kDebugMode && widget.showDeveloperControls)
+            if (_flow.challengeOverlay) ...[
+              const Positioned.fill(
+                child: ModalBarrier(
+                  dismissible: false,
+                  color: Color(0x99072346),
+                ),
+              ),
+              Positioned.fill(
+                child: BlockSemantics(
+                  child: ChallengeRoundPanel(
+                    flow: _flow,
+                    onExit: () => _back(),
+                  ),
+                ),
+              ),
+            ],
+            if (kDebugMode &&
+                widget.showDeveloperControls &&
+                !_flow.challengeOverlay)
               DeveloperFloatingMenu(
                 actions: [
                   if (!_navigationBlocked &&
