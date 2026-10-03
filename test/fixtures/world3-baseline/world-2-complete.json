@@ -1,0 +1,960 @@
+{
+  "schemaVersion": 1,
+  "revision": 0,
+  "player": {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "name": "Jugador",
+    "nameChosen": false,
+    "language": "es"
+  },
+  "settings": {
+    "sound": false,
+    "music": false,
+    "vibration": false
+  },
+  "levels": {
+    "world-1/level-1": {
+      "id": "world-1/level-1",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-1/sudoku-1",
+        "world-1/level-1/sudoku-2",
+        "world-1/level-1/sudoku-3"
+      ],
+      "prerequisites": []
+    },
+    "world-1/level-2": {
+      "id": "world-1/level-2",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-2/sudoku-1",
+        "world-1/level-2/sudoku-2",
+        "world-1/level-2/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-1"
+      ]
+    },
+    "world-1/level-3": {
+      "id": "world-1/level-3",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-3/sudoku-1",
+        "world-1/level-3/sudoku-2",
+        "world-1/level-3/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-2"
+      ]
+    },
+    "world-1/level-4": {
+      "id": "world-1/level-4",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-4/sudoku-1",
+        "world-1/level-4/sudoku-2",
+        "world-1/level-4/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-3"
+      ]
+    },
+    "world-1/level-5": {
+      "id": "world-1/level-5",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-5/sudoku-1",
+        "world-1/level-5/sudoku-2",
+        "world-1/level-5/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-4"
+      ]
+    },
+    "world-1/level-6": {
+      "id": "world-1/level-6",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-6/sudoku-1",
+        "world-1/level-6/sudoku-2",
+        "world-1/level-6/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-5"
+      ]
+    },
+    "world-1/level-7": {
+      "id": "world-1/level-7",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-7/sudoku-1",
+        "world-1/level-7/sudoku-2",
+        "world-1/level-7/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-6"
+      ]
+    },
+    "world-1/level-8": {
+      "id": "world-1/level-8",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-8/sudoku-1",
+        "world-1/level-8/sudoku-2",
+        "world-1/level-8/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-7"
+      ]
+    },
+    "world-1/level-9": {
+      "id": "world-1/level-9",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-9/sudoku-1",
+        "world-1/level-9/sudoku-2",
+        "world-1/level-9/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-8"
+      ]
+    },
+    "world-1/level-10": {
+      "id": "world-1/level-10",
+      "worldId": "world-1",
+      "puzzleIds": [
+        "world-1/level-10/sudoku-1",
+        "world-1/level-10/sudoku-2",
+        "world-1/level-10/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-9"
+      ]
+    },
+    "world-2/level-1": {
+      "id": "world-2/level-1",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-1/sudoku-1",
+        "world-2/level-1/sudoku-2",
+        "world-2/level-1/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-1/level-1",
+        "world-1/level-2",
+        "world-1/level-3",
+        "world-1/level-4",
+        "world-1/level-5",
+        "world-1/level-6",
+        "world-1/level-7",
+        "world-1/level-8",
+        "world-1/level-9",
+        "world-1/level-10"
+      ]
+    },
+    "world-2/level-2": {
+      "id": "world-2/level-2",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-2/sudoku-1",
+        "world-2/level-2/sudoku-2",
+        "world-2/level-2/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-1"
+      ]
+    },
+    "world-2/level-3": {
+      "id": "world-2/level-3",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-3/sudoku-1",
+        "world-2/level-3/sudoku-2",
+        "world-2/level-3/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-2"
+      ]
+    },
+    "world-2/level-4": {
+      "id": "world-2/level-4",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-4/sudoku-1",
+        "world-2/level-4/sudoku-2",
+        "world-2/level-4/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-3"
+      ]
+    },
+    "world-2/level-5": {
+      "id": "world-2/level-5",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-5/sudoku-1",
+        "world-2/level-5/sudoku-2",
+        "world-2/level-5/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-4"
+      ]
+    },
+    "world-2/level-6": {
+      "id": "world-2/level-6",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-6/sudoku-1",
+        "world-2/level-6/sudoku-2",
+        "world-2/level-6/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-5"
+      ]
+    },
+    "world-2/level-7": {
+      "id": "world-2/level-7",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-7/sudoku-1",
+        "world-2/level-7/sudoku-2",
+        "world-2/level-7/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-6"
+      ]
+    },
+    "world-2/level-8": {
+      "id": "world-2/level-8",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-8/sudoku-1",
+        "world-2/level-8/sudoku-2",
+        "world-2/level-8/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-7"
+      ]
+    },
+    "world-2/level-9": {
+      "id": "world-2/level-9",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-9/sudoku-1",
+        "world-2/level-9/sudoku-2",
+        "world-2/level-9/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-8"
+      ]
+    },
+    "world-2/level-10": {
+      "id": "world-2/level-10",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-10/sudoku-1",
+        "world-2/level-10/sudoku-2",
+        "world-2/level-10/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-9"
+      ]
+    },
+    "world-2/level-11": {
+      "id": "world-2/level-11",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-11/sudoku-1",
+        "world-2/level-11/sudoku-2",
+        "world-2/level-11/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-10"
+      ]
+    },
+    "world-2/level-12": {
+      "id": "world-2/level-12",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-12/sudoku-1",
+        "world-2/level-12/sudoku-2",
+        "world-2/level-12/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-11"
+      ]
+    },
+    "world-2/level-13": {
+      "id": "world-2/level-13",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-13/sudoku-1",
+        "world-2/level-13/sudoku-2",
+        "world-2/level-13/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-12"
+      ]
+    },
+    "world-2/level-14": {
+      "id": "world-2/level-14",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-14/sudoku-1",
+        "world-2/level-14/sudoku-2",
+        "world-2/level-14/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-13"
+      ]
+    },
+    "world-2/level-15": {
+      "id": "world-2/level-15",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-15/sudoku-1",
+        "world-2/level-15/sudoku-2",
+        "world-2/level-15/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-14"
+      ]
+    },
+    "world-2/level-16": {
+      "id": "world-2/level-16",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-16/sudoku-1",
+        "world-2/level-16/sudoku-2",
+        "world-2/level-16/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-15"
+      ]
+    },
+    "world-2/level-17": {
+      "id": "world-2/level-17",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-17/sudoku-1",
+        "world-2/level-17/sudoku-2",
+        "world-2/level-17/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-16"
+      ]
+    },
+    "world-2/level-18": {
+      "id": "world-2/level-18",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-18/sudoku-1",
+        "world-2/level-18/sudoku-2",
+        "world-2/level-18/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-17"
+      ]
+    },
+    "world-2/level-19": {
+      "id": "world-2/level-19",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-19/sudoku-1",
+        "world-2/level-19/sudoku-2",
+        "world-2/level-19/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-18"
+      ]
+    },
+    "world-2/level-20": {
+      "id": "world-2/level-20",
+      "worldId": "world-2",
+      "puzzleIds": [
+        "world-2/level-20/sudoku-1",
+        "world-2/level-20/sudoku-2",
+        "world-2/level-20/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-19"
+      ]
+    },
+    "world-3/level-1": {
+      "id": "world-3/level-1",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-1/sudoku-1",
+        "world-3/level-1/sudoku-2",
+        "world-3/level-1/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-2/level-1",
+        "world-2/level-2",
+        "world-2/level-3",
+        "world-2/level-4",
+        "world-2/level-5",
+        "world-2/level-6",
+        "world-2/level-7",
+        "world-2/level-8",
+        "world-2/level-9",
+        "world-2/level-10",
+        "world-2/level-11",
+        "world-2/level-12",
+        "world-2/level-13",
+        "world-2/level-14",
+        "world-2/level-15",
+        "world-2/level-16",
+        "world-2/level-17",
+        "world-2/level-18",
+        "world-2/level-19",
+        "world-2/level-20"
+      ]
+    },
+    "world-3/level-2": {
+      "id": "world-3/level-2",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-2/sudoku-1",
+        "world-3/level-2/sudoku-2",
+        "world-3/level-2/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-1"
+      ]
+    },
+    "world-3/level-3": {
+      "id": "world-3/level-3",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-3/sudoku-1",
+        "world-3/level-3/sudoku-2",
+        "world-3/level-3/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-2"
+      ]
+    },
+    "world-3/level-4": {
+      "id": "world-3/level-4",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-4/sudoku-1",
+        "world-3/level-4/sudoku-2",
+        "world-3/level-4/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-3"
+      ]
+    },
+    "world-3/level-5": {
+      "id": "world-3/level-5",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-5/sudoku-1",
+        "world-3/level-5/sudoku-2",
+        "world-3/level-5/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-4"
+      ]
+    },
+    "world-3/level-6": {
+      "id": "world-3/level-6",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-6/sudoku-1",
+        "world-3/level-6/sudoku-2",
+        "world-3/level-6/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-5"
+      ]
+    },
+    "world-3/level-7": {
+      "id": "world-3/level-7",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-7/sudoku-1",
+        "world-3/level-7/sudoku-2",
+        "world-3/level-7/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-6"
+      ]
+    },
+    "world-3/level-8": {
+      "id": "world-3/level-8",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-8/sudoku-1",
+        "world-3/level-8/sudoku-2",
+        "world-3/level-8/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-7"
+      ]
+    },
+    "world-3/level-9": {
+      "id": "world-3/level-9",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-9/sudoku-1",
+        "world-3/level-9/sudoku-2",
+        "world-3/level-9/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-8"
+      ]
+    },
+    "world-3/level-10": {
+      "id": "world-3/level-10",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-10/sudoku-1",
+        "world-3/level-10/sudoku-2",
+        "world-3/level-10/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-9"
+      ]
+    },
+    "world-3/level-11": {
+      "id": "world-3/level-11",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-11/sudoku-1",
+        "world-3/level-11/sudoku-2",
+        "world-3/level-11/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-10"
+      ]
+    },
+    "world-3/level-12": {
+      "id": "world-3/level-12",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-12/sudoku-1",
+        "world-3/level-12/sudoku-2",
+        "world-3/level-12/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-11"
+      ]
+    },
+    "world-3/level-13": {
+      "id": "world-3/level-13",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-13/sudoku-1",
+        "world-3/level-13/sudoku-2",
+        "world-3/level-13/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-12"
+      ]
+    },
+    "world-3/level-14": {
+      "id": "world-3/level-14",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-14/sudoku-1",
+        "world-3/level-14/sudoku-2",
+        "world-3/level-14/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-13"
+      ]
+    },
+    "world-3/level-15": {
+      "id": "world-3/level-15",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-15/sudoku-1",
+        "world-3/level-15/sudoku-2",
+        "world-3/level-15/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-14"
+      ]
+    },
+    "world-3/level-16": {
+      "id": "world-3/level-16",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-16/sudoku-1",
+        "world-3/level-16/sudoku-2",
+        "world-3/level-16/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-15"
+      ]
+    },
+    "world-3/level-17": {
+      "id": "world-3/level-17",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-17/sudoku-1",
+        "world-3/level-17/sudoku-2",
+        "world-3/level-17/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-16"
+      ]
+    },
+    "world-3/level-18": {
+      "id": "world-3/level-18",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-18/sudoku-1",
+        "world-3/level-18/sudoku-2",
+        "world-3/level-18/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-17"
+      ]
+    },
+    "world-3/level-19": {
+      "id": "world-3/level-19",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-19/sudoku-1",
+        "world-3/level-19/sudoku-2",
+        "world-3/level-19/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-18"
+      ]
+    },
+    "world-3/level-20": {
+      "id": "world-3/level-20",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-20/sudoku-1",
+        "world-3/level-20/sudoku-2",
+        "world-3/level-20/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-19"
+      ]
+    },
+    "world-3/level-21": {
+      "id": "world-3/level-21",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-21/sudoku-1",
+        "world-3/level-21/sudoku-2",
+        "world-3/level-21/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-20"
+      ]
+    },
+    "world-3/level-22": {
+      "id": "world-3/level-22",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-22/sudoku-1",
+        "world-3/level-22/sudoku-2",
+        "world-3/level-22/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-21"
+      ]
+    },
+    "world-3/level-23": {
+      "id": "world-3/level-23",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-23/sudoku-1",
+        "world-3/level-23/sudoku-2",
+        "world-3/level-23/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-22"
+      ]
+    },
+    "world-3/level-24": {
+      "id": "world-3/level-24",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-24/sudoku-1",
+        "world-3/level-24/sudoku-2",
+        "world-3/level-24/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-23"
+      ]
+    },
+    "world-3/level-25": {
+      "id": "world-3/level-25",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-25/sudoku-1",
+        "world-3/level-25/sudoku-2",
+        "world-3/level-25/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-24"
+      ]
+    },
+    "world-3/level-26": {
+      "id": "world-3/level-26",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-26/sudoku-1",
+        "world-3/level-26/sudoku-2",
+        "world-3/level-26/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-25"
+      ]
+    },
+    "world-3/level-27": {
+      "id": "world-3/level-27",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-27/sudoku-1",
+        "world-3/level-27/sudoku-2",
+        "world-3/level-27/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-26"
+      ]
+    },
+    "world-3/level-28": {
+      "id": "world-3/level-28",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-28/sudoku-1",
+        "world-3/level-28/sudoku-2",
+        "world-3/level-28/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-27"
+      ]
+    },
+    "world-3/level-29": {
+      "id": "world-3/level-29",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-29/sudoku-1",
+        "world-3/level-29/sudoku-2",
+        "world-3/level-29/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-28"
+      ]
+    },
+    "world-3/level-30": {
+      "id": "world-3/level-30",
+      "worldId": "world-3",
+      "puzzleIds": [
+        "world-3/level-30/sudoku-1",
+        "world-3/level-30/sudoku-2",
+        "world-3/level-30/sudoku-3"
+      ],
+      "prerequisites": [
+        "world-3/level-29"
+      ]
+    }
+  },
+  "puzzles": {},
+  "sessions": {},
+  "progress": {
+    "world-1/level-1": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-2": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-3": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-4": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-5": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-6": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-7": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-8": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-9": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-1/level-10": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-1": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-2": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-3": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-4": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-5": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-6": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-7": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-8": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-9": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-10": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-11": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-12": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-13": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-14": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-15": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-16": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-17": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-18": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-19": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    },
+    "world-2/level-20": {
+      "bestLights": 3,
+      "bestPoints": 0,
+      "bestElapsedMs": null,
+      "firstCompletedAt": null
+    }
+  },
+  "activeSessionId": null,
+  "updatedAt": "2026-10-03T12:00:00.000Z",
+  "modules": {
+    "tutorials/notes/v1": {
+      "step": 7,
+      "completed": true
+    },
+    "announcements/notes": true,
+    "world1GateCelebrated": true,
+    "navigation/adventure": {
+      "worldId": "world-2"
+    }
+  }
+}

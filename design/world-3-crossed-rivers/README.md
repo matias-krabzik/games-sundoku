@@ -1,5 +1,13 @@
 # Ríos Cruzados — mapa de 30 niveles
 
+## Especificaciones de jugabilidad
+
+La implementación de vidas, metas progresivas, introducción y resultado animado
+se organiza en [Mundo 3 · Vidas, puntaje y estrellas](gameplay-specs/README.md).
+Incluye etapas en orden, compatibilidad de guardados, pruebas y validaciones
+visuales. Estado de esas reglas: especificadas, pendientes de implementación.
+El contenido de arte que sigue conserva el historial de la entrega original.
+
 Arte preparado con la herramienta integrada `image_gen`, usando el concepto aprobado y los mundos existentes como referencia. Alcance: 30 posiciones y arte/capas; no se modificó el juego ni se crearon sudokus nuevos.
 
 ## Entrega

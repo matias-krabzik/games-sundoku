@@ -1,0 +1,235 @@
+{
+  "date": "2026-10-03",
+  "applicationCommit": "a598639c36a3c88ab8de01f44da0746d688a6e45",
+  "flutter": "3.47.2",
+  "dart": "3.13.2",
+  "host": "macOS 26.6.2 arm64",
+  "rendering": "Flutter widget tests, not a physical device or browser host",
+  "pixelRatio": 1,
+  "textScale": 1,
+  "reducedMotion": true,
+  "screenshots": [
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-level-result.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1268120,
+      "sha256": "2787106708f7e0d75fc74451786e828c3cb5d99212d84e2c3f016a8c7a5aa8a0"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-notes.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1862853,
+      "sha256": "a6de319827173e2f8ff382ba1cf338284c09408418b710a98cf23c241c40028e"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-round-result.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1294820,
+      "sha256": "345187aa6d64633ee75ba292639d15af53884df3d816f1bfb1794bf99ec32ae5"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-rules.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1330235,
+      "sha256": "caac79bf8fd6a0b4aa301f520c51909f2429d0870908b7fd33ffb758ced5cf54"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-world-1-game.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1331663,
+      "sha256": "0bd7817c11cbce8b1fd81a8b08e74719938a9bd29bc4f3f9c084af7f204b8f7b"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-world-2-game.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1331859,
+      "sha256": "a4f912c618603fba0af4d934f80fff3f541a69494ff8775db84738fb0ce6b4e3"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/desktop-world-3-game.png",
+      "width": 1440,
+      "height": 900,
+      "bytes": 1332416,
+      "sha256": "a4100d74230d64d9b25a43b16130f4debc3af65dbb29889f9d55917e49777821"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-level-result.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 972281,
+      "sha256": "54f45c63bec8df6c169ec7d9d40259ae0e7fba3f7c5703707ab97e0aeda2ca93"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-notes.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 1568401,
+      "sha256": "3570a0d88cc5f556282e48af1db759c62a90f65407fe211cddb414a529c67cee"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-round-result.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 1022764,
+      "sha256": "b5185680e948042584bd5604f5eef244478c81b0cbab319323de841f9b1c684b"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-rules.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 1056092,
+      "sha256": "2c7992fe643e6c5e181a6b1807e8b7ad116a3fa69242b0fcc7fcc18af0d6ba16"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-world-1-game.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 1030406,
+      "sha256": "f3c53373da6a31eb1b18947b6497c929b9d61e6364d447d598495cf4e70d6846"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-world-2-game.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 1030931,
+      "sha256": "17d4248ecca4837afb9b4c0ada679f9ef49a557e0777aeabf5157eb56887248d"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/ipad-world-3-game.png",
+      "width": 834,
+      "height": 1210,
+      "bytes": 1031607,
+      "sha256": "1e25a54ec77274870a1e50648420e302cc0c66445ea9f8e4b7237c2f09eebcef"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-level-result.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 330095,
+      "sha256": "64c5226d030cf2f16a5121867698a2b1b87170ccda5de51cf560d1f8ddf7ec79"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-notes.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 492003,
+      "sha256": "e256ae108007c477d0f6b48b24d3b33cddaf4cb322686da4ab62a51adee215b0"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-round-result.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 378934,
+      "sha256": "d313d30bab4492c64faf13d3c3ac03619e4f18209279fcc79cf0e509153748aa"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-rules.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 344747,
+      "sha256": "e4843736b8b9cd707fcc488922c514f9beda22acd16a35db5aa64d4bffbf909d"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-world-1-game.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 359722,
+      "sha256": "b22312715d0f3b32f9528d1b6e387ab8d322f2f79f5f28e1e3d11257fc328c26"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-world-2-game.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 360619,
+      "sha256": "8f1d9538926f83cd3a9ea5a61d430593abc9010eb0912fec474cffbf0d5e02a2"
+    },
+    {
+      "path": "design/world-3-crossed-rivers/gameplay-specs/baseline/captures/phone-world-3-game.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 360730,
+      "sha256": "6e7b060cb2dfcf7395681a21c8d71f16a679a7dc3c7f8c478f2bed434a05db54"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "test/fixtures/world3-baseline/new-profile.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 0,
+      "sha256": "9b9103d9838431f6101524338bceabbad03535b8e8083a4d27059c08f964a2a2"
+    },
+    {
+      "path": "test/fixtures/world3-baseline/world-2-complete.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 0,
+      "sha256": "27927f768d80caa5242ebfea19df3b14910a8a28da2a4d78190b68012b118304"
+    },
+    {
+      "path": "test/fixtures/world3-baseline/world-3-complete.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 1,
+      "sha256": "b585c5c30bd34e36e46eafa2517da72389182b8d7e1f5466f14c158d4129f0bb"
+    },
+    {
+      "path": "test/fixtures/world3-baseline/world-3-in-progress.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 1,
+      "sha256": "7cc84647da11a539f5a147c307d900b7b1842009aa742f7dade6d33ba79500a0"
+    },
+    {
+      "path": "test/fixtures/world3-baseline/world-3-level-complete.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 1,
+      "sha256": "9516203d38078e13ecfd7e3eebee0e8156f50a0218059d49cb00f994ba0cd63a"
+    },
+    {
+      "path": "test/fixtures/world3-baseline/world-3-one-star.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 1,
+      "sha256": "156575276678f0c915b3234a73138ae4f2d43ddbcf5a73346c8e0eda9014108f"
+    },
+    {
+      "path": "test/fixtures/world3-baseline/world-3-two-stars.json",
+      "schemaVersion": 1,
+      "playerId": "00000000-0000-4000-8000-000000000003",
+      "sessions": 1,
+      "sha256": "717f0a614c0d3be08236593a3bddb6e322d96bb893394170805b2ecf23c37f59"
+    }
+  ],
+  "verification": {
+    "existingRegression": {
+      "passed": 130,
+      "failed": 4
+    },
+    "isolatedFailures": {
+      "passed": 3,
+      "failed": 4
+    },
+    "capturesAndRestore": {
+      "passed": 28,
+      "failed": 0
+    },
+    "analysisBefore": {
+      "errors": 0,
+      "warnings": 0,
+      "info": 4
+    },
+    "newTestsAnalysis": {
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    }
+  }
+}

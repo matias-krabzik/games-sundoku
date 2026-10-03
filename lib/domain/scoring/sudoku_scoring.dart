@@ -24,7 +24,39 @@ enum ScoreDifficulty {
 }
 
 class SudokuScoring {
+  static const version = 'sudoku-scoring-v1';
   static const hintCost = 77;
+
+  static int _cellReward(int streak) => streak <= 2
+      ? 11
+      : streak <= 4
+      ? 17
+      : 23;
+
+  static int _zoneReward(int zone, int size) => zone == size * 3
+      ? 307
+      : zone >= size * 2
+      ? 79
+      : 53;
+
+  /// Score of a fresh, unassisted solution, excluding initially complete groups.
+  static int perfectScore(SudokuDefinition puzzle) {
+    final empty = puzzle.initial.where((value) => value == null).length;
+    final initialGroups = _completed(
+      puzzle,
+      PuzzleProgress.initial(puzzle).cells,
+    );
+    var reward = 0;
+    for (var streak = 1; streak <= empty; streak++) {
+      reward += _cellReward(streak);
+    }
+    for (var zone = 0; zone <= puzzle.size * 3; zone++) {
+      if (!initialGroups.contains(zone)) {
+        reward += _zoneReward(zone, puzzle.size);
+      }
+    }
+    return reward * ScoreDifficulty.fromName(puzzle.difficulty).multiplier;
+  }
 
   static Set<int> _completed(
     SudokuDefinition puzzle,
@@ -104,20 +136,10 @@ class SudokuScoring {
     final streak = isError ? 0 : history.streak + (freshCell ? 1 : 0);
     final completed = _completed(puzzle, after.cells);
     final newZones = completed.difference(history.zones);
-    var reward = freshCell
-        ? (streak <= 2
-              ? 11
-              : streak <= 4
-              ? 17
-              : 23)
-        : 0;
+    var reward = freshCell ? _cellReward(streak) : 0;
     if (eligible) {
       for (final zone in newZones) {
-        reward += zone == puzzle.size * 3
-            ? 307
-            : zone >= puzzle.size * 2
-            ? 79
-            : 53;
+        reward += _zoneReward(zone, puzzle.size);
       }
     }
     return after.copyWith(
