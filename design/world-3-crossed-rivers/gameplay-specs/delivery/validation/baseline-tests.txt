@@ -1,0 +1,458 @@
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.1.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  dev_build 1.1.9 (1.1.12 available)
+  hooks 2.0.2 (2.2.0 available)
+  jni 1.0.3 (1.1.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  native_toolchain_c 0.19.2 (0.19.5 available)
+  objective_c 9.5.0 (9.6.2 available)
+  package_info_plus 10.2.1 (10.2.2 available)
+  process_run 1.3.6 (1.3.7 available)
+  record_use 0.6.0 (1.1.1 available)
+  sensors_plus 7.1.0 (7.1.1 available)
+  sqflite_common 2.5.12 (2.5.13 available)
+  sqflite_common_ffi_web 1.1.3 (1.2.0 available)
+  sqlite3 3.5.2 (3.7.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  vector_math 2.4.0 (2.4.3 available)
+Got dependencies!
+23 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart
+00:00 +0: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: tall phones stack home actions on Android and iOS
+00:00 +1: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:00 +2: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:00 +3: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:00 +4: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:01 +4: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: solved example tours all groups and fades only missing clues
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: an object with length of <9>
+  Actual: [32]
+   Which: has length of <1>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart:206:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart line 206
+The test description was:
+  solved example tours all groups and fades only missing clues
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +4 -1: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:01 +4 -1: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: solved example tours all groups and fades only missing clues [E]
+  Test failed. See exception logs above.
+  The test description was: solved example tours all groups and fades only missing clues
+  
+00:01 +4 -1: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map light handles rapid selection and reduced motion
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Junto a la cerca": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:233:5)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart line 233
+The test description was:
+  map light handles rapid selection and reduced motion
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +4 -2: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:01 +4 -2: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map light handles rapid selection and reduced motion [E]
+  Test failed. See exception logs above.
+  The test description was: map light handles rapid selection and reduced motion
+  
+00:01 +4 -2: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: review can advance immediately while tutorial animations run
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.widget (package:flutter_test/src/controller.dart:828:30)
+#2      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart:279:29)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  review can advance immediately while tutorial animations run
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +4 -3: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+00:01 +4 -3: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: review can advance immediately while tutorial animations run [E]
+  Test failed. See exception logs above.
+  The test description was: review can advance immediately while tutorial animations run
+  
+00:02 +4 -3: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart:105:7)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart:27:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart line 105
+The test description was:
+  saved rewards wait for return, scroll first and never award twice
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +4 -4: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +4 -4: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice [E]
+  Test failed. See exception logs above.
+  The test description was: saved rewards wait for return, scroll first and never award twice
+  
+00:02 +5 -4: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +6 -4: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +7 -4: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +7 -4: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: points land on the played level, then unlock and focus the next
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart:207:7)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart:27:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart line 207
+The test description was:
+  points land on the played level, then unlock and focus the next
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +7 -5: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +7 -5: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: points land on the played level, then unlock and focus the next [E]
+  Test failed. See exception logs above.
+  The test description was: points land on the played level, then unlock and focus the next
+  
+00:02 +7 -5: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: step three highlights all nine 3x3 blocks in order
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: [0, 1, 2, 9, 10, 11, 18, 19, 20]
+  Actual: []
+   Which: at location [0] is [] which shorter than expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart:361:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart line 361
+The test description was:
+  step three highlights all nine 3x3 blocks in order
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +7 -6: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +7 -6: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: step three highlights all nine 3x3 blocks in order [E]
+  Test failed. See exception logs above.
+  The test description was: step three highlights all nine 3x3 blocks in order
+  
+00:02 +7 -6: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: reduced motion unlocks immediately and progress survives map reentry
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart:234:7)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart:27:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart line 234
+The test description was:
+  reduced motion unlocks immediately and progress survives map reentry
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +7 -7: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:02 +7 -7: /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: reduced motion unlocks immediately and progress survives map reentry [E]
+  Test failed. See exception logs above.
+  The test description was: reduced motion unlocks immediately and progress survives map reentry
+  
+00:03 +8 -7: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 1 fans the actual solved boards
+00:03 +8 -7: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map controls remain reachable with large text and rotation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a value greater than or equal to <47.99>
+  Actual: <44.0>
+   Which: is not a value greater than or equal to <47.99>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:308:11)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart line 308
+The test description was:
+  map controls remain reachable with large text and rotation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +8 -8: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 1 fans the actual solved boards
+00:03 +8 -8: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: map controls remain reachable with large text and rotation [E]
+  Test failed. See exception logs above.
+  The test description was: map controls remain reachable with large text and rotation
+  
+00:03 +9 -8: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 1 fans the actual solved boards
+00:03 +10 -8: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 1 fans the actual solved boards
+00:04 +10 -8: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.android
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:366:9)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart line 366
+The test description was:
+  mobile map shows arrows and lights locked selection on TargetPlatform.android
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:04 +10 -9: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 1 fans the actual solved boards
+00:04 +10 -9: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.android [E]
+  Test failed. See exception logs above.
+  The test description was: mobile map shows arrows and lights locked selection on TargetPlatform.android
+  
+00:05 +11 -9: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.iOS
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:366:9)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart line 366
+The test description was:
+  mobile map shows arrows and lights locked selection on TargetPlatform.iOS
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +11 -10: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 2 fans the actual solved boards
+00:05 +11 -10: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.iOS [E]
+  Test failed. See exception logs above.
+  The test description was: mobile map shows arrows and lights locked selection on TargetPlatform.iOS
+  
+00:05 +12 -10: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 2 fans the actual solved boards
+00:05 +13 -10: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 2 fans the actual solved boards
+00:06 +13 -10: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: all ten levels remain reachable after rotating a small phone
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:425:9)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart line 425
+The test description was:
+  all ten levels remain reachable after rotating a small phone
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:06 +13 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 2 fans the actual solved boards
+00:06 +13 -11: /private/tmp/sundoku-w3-baseline-219713f/test/widget_test.dart: all ten levels remain reachable after rotating a small phone [E]
+  Test failed. See exception logs above.
+  The test description was: all ten levels remain reachable after rotating a small phone
+  
+00:06 +14 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:09 +15 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: sudoku 2 slides in, deals after landing, and DEV can rewind
+00:09 +16 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: sudoku 3 slides in, deals after landing, and DEV can rewind
+00:10 +17 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:12 +18 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:13 +19 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: errors vibrate once per attempt using the saved preference, never on resume
+00:13 +20 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: incorrect entries use pale red tiles and ordinary matching highlights
+00:14 +21 -11: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: step navigation stays locked for the entire board animation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: 'rowRule'
+  Actual: 'expansion'
+   Which: is different.
+          Expected: rowRule
+            Actual: expansion
+                    ^
+           Differ at offset 0
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart:1026:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart line 1026
+The test description was:
+  step navigation stays locked for the entire board animation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:15 +21 -12: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: step navigation stays locked for the entire board animation [E]
+  Test failed. See exception logs above.
+  The test description was: step navigation stays locked for the entire board animation
+  
+00:15 +21 -12: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: board animates into play before briefing and controls wait for acceptance
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: be in range from 171.0 (exclusive) to 171.0 (exclusive)
+  Actual: <171.0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart:1079:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart line 1079
+The test description was:
+  board animates into play before briefing and controls wait for acceptance
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:15 +21 -13: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: board animates into play before briefing and controls wait for acceptance [E]
+  Test failed. See exception logs above.
+  The test description was: board animates into play before briefing and controls wait for acceptance
+  
+00:15 +21 -13: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: normal play aligns navigation around the title and returns to the map
+00:16 +22 -13: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: stories explain the rules without exercises and keep the same board for all three games
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: 'expansion'
+  Actual: 'blockIntroduction'
+   Which: is different.
+          Expected: expansion
+            Actual: blockIntro ...
+                    ^
+           Differ at offset 0
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart:1225:9)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart line 1225
+The test description was:
+  stories explain the rules without exercises and keep the same board for all three games
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:16 +22 -14: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: stories explain the rules without exercises and keep the same board for all three games [E]
+  Test failed. See exception logs above.
+  The test description was: stories explain the rules without exercises and keep the same board for all three games
+  
+00:16 +22 -14: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: story taps, swipes and keyboard arrows navigate while waiting never advances
+00:16 +23 -14: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: story actions remain visible with large text and scrolling does not change the story
+00:17 +24 -14: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: small screens, rotation and enlarged text keep actions and cells reachable
+00:17 +25 -14: /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: (tearDownAll)
+00:17 +25 -14: Some tests failed.
+
+Failing tests:
+  /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: points land on the played level, then unlock and focus the next
+  /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: reduced motion unlocks immediately and progress survives map reentry
+  /private/tmp/sundoku-w3-baseline-219713f/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+  /private/tmp/sundoku-w3-baseline-219713f/test/tutorial_journey_widget_test.dart: board animates into play before briefing and controls wait for acceptance
+  ... and 10 more

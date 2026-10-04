@@ -56,7 +56,14 @@ Future<void> settle(WidgetTester tester) async {
 Future<void> waitForAction(WidgetTester tester, Finder target) async {
   for (var i = 0; i < 64; i++) {
     final widget = tester.widget(target);
-    if (widget is! IllustratedActionButton || widget.onPressed != null) return;
+    final gestures = find.byKey(const ValueKey('tutorial-story-gestures'));
+    final lessonReady =
+        gestures.evaluate().isEmpty ||
+        tester.widget<TutorialStoryGestures>(gestures).enabled;
+    if ((widget is! IllustratedActionButton || widget.onPressed != null) &&
+        lessonReady) {
+      return;
+    }
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
   }
@@ -228,7 +235,10 @@ void main() {
             findsOneWidget,
           );
         }
-        expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+        expect(
+          tester.widget<IllustratedActionButton>(next).onPressed,
+          isNotNull,
+        );
         if (phase == 0 && group == 5) {
           await capture(
             tester,
@@ -257,36 +267,41 @@ void main() {
       expect(clues.cells[index], solved[index]);
       expect(find.byKey(ValueKey('given-removal-$index')), findsNothing);
     }
-    expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+    expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
     await waitForAction(tester, next);
     await capture(tester, 'tutorial-solucion-pistas');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('review can advance immediately while tutorial animations run', (
-    tester,
-  ) async {
-    configure(tester, reduced: false);
-    final repo = GameRepository.memory();
-    addTearDown(repo.dispose);
-    await show(tester, repo, reviewOnly: true);
-    final saved = repo.state;
-    for (var step = 0; step < 6; step++) {
-      final button = find.byKey(
-        ValueKey(step == 0 ? 'intro-continue' : 'tutorial-next'),
-      );
-      final action = tester.widget<IllustratedActionButton>(button).onPressed;
-      expect(action, isNotNull);
-      await action!();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-    expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
-    expect(repo.state, same(saved));
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'review finishes animation before advancing without writing a save',
+    (tester) async {
+      configure(tester, reduced: false);
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await show(tester, repo, reviewOnly: true);
+      final saved = repo.state;
+      final progress = find.byType(TutorialStoryProgress);
+      for (var step = 0; step < 6; step++) {
+        expect(tester.widget<TutorialStoryProgress>(progress).index, step);
+        final button = find.byKey(
+          ValueKey(step == 0 ? 'intro-continue' : 'tutorial-next'),
+        );
+        await tester.widget<IllustratedActionButton>(button).onPressed!();
+        await tester.pump();
+        expect(tester.widget<TutorialStoryProgress>(progress).index, step);
+        await settle(tester);
+        await tester.widget<IllustratedActionButton>(button).onPressed!();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(tester.widget<TutorialStoryProgress>(progress).index, step + 1);
+      }
+      expect(repo.state, same(saved));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
     'solved example supports reduced motion, large text and rotation',
@@ -359,7 +374,7 @@ void main() {
             (block ~/ 3 * 3 + r) * 9 + block % 3 * 3 + c,
       ];
       expect(tester.widget<SudokuBoard>(board).highlightedIndices, expected);
-      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
       await tester.pump(const Duration(milliseconds: 600));
     }
     await tester.pump();
@@ -997,59 +1012,46 @@ void main() {
     },
   );
 
-  testWidgets('step navigation stays locked for the entire board animation', (
-    tester,
-  ) async {
-    configure(tester, reduced: false);
-    final repo = GameRepository.memory();
-    addTearDown(repo.dispose);
-    await repo.saveModule(FirstExperienceController.moduleKey, {
-      'step': 'expansion',
-      'cells': center,
-    });
-    await show(tester, repo);
-    final gestures = find.byKey(const ValueKey('tutorial-story-gestures'));
-    String step() =>
-        (repo.state.modules[FirstExperienceController.moduleKey] as Map)['step']
-            as String;
-    for (final target in [
-      'rowRule',
-      'columnRule',
-      'solvedExample',
-      'givensIntroduction',
-    ]) {
-      await waitForAction(tester, next);
-      await tester.widget<IllustratedActionButton>(next).onPressed!();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 30));
-      await tester.pump();
-      expect(step(), target);
-      expect(tester.widget<TutorialStoryGestures>(gestures).enabled, false);
-      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-      final bounds = tester.getRect(gestures);
-      await tester.tapAt(Offset(bounds.right - 20, bounds.center.dy));
-      await tester.drag(gestures, const Offset(180, 0));
-      await tester.tap(next);
-      await tester.pump();
-      expect(step(), target);
-      if (target == 'givensIntroduction') {
-        await tester.pump(const Duration(milliseconds: 950));
+  testWidgets(
+    'next finishes the lesson before another press changes the step',
+    (tester) async {
+      configure(tester, reduced: false);
+      final repo = GameRepository.memory();
+      addTearDown(repo.dispose);
+      await repo.saveModule(FirstExperienceController.moduleKey, {
+        'step': 'expansion',
+        'cells': center,
+      });
+      await show(tester, repo);
+      final element = tester.element(board);
+      String step() =>
+          (repo.state.modules[FirstExperienceController.moduleKey]
+                  as Map)['step']
+              as String;
+      for (final target in [
+        'rowRule',
+        'columnRule',
+        'solvedExample',
+        'givensIntroduction',
+      ]) {
+        final before = step();
+        await tester.widget<IllustratedActionButton>(next).onPressed!();
         await tester.pump();
-        expect(tester.widget<TutorialStoryGestures>(gestures).enabled, false);
-        expect(tester.widget<IllustratedActionButton>(next).onPressed, isNull);
+        expect(step(), before);
+        await settle(tester);
+        // The board's geometry transition must finish before navigation.
+        await waitForAction(tester, next);
+        await tester.widget<IllustratedActionButton>(next).onPressed!();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 30));
+        expect(step(), target);
+        expect(tester.element(board), same(element));
+        expect(tester.widget<SudokuBoard>(board).onSelect, isNull);
       }
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump();
-      await waitForAction(tester, next);
-      expect(tester.widget<TutorialStoryGestures>(gestures).enabled, true);
-      expect(tester.widget<IllustratedActionButton>(next).onPressed, isNotNull);
-      expect(step(), target);
-    }
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-  });
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
     'board animates into play before briefing and controls wait for acceptance',
@@ -1116,11 +1118,16 @@ void main() {
       expect(lives.top, greaterThan(banner.bottom));
       expect(lives.bottom, lessThanOrEqualTo(after.top));
       expect(clear.top, greaterThan(buttons.first.bottom));
-      expect(clear.left, closeTo(buttons.first.left, 1));
-      expect(help.right, closeTo(buttons.last.right, 1));
+      // Tools span the control row; the narrower number row remains centered.
+      expect(clear.left, lessThanOrEqualTo(buttons.first.left));
+      expect(help.right, greaterThanOrEqualTo(buttons.last.right));
+      expect(
+        (clear.left + help.right) / 2,
+        closeTo((buttons.first.left + buttons.last.right) / 2, 1),
+      );
       expect(clear.width, closeTo(clear.height, .001));
       expect(buttons.first.width, closeTo(boardCellSize, 1));
-      expect(clear.width, closeTo(boardCellSize, 1));
+      expect(clear.width, lessThanOrEqualTo(52));
       expect(
         (repo.state.modules[FirstExperienceController.moduleKey]
             as Map)['briefingAccepted'],

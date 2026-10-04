@@ -12,7 +12,7 @@
 - Las sesiones heredadas mantienen su desbloqueo por tres rondas resueltas, incluso con cero puntos. Cada nivel conserva su mejor resultado completo; los reintentos no duplican el total histórico. Las nuevas reglas del mundo 3 se distinguen explícitamente por sesión.
 
 
-## Mundo 3: desafíos con resultado estático (W3-03)
+## Mundo 3: desafíos y resultado animado (W3-03–05)
 
 W3-01/02 implementan la política `world3-challenge-v1` y su guardado. W3-03 activa
 las sesiones nuevas en la app con vidas, meta, cuenta regresiva y reintento.
@@ -28,11 +28,17 @@ alcanzada. El nivel 30 exige además cero errores y cero pistas; sus ayudas se
 rechazan antes de cobrar puntos. No hay bonus por rapidez.
 
 Resolver debajo de la meta o agotar vidas/tiempo guarda un resultado fallido sin
-estrella. Reintentar conserva el mismo sudoku y reglas, y no acumula puntos de
-intentos fallidos. La victoria se confirma al guardar, antes de cualquier contador
+estrella. Reintentar genera un sudoku distinto de la misma dificultad, recalibra su meta
+y renueva vidas y tiempo; no acumula puntos de intentos fallidos. Reabrir una
+partida conserva el tablero del intento guardado. La victoria se confirma al guardar, antes de cualquier contador
 visual, y reconocer su presentación no vuelve a premiar.
 
 [Calibración](../world-3-crossed-rivers/gameplay-specs/calibration/README.md) ·
 [Persistencia y pruebas](../world-3-crossed-rivers/gameplay-specs/persistence/README.md).
 
 [Flujo visible y capturas](../world-3-crossed-rivers/gameplay-specs/gameplay/README.md).
+
+El contador de resultado representa el premio ya persistido: no calcula ni otorga
+estrellas. Una pulsación completa la animación y otra continúa. Al salir al mapa
+tras la primera o segunda victoria queda lista la ronda siguiente, sin activar
+el reloj. Al entrar ofrece «Jugar» si es nueva o «Continuar» si ya empezó.

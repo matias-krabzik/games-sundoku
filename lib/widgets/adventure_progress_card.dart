@@ -114,7 +114,7 @@ class AdventureProgressCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(
-                  height: small ? 44 : 50,
+                  height: small ? 48 : 50,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

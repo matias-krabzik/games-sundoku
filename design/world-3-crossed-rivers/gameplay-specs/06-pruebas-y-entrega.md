@@ -3,6 +3,13 @@
 Depende de: W3-00–05. Esta matriz se usa desde W3-00; el cierre final consolida
 evidencia y no sustituye las pruebas de cada etapa.
 
+## Avance al 04/10/2026
+
+[Informe y logs de ejecución](delivery/README.md): regresión global y comparación
+con `219713f` realizadas, 16 fallos anteriores resueltos y **460 pruebas aprobadas**;
+builds Playables e iOS validados. El cierre continúa pendiente por los controles
+visuales nativos y del host YouTube detallados en el informe.
+
 ## Orden ejecutable
 
 | Orden | Trabajo | Antes de continuar |

@@ -1,4 +1,3 @@
-import 'package:sundoku/data/level_node.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -230,7 +229,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     }
     await _finishMapTransition(tester);
-    expect(find.text(kValleyLevelNames[3]), findsOneWidget);
+    expect(find.text('Nivel 4'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     reduceMotion.value = true;
@@ -238,7 +237,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
     await tester.tap(find.byKey(const ValueKey('map-next')));
     await tester.pumpAndSettle();
-    expect(find.text(kValleyLevelNames[4]), findsOneWidget);
+    expect(find.text('Nivel 5'), findsOneWidget);
     expect(tester.binding.transientCallbackCount, 0);
   });
 
@@ -308,12 +307,12 @@ void main() {
           expect(bounds.height, greaterThanOrEqualTo(47.99));
         }
         expect(find.text('Mundo 1'), findsOneWidget);
-        expect(find.text(kValleyLevelNames[expectedLevel - 1]), findsOneWidget);
+        expect(find.text('Nivel $expectedLevel'), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.tap(find.byKey(const ValueKey('map-next')));
         await _finishMapTransition(tester);
         expectedLevel++;
-        expect(find.text(kValleyLevelNames[expectedLevel - 1]), findsOneWidget);
+        expect(find.text('Nivel $expectedLevel'), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
     },
@@ -363,7 +362,7 @@ void main() {
         expect(find.byKey(const ValueKey('map-next')), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('map-next')));
         await _finishMapTransition(tester);
-        expect(find.text(kValleyLevelNames[1]), findsOneWidget);
+        expect(find.text('Nivel 2'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('level-2-label')));
         await _finishMapTransition(tester);
         final light = tester.widget<MapSelectionLight>(
@@ -372,7 +371,7 @@ void main() {
         expect(light.level, 2);
         expect(light.enabled, isTrue);
         expect(light.scoreLevels, isNot(contains(2)));
-        expect(find.text(kValleyLevelNames[1]), findsOneWidget);
+        expect(find.text('Nivel 2'), findsOneWidget);
         await tester.pump(const Duration(seconds: 3));
       },
     );
@@ -422,7 +421,7 @@ void main() {
       for (int level = 2; level <= 10; level++) {
         await tester.tap(find.byKey(const ValueKey('map-next')));
         await _finishMapTransition(tester);
-        expect(find.text(kValleyLevelNames[level - 1]), findsOneWidget);
+        expect(find.text('Nivel $level'), findsOneWidget);
         expect(
           find.byKey(ValueKey('level-$level-label')).hitTestable(),
           findsOneWidget,
@@ -440,14 +439,14 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('level-10-label')));
       await _finishMapTransition(tester);
-      expect(find.text(kValleyLevelNames[9]), findsOneWidget);
+      expect(find.text('Nivel 10'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
 
       // Now the back arrow is usable again.
       expect(_mapArrow(tester, 'map-previous').onPressed, isNotNull);
       await tester.tap(find.byKey(const ValueKey('map-previous')));
       await _finishMapTransition(tester);
-      expect(find.text(kValleyLevelNames[8]), findsOneWidget);
+      expect(find.text('Nivel 9'), findsOneWidget);
     },
   );
 }

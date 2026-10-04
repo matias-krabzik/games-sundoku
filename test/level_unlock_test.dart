@@ -1,4 +1,3 @@
-import 'package:sundoku/data/level_node.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,7 +101,7 @@ void main() {
       await finishNavigation(tester);
       expect(marker(1).lights, 3);
       expect(marker(2).unlocked, isTrue);
-      expect(find.text(kValleyLevelNames[1]), findsOneWidget);
+      expect(find.text('Nivel 2'), findsOneWidget);
       expect(progress.lightsFor(1), 3);
       expect(tester.takeException(), isNull);
     },
@@ -204,7 +203,7 @@ void main() {
       expect(progress.lightsFor(2), 0);
       expect(progress.isUnlocked(2), isTrue);
       await tester.pump(const Duration(milliseconds: 1200));
-      expect(find.text(kValleyLevelNames[1]), findsOneWidget);
+      expect(find.text('Nivel 2'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('map-previous')));
       await finishNavigation(tester);
@@ -231,13 +230,13 @@ void main() {
       await tester.pump();
       await progress.recordResult(1, 3);
       await finishNavigation(tester);
-      expect(find.text(kValleyLevelNames[1]), findsOneWidget);
+      expect(find.text('Nivel 2'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsNothing);
       expect(tester.binding.transientCallbackCount, 0);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(MaterialApp(home: MapScreen(progress: progress)));
       await finishNavigation(tester);
-      expect(find.text(kValleyLevelNames[1]), findsOneWidget);
+      expect(find.text('Nivel 2'), findsOneWidget);
       expect(find.text('0/3 puntos obtenidos'), findsNothing);
     },
   );

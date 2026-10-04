@@ -235,7 +235,8 @@ puntos ni otorga premios. `pendingResult` bloquea la siguiente ronda hasta
 `acknowledgeRoundResult(session, puzzle, attemptId: ...)`, que es idempotente.
 
 `retryRound(session, puzzle, attemptId: ...)` conserva otras rondas y reinicia solo
-el tablero fallido, su puntaje, notas, vidas y reloj. Mantiene el sudoku y las reglas.
+el tablero fallido, su puntaje, notas, vidas y reloj. Genera otro sudoku de la misma
+dificultad y recalibra la meta para su nueva definición.
 El token previo permite ignorar un doble toque sin reiniciar otra vez el intento.
 No suma puntos fallidos a récords ni habilita repetir niveles ganados.
 
@@ -255,3 +256,15 @@ un intento ni permite repetir el nivel. Tras reconocerla, vuelve a aplicar el
 bloqueo de niveles ganados. `challengeStartedAttempt` guarda qué intento pasó
 por la confirmación de inicio; las condiciones y el resultado no consumen tiempo.
 [Flujo visible y pruebas](../design/world-3-crossed-rivers/gameplay-specs/gameplay/README.md).
+
+### Reentrada y presentación (W3-04–06)
+
+Los reintentos generan un tablero nuevo de la misma dificultad y guardan juntos
+su definición, meta recalibrada e intento limpio. Reabrir no regenera el sudoku.
+Salir al mapa tras una victoria intermedia reconoce su resultado sin iniciar
+el reloj siguiente; la entrada desde el mapa también normaliza victorias
+intermedias pendientes de versiones anteriores. El mapa ofrece «Continuar» y
+la siguiente ronda ofrece «Jugar» hasta que se haya iniciado. Una ronda iniciada
+conserva tablero y pausa, y ofrece «Continuar». Los fallos y la tercera victoria
+siguen disponibles con «Ver resultado». La animación solo lee el premio guardado;
+restaurar no repite celebración ni concede otra estrella.

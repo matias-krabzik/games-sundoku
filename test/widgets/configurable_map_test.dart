@@ -11,6 +11,7 @@ import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/map_ambient_painter.dart';
 import 'package:sundoku/widgets/map_layout.dart';
 import 'package:sundoku/widgets/map_level_button.dart';
+import 'package:sundoku/widgets/map_world_gate.dart';
 import 'package:sundoku/widgets/map_parallax_scene.dart';
 
 const customMap = WorldMapDefinition(
@@ -180,7 +181,10 @@ void main() {
     await tester.pump();
     expect(painter.motion.creaturePose(creature).startled, isTrue);
     await tester.pump(const Duration(milliseconds: 180));
-    expect(painter.motion.creaturePose(creature).visualScale, greaterThan(1));
+    // Nearby touches cause radial escape; only direct hits cause growth.
+    final escaped = painter.motion.creaturePose(creature);
+    expect(escaped.visualScale, 1);
+    expect(escaped.position.dx, lessThan(pose.position.dx));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -298,8 +302,17 @@ void main() {
       }
       expect(find.byType(MapParallaxScene), findsOneWidget);
       expect(find.byType(MapLevelButton), findsNWidgets(20));
-      expect(find.text('20'), findsOneWidget);
-      expect(find.byKey(const ValueKey('map-world-gate')), findsNothing);
+      expect(
+        tester
+            .widgetList<MapLevelButton>(find.byType(MapLevelButton))
+            .map((button) => button.level),
+        orderedEquals(List.generate(20, (index) => index + 1)),
+      );
+      final gate = tester.widget<MapWorldGate>(
+        find.byKey(const ValueKey('map-world-gate')),
+      );
+      expect(gate.worldNumber, 2);
+      expect(gate.unlocked, isFalse);
       final first = tester
           .widgetList<MapLevelButton>(find.byType(MapLevelButton))
           .first;

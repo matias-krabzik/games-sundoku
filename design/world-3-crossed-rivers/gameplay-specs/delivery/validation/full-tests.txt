@@ -1,0 +1,942 @@
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.1.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  dev_build 1.1.9 (1.1.12 available)
+  hooks 2.0.2 (2.2.0 available)
+  jni 1.0.3 (1.1.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  native_toolchain_c 0.19.2 (0.19.5 available)
+  objective_c 9.5.0 (9.6.2 available)
+  package_info_plus 10.2.1 (10.2.2 available)
+  process_run 1.3.6 (1.3.7 available)
+  record_use 0.6.0 (1.1.1 available)
+  sensors_plus 7.1.0 (7.1.1 available)
+  sqflite_common 2.5.12 (2.5.13 available)
+  sqflite_common_ffi_web 1.1.3 (1.2.0 available)
+  sqlite3 3.5.2 (3.7.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  vector_math 2.4.0 (2.4.3 available)
+Got dependencies!
+23 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /Users/mati/Projects/Games/SunDoku/sundoku/test/quick_play_unlock_widget_test.dart
+00:00 +0: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: (setUpAll)
+00:00 +0: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:02 +1: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:02 +2: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:02 +3: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:03 +4: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:03 +5: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:03 +6: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:03 +7: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:04 +8: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:04 +9: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:04 +10: /Users/mati/Projects/Games/SunDoku/sundoku/test/contextual_help_widget_test.dart: contextual help selects a block and keeps play reachable (small=false)
+00:04 +11: /Users/mati/Projects/Games/SunDoku/sundoku/test/first_experience_test.dart: first Play opens tutorial once; map review preserves progress
+00:05 +12: /Users/mati/Projects/Games/SunDoku/sundoku/test/first_experience_test.dart: first Play opens tutorial once; map review preserves progress
+00:05 +13: /Users/mati/Projects/Games/SunDoku/sundoku/test/first_experience_test.dart: first Play opens tutorial once; map review preserves progress
+00:05 +14: /Users/mati/Projects/Games/SunDoku/sundoku/test/first_experience_test.dart: first Play opens tutorial once; map review preserves progress
+00:05 +15: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: home entry scrolls to the sun before revealing and playing each cue once
+00:05 +16: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: home entry scrolls to the sun before revealing and playing each cue once
+00:05 +17: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: home entry scrolls to the sun before revealing and playing each cue once
+00:05 +18: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: home entry scrolls to the sun before revealing and playing each cue once
+00:06 +19: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: home entry scrolls to the sun before revealing and playing each cue once
+00:06 +20: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:06 +21: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:06 +22: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:06 +23: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:06 +24: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:07 +25: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:07 +26: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: leave after 1 stars opens fresh round, then resumes its saved play
+00:07 +27: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:07 +28: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:07 +29: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:07 +30: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:08 +31: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:08 +32: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:08 +33: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:08 +34: /Users/mati/Projects/Games/SunDoku/sundoku/test/summit_gate_test.dart: summit enters world 3 with saved completion and reduced motion
+00:08 +35: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:08 +36: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:08 +37: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:09 +38: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:09 +39: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:09 +40: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:09 +41: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:09 +42: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:09 +43: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +44: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +45: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +46: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +47: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +48: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +49: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +50: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +51: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +52: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +53: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +54: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +55: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +56: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +57: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +58: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +59: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +60: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +61: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:10 +62: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +63: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +64: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +65: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +66: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +67: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +68: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +69: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +70: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +71: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +72: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +73: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +74: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +75: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +76: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +77: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +78: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +79: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +80: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +81: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +82: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +83: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +84: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:11 +85: /Users/mati/Projects/Games/SunDoku/sundoku/test/summit_gate_test.dart: summit stays dormant until last round then ignites, spins and opens rivers
+00:11 +86: /Users/mati/Projects/Games/SunDoku/sundoku/test/summit_gate_test.dart: summit stays dormant until last round then ignites, spins and opens rivers
+00:12 +87: /Users/mati/Projects/Games/SunDoku/sundoku/test/profile_test.dart: first home automatically asks for a name and hides level status
+00:12 +88: /Users/mati/Projects/Games/SunDoku/sundoku/test/profile_test.dart: first home automatically asks for a name and hides level status
+00:12 +89: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: desktop: conditions, HUD, life loss, timeout, retry and win
+00:12 +90: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:12 +91: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:12 +92: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:12 +93: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:12 +94: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:12 +95: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +96: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +97: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +98: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +99: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +100: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +101: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +102: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +103: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:13 +104: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:14 +105: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:14 +106: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:14 +107: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:14 +107: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map light handles rapid selection and reduced motion
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Junto a la cerca": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:233:5)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart line 233
+The test description was:
+  map light handles rapid selection and reduced motion
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:14 +107 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:14 +107 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map light handles rapid selection and reduced motion [E]
+  Test failed. See exception logs above.
+  The test description was: map light handles rapid selection and reduced motion
+  
+00:15 +108 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:15 +109 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:16 +110 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:16 +111 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:16 +112 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:16 +113 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:16 +114 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:16 +115 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:17 +116 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:17 +117 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:17 +118 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:17 +119 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map DEV menu offers world and specific level resets
+00:17 +120 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: generated game fills iPad without scrolling or losing play
+00:17 +121 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: generated game fills iPad without scrolling or losing play
+00:18 +122 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: generated game fills iPad without scrolling or losing play
+00:18 +122 -1: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map controls remain reachable with large text and rotation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a value greater than or equal to <47.99>
+  Actual: <44.0>
+   Which: is not a value greater than or equal to <47.99>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:308:11)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart line 308
+The test description was:
+  map controls remain reachable with large text and rotation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:18 +122 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: generated game fills iPad without scrolling or losing play
+00:18 +122 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: map controls remain reachable with large text and rotation [E]
+  Test failed. See exception logs above.
+  The test description was: map controls remain reachable with large text and rotation
+  
+00:18 +123 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: generated game fills iPad without scrolling or losing play
+00:18 +124 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 2.0
+00:18 +125 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 2.0
+00:18 +126 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 2.0
+00:19 +127 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 2.0
+00:19 +128 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 2.0
+00:20 +129 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:21 +129 -2: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.android
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:366:9)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart line 366
+The test description was:
+  mobile map shows arrows and lights locked selection on TargetPlatform.android
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:21 +129 -3: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:21 +129 -3: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.android [E]
+  Test failed. See exception logs above.
+  The test description was: mobile map shows arrows and lights locked selection on TargetPlatform.android
+  
+00:22 +129 -3: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.iOS
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:366:9)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart line 366
+The test description was:
+  mobile map shows arrows and lights locked selection on TargetPlatform.iOS
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:22 +129 -4: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:22 +129 -4: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: mobile map shows arrows and lights locked selection on TargetPlatform.iOS [E]
+  Test failed. See exception logs above.
+  The test description was: mobile map shows arrows and lights locked selection on TargetPlatform.iOS
+  
+00:22 +130 -4: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:22 +131 -4: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:22 +131 -4: /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart:105:7)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart:27:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart line 105
+The test description was:
+  saved rewards wait for return, scroll first and never award twice
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:22 +131 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:22 +131 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice [E]
+  Test failed. See exception logs above.
+  The test description was: saved rewards wait for return, scroll first and never award twice
+  
+00:23 +132 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:23 +133 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:23 +134 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/world_completion_recap_test.dart: world recap uses only an explicitly chosen name: null
+00:23 +135 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:23 +136 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:23 +136 -5: /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: points land on the played level, then unlock and focus the next
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart:207:7)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart:27:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart line 207
+The test description was:
+  points land on the played level, then unlock and focus the next
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:23 +136 -6: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:23 +136 -6: /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: points land on the played level, then unlock and focus the next [E]
+  Test failed. See exception logs above.
+  The test description was: points land on the played level, then unlock and focus the next
+  
+00:24 +136 -6: /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: reduced motion unlocks immediately and progress survives map reentry
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart:234:7)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart:27:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart line 234
+The test description was:
+  reduced motion unlocks immediately and progress survives map reentry
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:24 +136 -7: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:24 +136 -7: /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: reduced motion unlocks immediately and progress survives map reentry [E]
+  Test failed. See exception logs above.
+  The test description was: reduced motion unlocks immediately and progress survives map reentry
+  
+00:24 +136 -7: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:24 +137 -7: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:24 +137 -7: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: all ten levels remain reachable after rotating a small phone
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Los primeros pasos": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:425:9)
+<asynchronous suspension>
+#5      _desktopTestWidgets.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart:64:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart line 425
+The test description was:
+  all ten levels remain reachable after rotating a small phone
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:24 +137 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:24 +137 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/widget_test.dart: all ten levels remain reachable after rotating a small phone [E]
+  Test failed. See exception logs above.
+  The test description was: all ten levels remain reachable after rotating a small phone
+  
+00:24 +138 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:25 +139 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:25 +140 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:25 +141 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:26 +142 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:27 +142 -8: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: solved example tours all groups and fades only missing clues
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: an object with length of <9>
+  Actual: [32]
+   Which: has length of <1>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart:206:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart line 206
+The test description was:
+  solved example tours all groups and fades only missing clues
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:27 +142 -9: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:27 +142 -9: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: solved example tours all groups and fades only missing clues [E]
+  Test failed. See exception logs above.
+  The test description was: solved example tours all groups and fades only missing clues
+  
+00:27 +143 -9: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:27 +144 -9: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:27 +144 -9: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: review can advance immediately while tutorial animations run
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.widget (package:flutter_test/src/controller.dart:828:30)
+#2      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart:279:29)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  review can advance immediately while tutorial animations run
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:27 +144 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:27 +144 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: review can advance immediately while tutorial animations run [E]
+  Test failed. See exception logs above.
+  The test description was: review can advance immediately while tutorial animations run
+  
+00:27 +145 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:28 +146 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/desktop_game_layout_test.dart: large game layout and phone resize preserve play (TargetPlatform.macOS)
+00:28 +147 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:28 +148 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:28 +149 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +150 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +151 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +152 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +153 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +154 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +155 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +156 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +157 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +158 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +159 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +159 -10: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: step three highlights all nine 3x3 blocks in order
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: [0, 1, 2, 9, 10, 11, 18, 19, 20]
+  Actual: []
+   Which: at location [0] is [] which shorter than expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart:361:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart line 361
+The test description was:
+  step three highlights all nine 3x3 blocks in order
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:29 +159 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:29 +159 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: step three highlights all nine 3x3 blocks in order [E]
+  Test failed. See exception logs above.
+  The test description was: step three highlights all nine 3x3 blocks in order
+  
+00:29 +160 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +161 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +162 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +163 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +164 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +165 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +166 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +167 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +168 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +169 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +170 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +171 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +172 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +173 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:30 +174 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +175 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +176 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +177 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +178 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +179 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +180 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +181 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +182 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +183 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +184 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +185 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +186 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +187 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:31 +188 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +189 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +190 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +191 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +192 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +193 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +194 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +195 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +196 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +197 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +198 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +199 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +200 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +201 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:32 +201 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/data/device_game_feedback_test.dart: unsupported vibration cannot interrupt gameplay
+SunDoku feedback unavailable: PlatformException(unavailable, null, null, null)
+00:32 +202 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +203 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +204 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +205 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +206 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +207 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +208 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +209 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +210 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +211 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +212 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +213 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +214 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +215 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +216 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +217 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +218 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:33 +219 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +220 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +221 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +222 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +223 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +224 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +225 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +226 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +227 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +228 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +229 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +230 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +231 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +232 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +233 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:34 +234 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +235 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +236 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +237 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +238 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +239 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +240 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +241 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +242 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +243 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +244 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +245 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +246 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +247 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +248 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +249 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +250 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +251 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +252 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +253 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +254 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +255 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +256 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +257 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +258 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +259 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +260 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +261 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +262 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +263 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:35 +264 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +265 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +266 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +267 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +268 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +269 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +270 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +271 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +272 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +273 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +274 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +275 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +276 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +277 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +278 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +279 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +280 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +281 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +282 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +283 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +284 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +285 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +286 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +287 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +288 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +289 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:36 +290 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +291 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +292 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +293 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +294 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +295 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +296 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +297 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +298 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +299 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +300 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +301 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +302 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +303 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +304 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +305 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +306 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +307 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +308 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +309 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +310 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +311 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +312 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +313 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +314 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +315 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +316 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +317 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +318 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +319 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:37 +320 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:38 +321 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:38 +322 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +323 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +324 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +325 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +326 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +327 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +328 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +329 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:39 +330 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:40 +331 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:40 +332 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:40 +333 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:40 +334 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:40 +335 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: victory 3 fans the actual solved boards
+00:40 +336 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:40 +337 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:40 +338 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:40 +339 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:40 +340 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +341 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +342 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +343 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +344 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +345 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +346 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +347 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:41 +348 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +348 -11: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart: tapping near a world-three insect starts its escape
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a value greater than <1>
+  Actual: <1.0>
+   Which: is not a value greater than <1>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart:183:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart line 183
+The test description was:
+  tapping near a world-three insect starts its escape
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:42 +348 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +348 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart: tapping near a world-three insect starts its escape [E]
+  Test failed. See exception logs above.
+  The test description was: tapping near a world-three insect starts its escape
+  
+00:42 +349 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +350 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +351 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +352 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +353 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +354 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +355 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:42 +356 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +357 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +358 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +359 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +360 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +361 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +361 -12: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart: 20-level map keeps selection and saved progress when resized
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: no matching candidates
+  Actual: _KeyWidgetFinder:<Found 1 widget with key [<'map-world-gate'>]: [
+            MapWorldGate-[<'map-world-gate'>](dependencies: [MediaQuery, _EffectiveTickerMode,
+_ModalScopeStatus], state: _MapWorldGateState#ead23(tickers: tracking 2 tickers)),
+          ]>
+   Which: means one was found but none were expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart:302:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart line 302
+The test description was:
+  20-level map keeps selection and saved progress when resized
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:43 +361 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/domain/scoring/adventure_calibration_test.dart: R09/R10/R12: 270 unique deterministic boards and playable score margins
+00:43 +361 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/configurable_map_test.dart: 20-level map keeps selection and saved progress when resized [E]
+  Test failed. See exception logs above.
+  The test description was: 20-level map keeps selection and saved progress when resized
+  
+00:43 +362 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/sudoku_expansion_test.dart: lesson tiles animate only the affected groups and reverse together
+00:43 +363 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/sudoku_expansion_test.dart: lesson tiles animate only the affected groups and reverse together
+00:43 +364 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +365 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +366 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +367 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +368 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +369 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +370 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +371 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +372 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:44 +373 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +374 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +375 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +376 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +377 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +378 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +379 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +380 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: game DEV can leave one cell and replay the completed sudoku
+00:45 +381 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/tutorial_story_test.dart: writes progressively, then animates the tip without moving the card
+00:45 +382 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/tutorial_story_test.dart: writes progressively, then animates the tip without moving the card
+00:45 +383 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/tutorial_story_test.dart: writes progressively, then animates the tip without moving the card
+00:45 +384 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/tutorial_story_test.dart: writes progressively, then animates the tip without moving the card
+00:45 +385 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/tutorial_story_test.dart: writes progressively, then animates the tip without moving the card
+00:45 +386 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +387 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +388 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +389 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +390 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +391 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +392 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +393 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +394 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +395 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +396 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +397 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:46 +398 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:47 +399 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: the final board wave stays visible before showing the reward
+00:47 +400 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +401 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +402 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +403 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +404 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +405 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +406 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:47 +407 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:48 +408 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:48 +409 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:48 +410 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:48 +411 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:49 +412 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:49 +413 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:50 +413 -13: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: step navigation stays locked for the entire board animation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: 'rowRule'
+  Actual: 'expansion'
+   Which: is different.
+          Expected: rowRule
+            Actual: expansion
+                    ^
+           Differ at offset 0
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart:1026:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart line 1026
+The test description was:
+  step navigation stays locked for the entire board animation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:50 +413 -14: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:50 +413 -14: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: step navigation stays locked for the entire board animation [E]
+  Test failed. See exception logs above.
+  The test description was: step navigation stays locked for the entire board animation
+  
+00:50 +414 -14: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:50 +414 -14: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: board animates into play before briefing and controls wait for acceptance
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: be in range from 171.0 (exclusive) to 171.0 (exclusive)
+  Actual: <171.0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart:1079:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart line 1079
+The test description was:
+  board animates into play before briefing and controls wait for acceptance
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:50 +414 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:50 +414 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: board animates into play before briefing and controls wait for acceptance [E]
+  Test failed. See exception logs above.
+  The test description was: board animates into play before briefing and controls wait for acceptance
+  
+00:51 +415 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/map_parallax_scene_test.dart: map renders the separated landscape on phone and tablet (variant: TargetPlatform.macOS)
+00:51 +416 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:51 +417 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:51 +418 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:51 +419 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:51 +420 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +420 -15: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: stories explain the rules without exercises and keep the same board for all three games
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: 'expansion'
+  Actual: 'blockIntroduction'
+   Which: is different.
+          Expected: expansion
+            Actual: blockIntro ...
+                    ^
+           Differ at offset 0
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart:1225:9)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart line 1225
+The test description was:
+  stories explain the rules without exercises and keep the same board for all three games
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:52 +420 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +420 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: stories explain the rules without exercises and keep the same board for all three games [E]
+  Test failed. See exception logs above.
+  The test description was: stories explain the rules without exercises and keep the same board for all three games
+  
+00:52 +421 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +422 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +423 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +424 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +425 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +426 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +427 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +428 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +429 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +430 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +431 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:52 +432 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:53 +433 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:53 +434 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: tutorial reveals before advancing and keeps actions visible at every size
+00:53 +435 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:53 +436 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:53 +437 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:54 +438 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/forest_world_ui_test.dart: forest map renders all 20 numbers and keeps layers through horizontal scroll
+00:54 +439 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:57 +440 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+01:03 +441 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: manual steps keep the scene stable on phone and landscape
+01:09 +442 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: resumed demo pauses in background and preserves playback through resize
+01:12 +443 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: reduced motion shows final demonstrations and replay never changes the save
+01:13 +444 -16: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: (tearDownAll)
+01:13 +444 -16: Some tests failed.
+
+Failing tests:
+  /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: points land on the played level, then unlock and focus the next
+  /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: reduced motion unlocks immediately and progress survives map reentry
+  /Users/mati/Projects/Games/SunDoku/sundoku/test/level_unlock_test.dart: saved rewards wait for return, scroll first and never award twice
+  /Users/mati/Projects/Games/SunDoku/sundoku/test/tutorial_journey_widget_test.dart: board animates into play before briefing and controls wait for acceptance
+  ... and 12 more
