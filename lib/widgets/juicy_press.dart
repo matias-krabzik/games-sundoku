@@ -52,6 +52,7 @@ class _JuicyPressState extends State<JuicyPress>
 
   Future<void> _activate() async {
     if (_busy || widget.onPressed == null) return;
+    final onPressed = widget.onPressed;
     _busy = true;
     try {
       if (!_feedbackSent) widget.onFeedback?.call();
@@ -65,7 +66,7 @@ class _JuicyPressState extends State<JuicyPress>
             )
             .orCancel;
       }
-      if (mounted) await widget.onPressed?.call();
+      if (mounted) await onPressed?.call();
     } on TickerCanceled {
       // Closing the parent route may dispose a button while it springs back.
     } finally {
@@ -127,8 +128,8 @@ class _JuicyPressState extends State<JuicyPress>
                 final amount = _reduced ? 0.0 : _press.value;
                 final hoverScale =
                     widget.onPressed == null || _reduced || !_hovered
-                        ? 0.0
-                        : .018;
+                    ? 0.0
+                    : .018;
                 return Transform.translate(
                   offset: Offset(0, amount * 3.5),
                   child: Transform.scale(
@@ -139,7 +140,10 @@ class _JuicyPressState extends State<JuicyPress>
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22),
                         border: _focused
-                            ? Border.all(color: const Color(0xFF2466A7), width: 3)
+                            ? Border.all(
+                                color: const Color(0xFF2466A7),
+                                width: 3,
+                              )
                             : null,
                       ),
                       child: widget.builder(context, amount),

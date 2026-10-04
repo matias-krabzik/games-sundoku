@@ -353,6 +353,60 @@ void main() {
     );
   }
 
+  test('map acknowledges intermediate victories only, without starting the next clock', () async {
+    final repo = await challengeRepository(MemorySaveStore());
+    addTearDown(repo.close);
+    final session = await startChallenge(repo);
+    for (var round = 0; round < 3; round++) {
+      await winRound(repo, session.id, round);
+      final result = roundBoard(
+        repo,
+        session.id,
+        round,
+      ).attempt!.result!.toJson();
+      await repo.acknowledgeIntermediateWin(session.id);
+      await repo.acknowledgeIntermediateWin(session.id);
+      expect(repo.state.sessions[session.id]!.lights, round + 1);
+      expect(
+        roundBoard(repo, session.id, round).attempt!.result!.toJson(),
+        result,
+      );
+      if (round < 2) {
+        expect(repo.state.sessions[session.id]!.pendingResult, isNull);
+        expect(roundBoard(repo, session.id, round + 1).elapsedMs, 0);
+      } else {
+        expect(repo.state.sessions[session.id]!.pendingResult, isNotNull);
+      }
+    }
+  });
+  test(
+    'map acknowledgement preserves failure and rolls back a failed write',
+    () async {
+      final store = FailingStore();
+      final repo = await challengeRepository(store);
+      addTearDown(repo.close);
+      final session = await startChallenge(repo);
+      await winRound(repo, session.id);
+      final saved = repo.state.toJson();
+      store.failNext = true;
+      await expectLater(
+        repo.acknowledgeIntermediateWin(session.id),
+        throwsException,
+      );
+      expect(repo.state.toJson(), saved);
+      await repo.acknowledgeIntermediateWin(session.id);
+      final board = roundBoard(repo, session.id, 1);
+      await repo.addElapsed(
+        session.id,
+        board.puzzleId,
+        board.attempt!.rules.timeLimitMs,
+      );
+      final failed = repo.state.toJson();
+      await repo.acknowledgeIntermediateWin(session.id);
+      expect(repo.state.toJson(), failed);
+    },
+  );
+
   test('S09/S10: legacy migration keeps whole session unrestricted, next session opts in', () async {
     final raw = await File(
       'test/fixtures/world3-baseline/world-3-in-progress.json',

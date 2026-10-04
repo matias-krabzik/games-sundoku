@@ -847,6 +847,30 @@ class GameRepository extends ChangeNotifier {
       throw StateError('The remaining cell must be editable');
     }
     final board = session.puzzles.firstWhere((p) => p.puzzleId == puzzleId);
+    if (board.attempt != null) {
+      // Rehearse a clean attempt through the real scoring engine, leaving the
+      // last move to the player so the normal saved-result flow runs.
+      var clean = PuzzleProgress.initial(definition).copyWith(
+        status: board.status,
+        attempt: board.attempt,
+        extra: board.extra,
+      );
+      for (var i = 0; i < definition.initial.length; i++) {
+        if (definition.isFixed(i) || i == emptyIndex) continue;
+        clean = SudokuScoring.move(
+          puzzle: definition,
+          before: clean,
+          after: clean.copyWith(
+            cells: [...clean.cells]
+              ..[i] = CellProgress(value: definition.solution[i]),
+          ),
+          index: i,
+          hintUsed: false,
+          isError: false,
+        );
+      }
+      return _replaceBoard(save, session, clean);
+    }
     final updated = board.copyWith(
       cells: [
         for (var i = 0; i < board.cells.length; i++)
@@ -1081,6 +1105,24 @@ class GameRepository extends ChangeNotifier {
       board.copyWith(attempt: attempt.copyWith(acknowledged: true)),
     );
   });
+
+  /// Leaving an intermediate victory returns to the next, unstarted round.
+  /// Failures and the final level result still need their own result screen.
+  Future<void> acknowledgeIntermediateWin(String sessionId) async {
+    final session = state.sessions[sessionId];
+    final board = session?.pendingResult;
+    if (session == null ||
+        board == null ||
+        board.attempt!.result!.outcome != ChallengeOutcome.won ||
+        session.puzzles.last.puzzleId == board.puzzleId) {
+      return;
+    }
+    await acknowledgeRoundResult(
+      sessionId,
+      board.puzzleId,
+      attemptId: board.attempt!.id,
+    );
+  }
 
   /// Retry only this failed round with a fresh puzzle at the same level.
   /// The definition and reset attempt are published in one atomic save.

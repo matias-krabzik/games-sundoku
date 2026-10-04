@@ -22,7 +22,7 @@ puntaje dentro de un mismo sudoku.
    aprobado**, iluminar la estrella, hacer un pulso corto y reproducir el sonido y
    partículas existentes. La estrella queda encendida al concluir.
 5. Al finalizar el conteo, mostrar Continuar para éxito o Reintentar para fallo.
-   Conservar la salida al mapa según el flujo actual. No avanzar automáticamente.
+   Al salir al mapa después de la primera o segunda estrella, reconocer el resultado y dejar preparada la siguiente ronda sin iniciar su reloj. El mapa ofrece «Continuar»; al entrar, la ronda nueva ofrece «Jugar». Si ya estaba iniciada, se conserva su tablero y ofrece «Continuar». Los fallos y la tercera estrella conservan «Ver resultado».
 
 La referencia de escala de la barra se fija al entrar al resultado; debe incluir
 meta y puntaje final y permitir identificar dónde se cruza el umbral. Propuesta:
@@ -90,7 +90,9 @@ o esperas reales. Las pruebas de dominio de W3-02 siguen siendo la autoridad del
 
 ## Cierre
 
-- [ ] A01–A10 cubiertos, con video de éxito y fallo en app/widgets reales.
-- [ ] La lógica funciona igual al omitir por completo la animación.
-- [ ] No hay celebraciones anticipadas, barras saltando ni doble navegación.
-- [ ] Aspecto coherente con los resúmenes y recursos existentes.
+- [x] A01–A10 cubiertos, con video de éxito y fallo en app/widgets reales.
+- [x] La lógica funciona igual al omitir por completo la animación.
+- [x] No hay celebraciones anticipadas, barras saltando ni doble navegación.
+- [x] Aspecto coherente con los resúmenes y recursos existentes.
+
+Implementación, pruebas, videos y alcance: [W3-05](results/README.md).

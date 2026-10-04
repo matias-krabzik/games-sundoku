@@ -414,6 +414,7 @@ class ChallengeTutorialSummary extends StatelessWidget {
                       size: 36,
                       points: frame.points,
                       target: ChallengeLesson.rules.targetPoints,
+                      ceiling: ChallengeLesson.rules.perfectPoints,
                     )
                   : Column(
                       mainAxisSize: MainAxisSize.min,

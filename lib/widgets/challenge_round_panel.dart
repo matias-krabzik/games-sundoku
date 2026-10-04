@@ -10,20 +10,41 @@ import 'illustrated_action_button.dart';
 import 'challenge_award.dart';
 import 'score_feedback.dart';
 import 'ui_surface_art.dart';
+import 'challenge_result_reveal.dart';
+import 'tutorial_activity.dart';
 
-/// Static presentation of an already saved result, also used before first play.
+/// Presentation of an already saved result, also used before first play.
 /// Awards and attempt transitions belong to the repository, never this widget.
 class ChallengeRoundPanel extends StatelessWidget {
   const ChallengeRoundPanel({
     super.key,
     required this.flow,
     required this.onExit,
+    this.animateResult = false,
   });
   final FirstExperienceController flow;
   final VoidCallback onExit;
+  final bool animateResult;
 
   @override
   Widget build(BuildContext context) {
+    final attempt = flow.puzzleProgress!.attempt!;
+    final result = attempt.result;
+    if (result == null) return _panel(context, null);
+    return TutorialActivity(
+      child: ChallengeResultReveal(
+        key: ValueKey(attempt.id),
+        points: result.points,
+        target: attempt.rules.targetPoints,
+        won: result.outcome == ChallengeOutcome.won,
+        animate: animateResult,
+        builder: (context, reveal) =>
+            FocusScope(autofocus: true, child: _panel(context, reveal)),
+      ),
+    );
+  }
+
+  Widget _panel(BuildContext context, ChallengeResultRevealState? reveal) {
     final board = flow.puzzleProgress!;
     final rules = board.attempt!.rules;
     final result = board.attempt!.result;
@@ -54,7 +75,9 @@ class ChallengeRoundPanel extends StatelessWidget {
       scopesRoute: true,
       explicitChildNodes: true,
       namesRoute: true,
-      label: title,
+      label: ready
+          ? title
+          : '$title. ${formatScore(board.points)} puntos. Meta: ${formatScore(rules.targetPoints)}. $message',
       child: SafeArea(
         minimum: const EdgeInsets.all(16),
         child: Center(
@@ -96,9 +119,27 @@ class ChallengeRoundPanel extends StatelessWidget {
                                     style: homeText(compact ? 24 : 30),
                                   ),
                                   const SizedBox(height: 12),
-                                  ChallengeAward(
-                                    stars: flow.session!.lights,
-                                    size: compact ? 40 : 56,
+                                  ExcludeSemantics(
+                                    child: ChallengeAward(
+                                      stars:
+                                          flow.session!.lights -
+                                          (won && reveal?.earned != true
+                                              ? 1
+                                              : 0),
+                                      size: compact ? 40 : 56,
+                                      points: ready
+                                          ? null
+                                          : reveal?.points ?? board.points,
+                                      target: ready ? null : rules.targetPoints,
+                                      ceiling: math.max(
+                                        rules.perfectPoints,
+                                        board.points,
+                                      ),
+                                      pulseIndex: won
+                                          ? flow.session!.lights - 1
+                                          : null,
+                                      pulseScale: reveal?.pulse ?? 1,
+                                    ),
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -107,16 +148,15 @@ class ChallengeRoundPanel extends StatelessWidget {
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 18),
-                                  Text(
-                                    ready
-                                        ? 'Meta: ${formatScore(rules.targetPoints)} puntos'
-                                        : '${formatScore(board.points)} / ${formatScore(rules.targetPoints)} puntos',
-                                    key: const ValueKey(
-                                      'challenge-panel-points',
+                                  if (ready)
+                                    Text(
+                                      'Meta: ${formatScore(rules.targetPoints)} puntos',
+                                      key: const ValueKey(
+                                        'challenge-panel-points',
+                                      ),
+                                      style: homeText(24),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    style: homeText(24),
-                                    textAlign: TextAlign.center,
-                                  ),
                                   const SizedBox(height: 6),
                                   Text(
                                     ready
@@ -155,6 +195,8 @@ class ChallengeRoundPanel extends StatelessWidget {
                         key: const ValueKey('challenge-primary'),
                         label: flow.isBusy
                             ? 'Guardando…'
+                            : reveal?.complete == false
+                            ? 'Mostrar resultado'
                             : ready
                             ? 'Jugar'
                             : won
@@ -164,6 +206,8 @@ class ChallengeRoundPanel extends StatelessWidget {
                         fontSize: compact ? 20 : 24,
                         onPressed: flow.isBusy
                             ? null
+                            : reveal?.complete == false
+                            ? reveal!.finish
                             : ready
                             ? flow.resumeGame
                             : won

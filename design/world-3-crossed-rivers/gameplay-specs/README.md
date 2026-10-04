@@ -2,13 +2,14 @@
 
 Especificaciones de implementación · 03/10/2026.
 
-Estado: **W3-00 registrada; W3-01–04 completadas**. Base: commit `a598639`.
+Estado: **W3-00 registrada; W3-01–05 completadas**. Base: commit `a598639`.
 W3-00 cuenta con [referencia técnica y capturas](baseline/README.md). D06 quedó
 resuelta: límite de tiempo activo para ganar la estrella, sin bonus de rapidez.
 W3-03 activa en la app las sesiones nuevas del mundo 3 con resultado estático,
 reintento y cuenta regresiva. Las sesiones heredadas conservan sus reglas.
 [Evidencia visible y validaciones](gameplay/README.md). W3-04 añade la introducción y el repaso con [capturas y video](introduction/README.md).
-W3-05–06 siguen pendientes.
+W3-05 agrega el [resultado animado y la validación de DEV](results/README.md).
+W3-06 sigue pendiente.
 Estas especificaciones incorporan las últimas correcciones del usuario; reemplazan
 la propuesta anterior de exigir una partida perfecta en todos los niveles 21–30.
 
@@ -87,7 +88,7 @@ estados anteriores: verificar el código y el catálogo antes de implementar.
 - [x] W3-02: persistencia y compatibilidad verificadas; [evidencia](persistence/README.md).
 - [x] W3-03: flujo jugable y responsive verificados en pruebas automatizadas; [evidencia y límites](gameplay/README.md).
 - [x] W3-04: introducción y repaso verificados con pruebas y capturas; [evidencia y alcance](introduction/README.md).
-- [ ] W3-05: contador y estrella verificados.
+- [x] W3-05: contador, estrella y DEV verificados; [evidencia y alcance](results/README.md).
 - [ ] W3-06: regresión y revisión visual cerradas con evidencia.
 
 El checklist distingue trabajo terminado y pendiente. Las etapas de dominio no

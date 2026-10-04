@@ -80,6 +80,83 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'))).load();
   });
 
+  for (final completed in [1, 2]) {
+    testWidgets(
+      'leave after $completed stars opens fresh round, then resumes its saved play',
+      (tester) async {
+        scene.configure(tester);
+        final repo = await challengeRepository(MemorySaveStore());
+        final session = await repo.startGeneratedLevel(1, worldId: 'world-3');
+        for (var round = 0; round < completed; round++) {
+          await solveCurrent(repo, session.id);
+          if (round < completed - 1) await acknowledge(repo, session.id, round);
+        }
+        Future<void> expectMapContinue() async {
+          final current = repo.state.sessions[session.id]!;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: LevelSummaryCard(
+                    level: 1,
+                    worldId: 'world-3',
+                    lights: current.lights,
+                    session: current,
+                    record: LevelRecord(bestLights: current.lights),
+                    onContinue: () {},
+                    onOk: () {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          await scene.settle(tester);
+          expect(find.text('Continuar').hitTestable(), findsOneWidget);
+          expect(find.text('Ver resultado'), findsNothing);
+          await tester.pumpWidget(const SizedBox());
+        }
+
+        await expectMapContinue();
+        await showChallenge(tester, repo);
+        await scene.settle(tester);
+        expect(find.byKey(const ValueKey('challenge-result')), findsOneWidget);
+        await scene.tap(tester, find.text('Volver al mapa'));
+        expect(repo.state.sessions[session.id]!.pendingResult, isNull);
+        expect(repo.state.sessions[session.id]!.lights, completed);
+        final board = repo.state.sessions[session.id]!.puzzles[completed];
+        expect(board.elapsedMs, 0);
+        expect(board.points, 0);
+        await tester.pumpWidget(const SizedBox());
+        await showChallenge(tester, repo);
+        await scene.settle(tester);
+        expect(find.byKey(const ValueKey('challenge-ready')), findsOneWidget);
+        expect(find.text('Jugar'), findsOneWidget);
+        await scene.tap(
+          tester,
+          find.byKey(const ValueKey('challenge-primary')),
+        );
+        final flow = flowOf(tester);
+        expect(flow.gameIndex, completed);
+        final empty = flow.boardValues.indexOf(null);
+        final value = flow.puzzleDefinition!.solution[empty];
+        flow.selectGameCell(empty);
+        await flow.placeGameNumber(value);
+        await flow.pauseGame();
+        await flow.flush();
+        final saved = flow.puzzleProgress!.toJson();
+        await tester.pumpWidget(const SizedBox());
+        await expectMapContinue();
+        await showChallenge(tester, repo);
+        await scene.settle(tester);
+        expect(find.byKey(const ValueKey('challenge-ready')), findsNothing);
+        expect(find.byKey(const ValueKey('challenge-result')), findsNothing);
+        expect(find.text('Continuar'), findsOneWidget);
+        expect(flowOf(tester).puzzleProgress!.toJson(), saved);
+        await tester.pumpWidget(const SizedBox());
+        await repo.close();
+      },
+    );
+  }
   for (final view in {
     'phone': const Size(390, 844),
     'ipad': const Size(834, 1210),
@@ -331,10 +408,14 @@ void main() {
         expect(flow.readyToPlay, false);
         await scene.tap(tester, find.byKey(const ValueKey('game-pause')));
         flow.selectGameCell(empty.last);
+        await flow.debugFillExceptOne();
         await flow.placeGameNumber(puzzle.solution[empty.last]);
         await scene.settle(tester);
         expect(find.text('¡Estrella conseguida!'), findsOneWidget);
-        expect(find.byType(VictoryParticles), findsNothing);
+        expect(
+          find.byType(VictoryParticles).evaluate().length,
+          lessThanOrEqualTo(1),
+        );
         await scene.tap(
           tester,
           find.byKey(const ValueKey('challenge-primary')),

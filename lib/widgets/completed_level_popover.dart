@@ -249,7 +249,10 @@ class LevelSummaryCard extends StatelessWidget {
                     : const ValueKey('level-summary-continue'),
                 primaryLabel: _isComplete
                     ? null
-                    : session?.pendingResult != null
+                    : session?.pendingResult != null &&
+                          (session!.pendingResult!.status !=
+                                  PlayStatus.completed ||
+                              session!.lights == 3)
                     ? 'Ver resultado'
                     : 'Continuar',
                 primaryFontSize: dense ? 17 : 20,

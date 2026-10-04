@@ -302,7 +302,11 @@ class _SunDokuAppState extends State<SunDokuApp> {
       await _forestReady(context);
       return;
     }
-    await _repository.startGeneratedLevel(number, worldId: worldId);
+    final session = await _repository.startGeneratedLevel(
+      number,
+      worldId: worldId,
+    );
+    await _repository.acknowledgeIntermediateWin(session.id);
     if (!context.mounted) return;
     final route = WorldJourneyRoute(
       settings: const RouteSettings(name: AppRoutes.game),

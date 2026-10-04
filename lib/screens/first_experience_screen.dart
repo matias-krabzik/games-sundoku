@@ -271,6 +271,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   bool _settingsOpen = false;
   bool _skippingTutorial = false;
   bool _boardAnimating = false;
+  String? _animatedChallengeAttempt;
   SudokuCompletion? _pendingBoardCompletion;
   late SudokuCompletion? _previousCompletion = _flow.completion;
   bool get _finishingBoard => _pendingBoardCompletion != null;
@@ -672,6 +673,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   }
 
   void _changed() {
+    if (_previousStep == FirstExperienceStep.playing &&
+        _flow.step == FirstExperienceStep.challengeResult) {
+      _animatedChallengeAttempt = _flow.puzzleProgress?.attempt?.id;
+    }
     if (_previousStep != _flow.step) {
       _finishedStoryStep = null;
       if (_flow.step == FirstExperienceStep.solvedExample &&
@@ -764,6 +769,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       try {
         await _flow.pauseGame();
         await _flow.flush();
+        if (_flow.isChallenge) {
+          await widget.repository.acknowledgeIntermediateWin(_flow.session!.id);
+        }
         if (mounted) Navigator.of(context).maybePop();
       } catch (_) {
         if (mounted) {
@@ -1050,6 +1058,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                 child: BlockSemantics(
                   child: ChallengeRoundPanel(
                     flow: _flow,
+                    animateResult:
+                        _animatedChallengeAttempt ==
+                        _flow.puzzleProgress?.attempt?.id,
                     onExit: () => _back(),
                   ),
                 ),
