@@ -14,6 +14,7 @@ import '../../domain/models/quick_play_difficulty.dart';
 import '../../domain/models/json_data.dart';
 import '../../domain/models/player_profile.dart';
 import '../../domain/models/sudoku_definition.dart';
+import '../../domain/tutorial/challenge_lesson.dart';
 import '../../domain/tutorial/tutorial_sudokus.dart';
 import '../level_catalog.dart';
 import '../world_catalog.dart';
@@ -147,6 +148,18 @@ class GameRepository extends ChangeNotifier {
     );
     return previousWorld.length == 1 && worldCompleted(previousWorld.single.id);
   }
+
+  bool get challengeTutorialCompleted {
+    final lesson = state.modules[ChallengeLesson.key];
+    return lesson is Map &&
+        lesson['version'] == 1 &&
+        lesson['completed'] == true;
+  }
+
+  bool needsChallengeTutorial(int level) =>
+      isWorldUnlocked('world-3') &&
+      !challengeTutorialCompleted &&
+      previewChallenge(level, worldId: 'world-3') != null;
 
   bool get notesTutorialCompleted {
     final lesson = state.modules['tutorials/notes/v1'];
@@ -1069,7 +1082,8 @@ class GameRepository extends ChangeNotifier {
     );
   });
 
-  /// Retry only this failed round, retaining the original rules and definition.
+  /// Retry only this failed round with a fresh puzzle at the same level.
+  /// The definition and reset attempt are published in one atomic save.
   Future<void> retryRound(
     String sessionId,
     String puzzleId, {
@@ -1092,17 +1106,46 @@ class GameRepository extends ChangeNotifier {
         session.pendingResult?.puzzleId != puzzleId) {
       throw StateError('Only the current failed attempt can be retried');
     }
-    final reset = PuzzleProgress.initial(save.puzzles[puzzleId]!).copyWith(
+    SudokuDefinition? replacement;
+    for (var candidate = 0; candidate < 32; candidate++) {
+      final generated = SeededSudokus.create(
+        id: puzzleId,
+        // Stable across failed writes, unique for each accepted retry.
+        seed: '${save.player.id}/$puzzleId/retry/${attempt.id}/$candidate',
+      );
+      final repeated = session.puzzles.any((round) {
+        final existing = save.puzzles[round.puzzleId]!;
+        return listEquals(existing.initial, generated.initial) ||
+            listEquals(existing.solution, generated.solution);
+      });
+      if (!repeated) {
+        replacement = generated;
+        break;
+      }
+    }
+    if (replacement == null) {
+      throw StateError('Could not generate a distinct retry sudoku');
+    }
+    final rules = AdventureChallenges.forPuzzle(
+      worldId: attempt.rules.worldId,
+      level: attempt.rules.level,
+      puzzle: replacement,
+    )!;
+    final reset = PuzzleProgress.initial(replacement).copyWith(
       extra: board.extra,
       attempt: RoundAttempt(
         id: const Uuid().v4(),
         number: attempt.number + 1,
         previousId: attempt.id,
-        rules: attempt.rules,
+        rules: rules,
         extra: attempt.extra,
       ),
     );
-    return _replaceBoard(save, session, reset);
+    return _replaceBoard(
+      save.copyWith(puzzles: {...save.puzzles, puzzleId: replacement}),
+      session,
+      reset,
+    );
   });
 
   GameSession _playable(GameSave save, String sessionId, String puzzleId) {

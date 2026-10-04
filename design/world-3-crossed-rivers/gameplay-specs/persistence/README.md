@@ -74,3 +74,25 @@ W3-03 conectará resultado estático, Reintentar/Continuar, barra de vidas/meta/
 y navegación, usando estos comandos. W3-04/05 incorporarán introducción y animación.
 Los cuatro fallos visuales preexistentes fuera de las suites seleccionadas siguen
 registrados en [W3-00](../baseline/README.md); no se declara una suite global limpia.
+
+
+## Corrección: sudoku distinto al reintentar · 03/10/2026
+
+`retryRound` genera nuevas pistas y solución con el generador de aventura,
+conservando el identificador lógico de la ronda. La semilla depende del intento
+fallido: una escritura rechazada no publica otro tablero y permite reintentar
+el mismo guardado. La definición nueva y el intento vacío se confirman juntos.
+Doble toque o callback atrasado no generan otro sudoku.
+
+Las condiciones del nivel se mantienen; la meta se calibra con el puntaje
+perfecto del nuevo sudoku. Las rondas aprobadas conservan tableros, puntos y
+estrellas. Reabrir o reanudar conserva exactamente el intento guardado.
+
+**45 pruebas aprobadas**: 27 de persistencia y widgets, 18 de reglas y reloj.
+Incluyen cuatro reintentos sucesivos en niveles 1, 11, 21 y 30, tableros distintos,
+solución única, resolución mediante singles, meta alcanzable, guardado fallido,
+doble toque, reapertura y actualización del tablero real en cuatro tamaños.
+[Persistencia y UI](validation/retry-new-puzzle-tests.txt) ·
+[Reglas y reloj](validation/retry-rules-tests.txt) ·
+[Análisis estático](validation/retry-analysis.txt): sin errores ni warnings,
+cuatro infos preexistentes en fauna/parallax.

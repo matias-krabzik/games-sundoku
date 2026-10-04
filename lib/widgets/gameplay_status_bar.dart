@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'settings_art.dart';
 import 'score_feedback.dart';
 import 'ui_surface_art.dart';
-import 'home_art.dart';
+import 'challenge_lives.dart';
 
 /// Shared game HUD, with optional lives and target for adventure challenges.
 class GameplayStatusBar extends StatelessWidget {
@@ -32,35 +32,31 @@ class GameplayStatusBar extends StatelessWidget {
     final content = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Semantics(
-          key: ValueKey(
-            initialLives == null
-                ? 'game-unlimited-lives'
-                : 'game-limited-lives',
-          ),
-          label: initialLives == null
-              ? 'Vidas infinitas. No pierdes vidas al equivocarte.'
-              : '$remainingLives de $initialLives vidas',
-          image: true,
-          excludeSemantics: true,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 19 * .878 / .674 * scale,
-                height: 19 * scale,
-                child: const SettingsArtRegion(
-                  asset: 'assets/images/tutorial/lives-icons.png',
-                  region: Rect.fromLTRB(.028, .163, .467, .837),
+        if (initialLives != null)
+          ChallengeLives(
+            key: const ValueKey('game-limited-lives'),
+            remaining: remainingLives ?? initialLives!,
+            total: initialLives!,
+            size: 22 * scale,
+          )
+        else
+          Semantics(
+            key: const ValueKey('game-unlimited-lives'),
+            label: 'Vidas infinitas. No pierdes vidas al equivocarte.',
+            image: true,
+            excludeSemantics: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 19 * .878 / .674 * scale,
+                  height: 19 * scale,
+                  child: const SettingsArtRegion(
+                    asset: 'assets/images/tutorial/lives-icons.png',
+                    region: Rect.fromLTRB(.028, .163, .467, .837),
+                  ),
                 ),
-              ),
-              SizedBox(width: 6 * scale),
-              if (initialLives != null)
-                Text(
-                  '$remainingLives/$initialLives',
-                  style: homeText(20 * scale),
-                )
-              else
+                SizedBox(width: 6 * scale),
                 SizedBox(
                   width: 15 * .954 / .503 * scale,
                   height: 15 * scale,
@@ -69,9 +65,9 @@ class GameplayStatusBar extends StatelessWidget {
                     region: Rect.fromLTRB(.508, .250, .985, .753),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),

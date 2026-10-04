@@ -1,0 +1,98 @@
+Resolving dependencies...
+Downloading packages...
+  code_assets 1.2.1 (2.1.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  dev_build 1.1.9 (1.1.12 available)
+  hooks 2.0.2 (2.2.0 available)
+  jni 1.0.3 (1.1.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  native_toolchain_c 0.19.2 (0.19.5 available)
+  objective_c 9.5.0 (9.6.2 available)
+  package_info_plus 10.2.1 (10.2.2 available)
+  process_run 1.3.6 (1.3.7 available)
+  record_use 0.6.0 (1.1.1 available)
+  sensors_plus 7.1.0 (7.1.1 available)
+  sqflite_common 2.5.12 (2.5.13 available)
+  sqflite_common_ffi_web 1.1.3 (1.2.0 available)
+  sqlite3 3.5.2 (3.7.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  vector_math 2.4.0 (2.4.3 available)
+Got dependencies!
+23 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /Users/mati/Projects/Games/SunDoku/sundoku/test/controllers/challenge_tutorial_controller_test.dart
+00:00 +0: /Users/mati/Projects/Games/SunDoku/sundoku/test/controllers/challenge_tutorial_controller_test.dart: progress restores; skip recognizes once without awarding anything
+00:00 +1: /Users/mati/Projects/Games/SunDoku/sundoku/test/controllers/challenge_tutorial_controller_test.dart: failed acknowledgement stays pending; replay never changes saves
+00:00 +2: /Users/mati/Projects/Games/SunDoku/sundoku/test/controllers/challenge_tutorial_controller_test.dart: locked worlds cannot open lesson or replay
+00:00 +3: /Users/mati/Projects/Games/SunDoku/sundoku/test/controllers/challenge_tutorial_controller_test.dart: deterministic demo uses actual scoring and threshold with one error
+00:00 +4: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: (setUpAll)
+00:00 +4: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: gate ignites after returning and pauses behind routes and in background
+00:02 +5: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: gate ignites after returning and pauses behind routes and in background
+00:02 +6: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: gate ignites after returning and pauses behind routes and in background
+00:02 +7: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: gate ignites after returning and pauses behind routes and in background
+00:03 +8: /Users/mati/Projects/Games/SunDoku/sundoku/test/map_world_gate_test.dart: gate ignites after returning and pauses behind routes and in background
+00:03 +9: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:03 +10: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:03 +11: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:03 +12: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:04 +13: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:04 +14: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:05 +15: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 1.0
+00:05 +16: /Users/mati/Projects/Games/SunDoku/sundoku/test/summit_gate_test.dart: summit stays dormant until last round then ignites, spins and opens rivers
+00:05 +17: /Users/mati/Projects/Games/SunDoku/sundoku/test/summit_gate_test.dart: summit stays dormant until last round then ignites, spins and opens rivers
+00:05 +18: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:05 +19: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:05 +20: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:05 +21: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:06 +22: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:06 +23: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: next finishes a running demo and practice requires another tap
+00:06 +24: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:06 +25: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:06 +26: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:06 +27: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:06 +28: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:06 +29: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_tutorial_widget_test.dart: next finishes pending animations; background freezes demo; replay preserves real attempt
+00:07 +30: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:07 +31: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:07 +32: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:07 +33: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:07 +34: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:07 +35: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: device matrix respects safe areas and fits at text 2.0
+00:07 +36: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:07 +37: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:08 +38: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:08 +39: /Users/mati/Projects/Games/SunDoku/sundoku/test/world3_gameplay_widget_test.dart: challenge layout and panel actions fit resized windows at text 1.0
+00:08 +40: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:09 +41: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:09 +42: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:09 +43: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:09 +44: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:09 +45: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:09 +46: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:10 +47: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:10 +48: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:10 +49: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:10 +50: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:11 +51: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:11 +52: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:12 +53: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:12 +54: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:12 +55: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:12 +56: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:12 +57: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:12 +58: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:13 +59: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:14 +60: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:14 +61: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: entrance, typing and demonstrations advance automatically; practice waits
+00:16 +62: /Users/mati/Projects/Games/SunDoku/sundoku/test/generated_game_widget_test.dart: three wins keep existing transitions and show the total summary
+00:18 +63: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: manual steps keep the scene stable on phone and landscape
+00:21 +64: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: resumed demo pauses in background and preserves playback through resize
+00:23 +65: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: reduced motion shows final demonstrations and replay never changes the save
+00:24 +66: /Users/mati/Projects/Games/SunDoku/sundoku/test/widgets/notes_tutorial_demo_test.dart: (tearDownAll)
+00:24 +66: All tests passed!

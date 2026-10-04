@@ -1,3 +1,5 @@
+import 'screens/challenge_tutorial_screen.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -250,7 +252,11 @@ class _SunDokuAppState extends State<SunDokuApp> {
           : worldId == 'world-2'
           ? () => _switchWorld(context, 'world-3')
           : null,
-      onReady: worldId == 'world-2' ? () => _forestReady(context) : null,
+      onReady: worldId == 'world-2'
+          ? () => _forestReady(context)
+          : worldId == 'world-3'
+          ? () => _riverReady(context)
+          : null,
       onReturn: () => showNotesUnlock(context, _repository),
       onViewTutorial: () => unawaited(_agenda(context)),
       onOpenIntroduction: worldId == 'world-1'
@@ -354,6 +360,34 @@ class _SunDokuAppState extends State<SunDokuApp> {
     }
   }
 
+  bool _openingRiverLesson = false;
+  Future<void> _riverReady(BuildContext context) async {
+    final level = _riverProgress.latestUnlocked;
+    if (_openingRiverLesson || !_repository.needsChallengeTutorial(level)) {
+      return;
+    }
+    _openingRiverLesson = true;
+    try {
+      await Navigator.of(context).push(
+        WorldJourneyRoute(
+          settings: const RouteSettings(name: AppRoutes.challengeIntroduction),
+          reduceMotion: MediaQuery.disableAnimationsOf(context),
+          builder: (lessonContext) => ChallengeTutorialScreen(
+            repository: _repository,
+            onFinished: () => _openAdventureGame(
+              lessonContext,
+              'world-3',
+              level,
+              replace: true,
+            ),
+          ),
+        ),
+      );
+    } finally {
+      _openingRiverLesson = false;
+    }
+  }
+
   Future<void> _switchWorld(BuildContext context, String worldId) async {
     if (_switchingWorld) return;
     _switchingWorld = true;
@@ -379,7 +413,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
       await Navigator.of(context).pushNamed(AppRoutes.tutorialReview);
       return;
     }
-    final notes = await showDialog<bool>(
+    final lesson = await showDialog<String>(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -391,20 +425,39 @@ class _SunDokuAppState extends State<SunDokuApp> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Tu cuaderno', style: homeText(28)),
-                  const SizedBox(height: 16),
-                  IllustratedActionButton(
-                    label: 'Las reglas',
-                    fontSize: 22,
-                    compact: true,
-                    onPressed: () => Navigator.pop(context, false),
-                  ),
-                  const SizedBox(height: 12),
-                  IllustratedActionButton(
-                    label: 'Las anotaciones',
-                    fontSize: 22,
-                    compact: true,
-                    onPressed: () => Navigator.pop(context, true),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Tu cuaderno', style: homeText(28)),
+                          const SizedBox(height: 16),
+                          IllustratedActionButton(
+                            label: 'Las reglas',
+                            fontSize: 22,
+                            compact: true,
+                            onPressed: () => Navigator.pop(context, 'rules'),
+                          ),
+                          const SizedBox(height: 12),
+                          IllustratedActionButton(
+                            label: 'Las anotaciones',
+                            fontSize: 22,
+                            compact: true,
+                            onPressed: () => Navigator.pop(context, 'notes'),
+                          ),
+                          if (_repository.isWorldUnlocked('world-3')) ...[
+                            const SizedBox(height: 12),
+                            IllustratedActionButton(
+                              label: 'Los desafíos',
+                              fontSize: 22,
+                              compact: true,
+                              onPressed: () =>
+                                  Navigator.pop(context, 'challenges'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -417,8 +470,24 @@ class _SunDokuAppState extends State<SunDokuApp> {
         ),
       ),
     );
-    if (notes == null || !context.mounted) return;
-    if (!notes) {
+    if (lesson == null || !context.mounted) return;
+    if (lesson == 'challenges') {
+      await Navigator.of(context).push(
+        WorldJourneyRoute(
+          settings: const RouteSettings(name: AppRoutes.challengeIntroduction),
+          reduceMotion: MediaQuery.disableAnimationsOf(context),
+          builder: (context) => ChallengeTutorialScreen(
+            repository: _repository,
+            replay: true,
+            onFinished: () async {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+      return;
+    }
+    if (lesson == 'rules') {
       await Navigator.of(context).pushNamed(AppRoutes.tutorialReview);
       return;
     }
@@ -471,6 +540,13 @@ class _SunDokuAppState extends State<SunDokuApp> {
             AppRoutes.splash: (_) => const SplashScreen(),
         },
         onGenerateRoute: (settings) => switch (settings.name) {
+          AppRoutes.challengeIntroduction => _mapRoute(
+            context,
+            settings,
+            worldId: _repository.isWorldUnlocked('world-3')
+                ? 'world-3'
+                : 'world-1',
+          ),
           AppRoutes.tutorialReview => WorldJourneyRoute(
             settings: settings,
             reduceMotion: WidgetsBinding

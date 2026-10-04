@@ -53,8 +53,12 @@ Future<void> winRound(
   int round = 0,
 ]) async {
   final id = roundBoard(repo, session, round).puzzleId;
-  await repo.setCell(session, id, 0, 1);
-  await repo.setCell(session, id, 1, 2);
+  final puzzle = repo.state.puzzles[id]!;
+  for (var index = 0; index < puzzle.initial.length; index++) {
+    if (puzzle.initial[index] == null) {
+      await repo.setCell(session, id, index, puzzle.solution[index]);
+    }
+  }
 }
 
 Future<void> acknowledge(GameRepository repo, String session, [int round = 0]) {

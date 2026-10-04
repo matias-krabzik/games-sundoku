@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/controllers/first_experience_controller.dart';
 import 'package:sundoku/domain/models/game_save.dart';
+import 'package:sundoku/domain/tutorial/challenge_lesson.dart';
 import 'package:sundoku/data/repositories/game_repository.dart';
 import 'package:sundoku/data/services/save_store.dart';
 import 'package:sundoku/data/services/game_feedback.dart';
@@ -11,6 +12,8 @@ import 'package:sundoku/theme.dart';
 import 'package:sundoku/widgets/completed_level_popover.dart';
 import 'package:sundoku/widgets/game_feedback_scope.dart';
 import 'package:sundoku/widgets/gameplay_status_bar.dart';
+import 'package:sundoku/widgets/challenge_lives.dart';
+import 'package:sundoku/widgets/sudoku_board.dart';
 import 'package:sundoku/widgets/sudoku_help.dart';
 import 'package:sundoku/widgets/tutorial_journey.dart';
 import 'package:sundoku/widgets/victory_particles.dart';
@@ -23,30 +26,39 @@ Future<void> showChallenge(
   GameRepository repo, {
   int level = 1,
   double scale = 1,
-}) => tester.pumpWidget(
-  RepaintBoundary(
-    key: scene.captureKey,
-    child: GameFeedbackHost(
-      output: const GameFeedback(),
-      repository: repo,
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: buildSunDokuTheme(),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(scale)),
-          child: child!,
-        ),
-        home: FirstExperienceScreen(
-          repository: repo,
-          worldId: 'world-3',
-          levelNumber: level,
-          showDeveloperControls: false,
+}) async {
+  if (!repo.challengeTutorialCompleted) {
+    await repo.saveModule(ChallengeLesson.key, {
+      'version': 1,
+      'completed': true,
+      'step': 3,
+    });
+  }
+  await tester.pumpWidget(
+    RepaintBoundary(
+      key: scene.captureKey,
+      child: GameFeedbackHost(
+        output: const GameFeedback(),
+        repository: repo,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: buildSunDokuTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+          home: FirstExperienceScreen(
+            repository: repo,
+            worldId: 'world-3',
+            levelNumber: level,
+            showDeveloperControls: false,
+          ),
         ),
       ),
     ),
-  ),
-);
+  );
+}
 
 FirstExperienceController flowOf(WidgetTester tester) =>
     tester.widget<TutorialJourney>(find.byType(TutorialJourney)).flow;
@@ -98,6 +110,19 @@ void main() {
           find.byType(GameplayStatusBar),
         );
         expect(hud.remainingLives, 3);
+        expect(
+          tester.widget<ChallengeLives>(find.byType(ChallengeLives)).total,
+          3,
+        );
+        expect(find.text('3/3'), findsNothing);
+        for (var heart = 0; heart < 3; heart++) {
+          expect(
+            tester
+                .widget<Opacity>(find.byKey(ValueKey('challenge-heart-$heart')))
+                .opacity,
+            1,
+          );
+        }
         expect(hud.targetPoints, preview.targetPoints);
         expect(
           find.byKey(const ValueKey('game-unlimited-lives')),
@@ -116,6 +141,19 @@ void main() {
               .remainingLives,
           2,
         );
+        expect(
+          tester
+              .widget<Opacity>(find.byKey(const ValueKey('challenge-heart-2')))
+              .opacity,
+          .22,
+        );
+        expect(
+          tester
+              .widget<Opacity>(find.byKey(const ValueKey('challenge-heart-1')))
+              .opacity,
+          1,
+        );
+        await scene.capture(tester, '${view.key}-life-lost');
         expect(tester.state(scene.board), same(state));
         expect(find.byKey(const ValueKey('challenge-result')), findsNothing);
         await flow.pauseGame();
@@ -129,9 +167,16 @@ void main() {
         expect(find.byType(VictoryParticles), findsNothing);
         expect(flow.readyToPlay, false);
         await scene.capture(tester, '${view.key}-timeout');
+        final previousPuzzle = flow.puzzleDefinition!;
         await scene.tap(
           tester,
           find.byKey(const ValueKey('challenge-primary')),
+        );
+        expect(flow.puzzleDefinition!.initial, isNot(previousPuzzle.initial));
+        expect(flow.puzzleDefinition!.solution, isNot(previousPuzzle.solution));
+        expect(
+          tester.widget<SudokuBoard>(scene.board).cells,
+          flow.puzzleDefinition!.initial,
         );
         expect(flow.puzzleProgress!.attempt!.number, 2);
         expect(flow.puzzleProgress!.mistakes, 0);

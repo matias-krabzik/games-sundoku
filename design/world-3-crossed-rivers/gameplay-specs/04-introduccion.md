@@ -84,7 +84,9 @@ la introducción del mundo 3 sin modificar el comportamiento de las otras leccio
 
 ## Cierre
 
-- [ ] T01–T10 cubiertos; guion coincide con D06 y reglas finales.
-- [ ] Capturas de cuatro pasos y video corto de Siguiente revisados.
-- [ ] Fondo visible, sin controles extra ni recarga del tablero.
-- [ ] Ninguna demostración otorga progreso real.
+- [x] T01–T10 cubiertos; guion coincide con D06 y reglas finales.
+- [x] Capturas de cuatro pasos y video corto de Siguiente revisados.
+- [x] Fondo visible, sin controles extra ni recarga del tablero.
+- [x] Ninguna demostración otorga progreso real.
+
+Evidencia de implementación y alcance de la validación: [W3-04](introduction/README.md).

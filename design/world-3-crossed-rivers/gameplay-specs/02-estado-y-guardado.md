@@ -36,7 +36,7 @@ la presentación solo revela ese resultado.
 | En curso | Última casilla correcta, cumple reglas | Resultado aprobado pendiente de presentación; una estrella. |
 | En curso | Última casilla correcta, no cumple reglas | Resultado fallido con motivo; ninguna estrella. |
 | Resultado | Continuar, resultado aprobado | Confirma presentación e inicia próxima ronda o resumen final, una sola vez. |
-| Resultado fallido | Reintentar | Nuevo intento de esa ronda con tablero inicial, vidas completas y contadores a cero. |
+| Resultado fallido | Reintentar | Nuevo sudoku de esa ronda, vidas completas y contadores a cero. |
 | Cualquiera | Escritura rechazada | Conserva último estado confirmado; recuperación visible, sin premio o pérdida local anticipada. |
 
 Actualizar las invariantes de `PuzzleProgress`, `GameSession.lights`,
@@ -49,8 +49,12 @@ fallida no completa la sesión; no desbloquea el nivel siguiente ni cierra el mu
 - Crear una operación de producción para reintentar la ronda fallida. Nunca
   utilizar `debugRestartPuzzle` como acción del jugador.
 - Mantener las rondas ya aprobadas de la misma sesión con sus puntos y tiempos.
-- Conservar definición y reglas de esa ronda; reintentar no cambia el tablero
-  ni permite obtener una meta menor.
+- Generar un sudoku nuevo al reintentar: cambian pistas y solución, manteniendo
+  la dificultad y las condiciones del nivel. Recalcular la meta a partir del
+  puntaje perfecto del nuevo tablero y el porcentaje exigido por ese nivel.
+  Guardar definición e intento juntos. Reabrir conserva ese mismo intento;
+  únicamente Reintentar genera otro. Esta corrección reemplaza la decisión
+  inicial de conservar el sudoku para evitar respuestas memorizadas.
 - Descartar el progreso jugable del intento fallido al reiniciarlo. Si se guarda
   historial de fallos, no sumarlo a los puntos premiados ni a las estrellas.
 - El resumen usa los intentos aprobados, uno por ronda. Un resultado fallido no
@@ -86,7 +90,7 @@ una jugada. Serializar la última jugada y el tick para resolver la frontera sin
 una estrella tardía. A tiempo igual al límite se falla. Pausa o suspensión debe
 confirmar el tramo activo pendiente; si vence en ese tramo, conserva el fallo.
 Reabrir un intento vencido no restaura plazo. Reintentar sí reinicia su contador,
-con la misma definición y el mismo límite. El fallo se guarda atómicamente como
+con una definición nueva y el mismo límite para los sudokus actuales de 38 vacíos. El fallo se guarda atómicamente como
 cualquier otro resultado y detiene futuras entradas.
 
 ## Reanudación durante el resultado
@@ -104,7 +108,7 @@ el avance. La pausa o suspensión durante una partida no altera vidas ni meta.
 | S01 | Reabrir con una vida consumida, notas y pista | Estado idéntico, meta/reglas intactas. |
 | S02 | Completar debajo de la meta | Sin estrella, sin avance ni desbloqueo. |
 | S03 | Última vida y toques encolados | Un fallo; entradas posteriores rechazadas. |
-| S04 | Fallar ronda 2 y reintentar | Ronda 1 intacta; solo ronda 2 empieza de cero. |
+| S04 | Fallar ronda 2 y reintentar | Ronda 1 intacta; solo ronda 2 empieza de cero con sudoku distinto. |
 | S05 | Fallar ronda 3 | Nivel y mundo siguen sin completar. |
 | S06 | Fallo al guardar jugada final o pérdida de vida | Sin recompensa/pérdida no confirmada; reintento seguro. |
 | S07 | Cerrar antes/durante/después del contador | Un premio y una continuación como máximo. |
@@ -147,7 +151,8 @@ Cerrada el 03/10/2026; [pruebas y alcance](persistence/README.md).
   la siguiente ronda. El controlador la activa cuando la UI esté lista, para no
   consumir tiempo durante la transición. Repetir el reconocimiento no avanza otra
   ronda ni concede otro premio. `retryRound` reinicia exclusivamente el fallo
-  actual, usando el mismo sudoku y reglas; las llamadas repetidas son inocuas.
+  actual con un sudoku nuevo y las condiciones del mismo nivel; las llamadas
+  repetidas son inocuas.
 - `GameSessionController` confirma el tramo de tiempo antes de cada entrada y
   programa un vencimiento dedicado, independiente del checkpoint periódico.
   A cero guarda el fallo y detiene reloj/entrada; pausa y suspensión no cuentan.

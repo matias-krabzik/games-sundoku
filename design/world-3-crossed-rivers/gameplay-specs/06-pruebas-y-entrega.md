@@ -46,7 +46,7 @@ estables, sin esperar segundos reales ni depender de red o datos del usuario.
 | --- | --- | --- |
 | E01 | Mundo 2 completo → santuario → introducción → mundo 3 nivel 1 | Mismo acceso, tutorial único, condiciones visibles, partida iniciada. |
 | E02 | Nivel 1, tres rondas aprobadas → nivel 2 | Tres estrellas, vidas renovadas, resumen y desbloqueo únicos. |
-| E03 | Ganar ronda 1, fallar ronda 2, salir y reintentar | Ronda 1 preservada, mismo sudoku 2 y sin vida restaurada al solo reabrir. |
+| E03 | Ganar ronda 1, fallar ronda 2, salir y reintentar | Ronda 1 preservada, sudoku 2 nuevo al reintentar; reabrir conserva tablero y vidas del intento. |
 | E04 | Nivel 10 → 11 y 20 → 21 | 3→2 y 2→1 vidas; curva de meta sin salto accidental o reinicio. |
 | E05 | Nivel 29 con pista | Ayuda permitida; resultado depende de puntaje, sin prohibición perfecta anticipada. |
 | E06 | Nivel 30 con una equivocación / intento perfecto | Fallo inmediato / aprobación; ayuda bloqueada y notas funcionales. |

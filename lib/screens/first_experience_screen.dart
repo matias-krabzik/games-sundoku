@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../routes.dart';
 
 import '../controllers/first_experience_controller.dart';
+import 'challenge_tutorial_screen.dart';
 import 'settings_screen.dart';
 import '../widgets/game_navigation_header.dart';
 import '../widgets/game_layout.dart';
@@ -273,6 +274,10 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   SudokuCompletion? _pendingBoardCompletion;
   late SudokuCompletion? _previousCompletion = _flow.completion;
   bool get _finishingBoard => _pendingBoardCompletion != null;
+  bool get _needsChallengeLesson =>
+      widget.worldId == 'world-3' &&
+      _flow.isChallenge &&
+      !widget.repository.challengeTutorialCompleted;
   bool get _showGame =>
       _flow.step == FirstExperienceStep.playing ||
       _flow.challengeOverlay ||
@@ -521,7 +526,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     _flow.addListener(_changed);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (!_flow.challengeOverlay && (!_flow.isPaused || _flow.isQuickPlay)) {
+        if (!_needsChallengeLesson &&
+            !_flow.challengeOverlay &&
+            (!_flow.isPaused || _flow.isQuickPlay)) {
           unawaited(_flow.resumeGame());
         }
         if (_flow.step == FirstExperienceStep.playing && _needsBriefing) {
@@ -820,6 +827,14 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_needsChallengeLesson) {
+      return ChallengeTutorialScreen(
+        repository: widget.repository,
+        onFinished: () async {
+          if (mounted) setState(() {});
+        },
+      );
+    }
     final motion = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : const Duration(milliseconds: 450);

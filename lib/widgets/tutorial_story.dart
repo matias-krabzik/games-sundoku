@@ -33,8 +33,10 @@ class TutorialStory extends StatefulWidget {
     this.textStyle,
     this.padding,
     this.controller,
+    this.footer,
   });
 
+  final Widget? footer;
   final bool autoplay;
   final VoidCallback? onFinished;
   final List<String> lines;
@@ -196,7 +198,7 @@ class _TutorialStoryState extends State<TutorialStory>
               ? null
               : widget.skipHint,
           onTap: _reveal.isCompleted || !widget.interactive ? null : _finish,
-          excludeSemantics: true,
+          excludeSemantics: false,
           child: FocusableActionDetector(
             enabled: widget.interactive && !_reveal.isCompleted,
             onShowFocusHighlight: (value) => setState(() => _focused = value),
@@ -233,81 +235,94 @@ class _TutorialStoryState extends State<TutorialStory>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text.rich(
-                        key: const ValueKey('intro-story-text'),
-                        TextSpan(
+                      ExcludeSemantics(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            TextSpan(text: letters.take(count).toString()),
-                            TextSpan(
-                              text: letters.skip(count).toString(),
-                              style: const TextStyle(color: Colors.transparent),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                        style:
-                            widget.textStyle ??
-                            homeText(
-                              narrow ? 17 : 18,
-                              weight: FontWeight.w600,
-                            ).copyWith(height: 1.25),
-                      ),
-                      if (widget.tip != null) ...[
-                        Opacity(
-                          opacity: conclusion,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10),
-                            child: SizedBox(
-                              height: 2,
-                              child: HomeArt(HomeSurface.progressFill),
-                            ),
-                          ),
-                        ),
-                        Opacity(
-                          key: const ValueKey('intro-story-conclusion'),
-                          opacity: conclusion,
-                          child: Transform.scale(
-                            scale: .96 + .04 * conclusion,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const HomeIcon(HomeGlyph.sun, size: 28),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: widget.tip!.characters
-                                              .take(
-                                                _tipRevealAt
-                                                    .where((at) => at <= time)
-                                                    .length,
-                                              )
-                                              .toString(),
-                                        ),
-                                        TextSpan(
-                                          text: widget.tip!.characters
-                                              .skip(
-                                                _tipRevealAt
-                                                    .where((at) => at <= time)
-                                                    .length,
-                                              )
-                                              .toString(),
-                                          style: const TextStyle(
-                                            color: Colors.transparent,
-                                          ),
-                                        ),
-                                      ],
+                            Text.rich(
+                              key: const ValueKey('intro-story-text'),
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: letters.take(count).toString(),
+                                  ),
+                                  TextSpan(
+                                    text: letters.skip(count).toString(),
+                                    style: const TextStyle(
+                                      color: Colors.transparent,
                                     ),
-                                    textAlign: TextAlign.center,
-                                    style: homeText(narrow ? 18 : 20),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                              style:
+                                  widget.textStyle ??
+                                  homeText(
+                                    narrow ? 17 : 18,
+                                    weight: FontWeight.w600,
+                                  ).copyWith(height: 1.25),
+                            ),
+                            if (widget.tip != null) ...[
+                              Opacity(
+                                opacity: conclusion,
+                                child: const TutorialStoryDivider(),
+                              ),
+                              Opacity(
+                                key: const ValueKey('intro-story-conclusion'),
+                                opacity: conclusion,
+                                child: Transform.scale(
+                                  scale: .96 + .04 * conclusion,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const HomeIcon(HomeGlyph.sun, size: 28),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: widget.tip!.characters
+                                                    .take(
+                                                      _tipRevealAt
+                                                          .where(
+                                                            (at) => at <= time,
+                                                          )
+                                                          .length,
+                                                    )
+                                                    .toString(),
+                                              ),
+                                              TextSpan(
+                                                text: widget.tip!.characters
+                                                    .skip(
+                                                      _tipRevealAt
+                                                          .where(
+                                                            (at) => at <= time,
+                                                          )
+                                                          .length,
+                                                    )
+                                                    .toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.transparent,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          style: homeText(narrow ? 18 : 20),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            ],
+                          ],
                         ),
+                      ),
+                      if (widget.footer != null) ...[
+                        const TutorialStoryDivider(),
+                        widget.footer!,
                       ],
                     ],
                   ),
@@ -337,4 +352,15 @@ class _StorySurface extends StatelessWidget {
   Widget build(BuildContext context) => showPanel
       ? UiSurfacePanel(surface: surface, padding: padding, child: child)
       : Padding(padding: padding, child: child);
+}
+
+/// Golden separation used by the welcome story and lesson summaries.
+class TutorialStoryDivider extends StatelessWidget {
+  const TutorialStoryDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(vertical: 10),
+    child: SizedBox(height: 2, child: HomeArt(HomeSurface.progressFill)),
+  );
 }

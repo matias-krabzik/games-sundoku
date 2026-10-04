@@ -2,12 +2,13 @@
 
 Especificaciones de implementación · 03/10/2026.
 
-Estado: **W3-00 registrada; W3-01–03 completadas**. Base: commit `a598639`.
+Estado: **W3-00 registrada; W3-01–04 completadas**. Base: commit `a598639`.
 W3-00 cuenta con [referencia técnica y capturas](baseline/README.md). D06 quedó
 resuelta: límite de tiempo activo para ganar la estrella, sin bonus de rapidez.
 W3-03 activa en la app las sesiones nuevas del mundo 3 con resultado estático,
 reintento y cuenta regresiva. Las sesiones heredadas conservan sus reglas.
-[Evidencia visible y validaciones](gameplay/README.md). W3-04–06 siguen pendientes.
+[Evidencia visible y validaciones](gameplay/README.md). W3-04 añade la introducción y el repaso con [capturas y video](introduction/README.md).
+W3-05–06 siguen pendientes.
 Estas especificaciones incorporan las últimas correcciones del usuario; reemplazan
 la propuesta anterior de exigir una partida perfecta en todos los niveles 21–30.
 
@@ -30,8 +31,10 @@ Con una vida, un error ya termina el intento desde el nivel 21. Antes del 30, la
 pistas no tienen una prohibición adicional: se puede utilizarlas, pero su costo
 puede impedir alcanzar la meta. Las anotaciones no cuentan como pistas.
 
-Las vidas se renuevan al iniciar cada sudoku o reintentar esa ronda. Las rondas
-aprobadas y las estrellas obtenidas se conservan. Las reglas previas de mundos 1
+Las vidas se renuevan al iniciar cada sudoku o reintentar esa ronda. Cada reintento genera un sudoku
+distinto con la dificultad del nivel y una meta calibrada para ese tablero.
+Reabrir mantiene el intento guardado. Las rondas aprobadas y las estrellas
+obtenidas se conservan. Las reglas previas de mundos 1
 y 2, partida rápida y tutoriales anteriores se mantienen.
 
 ## Lectura y ejecución en orden
@@ -83,7 +86,7 @@ estados anteriores: verificar el código y el catálogo antes de implementar.
 - [x] W3-01: reglas y calibración verificadas; [resultados y alcance](calibration/validation.md).
 - [x] W3-02: persistencia y compatibilidad verificadas; [evidencia](persistence/README.md).
 - [x] W3-03: flujo jugable y responsive verificados en pruebas automatizadas; [evidencia y límites](gameplay/README.md).
-- [ ] W3-04: introducción y repaso verificados.
+- [x] W3-04: introducción y repaso verificados con pruebas y capturas; [evidencia y alcance](introduction/README.md).
 - [ ] W3-05: contador y estrella verificados.
 - [ ] W3-06: regresión y revisión visual cerradas con evidencia.
 

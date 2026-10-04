@@ -11,6 +11,8 @@ import 'package:sundoku/data/services/sqlite_save_store.dart';
 import 'package:sundoku/domain/models/game_session.dart';
 import 'package:sundoku/domain/models/json_data.dart';
 import 'package:sundoku/domain/scoring/adventure_challenge.dart';
+import 'package:sundoku/domain/scoring/sudoku_scoring.dart';
+import 'package:sundoku/domain/generation/seeded_sudokus.dart';
 import 'package:sundoku/playables/playables_save_codec.dart';
 import 'package:sundoku/playables/playables_save_store.dart';
 
@@ -98,16 +100,27 @@ void main() {
     final retried = roundBoard(repo, session.id, 1);
     expect(retried.attempt!.number, 2);
     expect(retried.attempt!.id, isNot(token));
-    expect(retried.attempt!.rules.toJson(), failedRules);
+    expect(retried.attempt!.rules.initialLives, failedRules['initialLives']);
+    expect(
+      retried.attempt!.rules.targetBasisPoints,
+      failedRules['targetBasisPoints'],
+    );
+    final replacement = repo.state.puzzles[id]!;
+    final empty = replacement.initial.indexOf(null);
     expect(retried.mistakes, 0);
     expect(retried.elapsedMs, 0);
     expect(retried.points, 0);
     expect(retried.hintsUsed, 0);
-    expect(retried.cells[0].value, isNull);
+    expect(retried.cells[empty].value, isNull);
     expect(roundBoard(repo, session.id).toJson(), first);
-    await repo.setCell(session.id, id, 0, 1);
+    await repo.setCell(session.id, id, empty, replacement.solution[empty]);
+    final definition = replacement.toJson();
     await repo.retryRound(session.id, id, attemptId: token); // delayed callback
-    expect(roundBoard(repo, session.id, 1).cells[0].value, 1);
+    expect(repo.state.puzzles[id]!.toJson(), definition);
+    expect(
+      roundBoard(repo, session.id, 1).cells[empty].value,
+      replacement.solution[empty],
+    );
     await expectLater(
       repo.retryRound(session.id, id, attemptId: retried.attempt!.id),
       throwsStateError,
@@ -131,8 +144,14 @@ void main() {
     await repo.retryRound(session.id, id, attemptId: token);
     await winRound(repo, session.id, 2);
     expect(repo.worldCompleted('world-3'), isTrue);
-    expect(repo.state.sessions[session.id]!.points, 1701);
-    expect(repo.state.progress[session.levelId]!.bestPoints, 1701);
+    final expectedPoints = repo.state.sessions[session.id]!.puzzles.fold<int>(
+      0,
+      (points, board) =>
+          points +
+          SudokuScoring.perfectScore(repo.state.puzzles[board.puzzleId]!),
+    );
+    expect(repo.state.sessions[session.id]!.points, expectedPoints);
+    expect(repo.state.progress[session.levelId]!.bestPoints, expectedPoints);
     expect(repo.state.sessions[session.id]!.pendingResult!.puzzleId, id);
     await acknowledge(repo, session.id, 2);
     final revision = repo.state.revision;
@@ -170,12 +189,32 @@ void main() {
       );
       expect(repo.state.toJson(), before);
       await repo.retryRound(session.id, id, attemptId: token);
-      await repo.setCell(session.id, id, 0, 1);
+      final replacement = repo.state.puzzles[id]!;
+      final blanks = [
+        for (var i = 0; i < replacement.initial.length; i++)
+          if (replacement.initial[i] == null) i,
+      ];
+      for (final index in blanks.take(blanks.length - 1)) {
+        await repo.setCell(session.id, id, index, replacement.solution[index]);
+      }
       before = repo.state.toJson();
       store.failNext = true;
-      await expectLater(repo.setCell(session.id, id, 1, 2), throwsException);
+      await expectLater(
+        repo.setCell(
+          session.id,
+          id,
+          blanks.last,
+          replacement.solution[blanks.last],
+        ),
+        throwsException,
+      );
       expect(repo.state.toJson(), before);
-      await repo.setCell(session.id, id, 1, 2);
+      await repo.setCell(
+        session.id,
+        id,
+        blanks.last,
+        replacement.solution[blanks.last],
+      );
       before = repo.state.toJson();
       store.failNext = true;
       await expectLater(acknowledge(repo, session.id), throwsException);
@@ -218,6 +257,101 @@ void main() {
       session.puzzles[1].puzzleId,
     );
   });
+
+  for (final level in [1, 11, 21, 30]) {
+    test(
+      'retry level $level generates distinct solvable boards, saves and resumes exactly',
+      () async {
+        final store = MemorySaveStore();
+        var repo = await challengeRepository(store, level: level);
+        final session = await repo.startGeneratedLevel(
+          level,
+          worldId: 'world-3',
+        );
+        final id = session.puzzles.first.puzzleId;
+        final otherBoards = session.puzzles
+            .skip(1)
+            .map((p) => p.toJson())
+            .toList();
+        final otherDefinitions = session.puzzles
+            .skip(1)
+            .map((p) => repo.state.puzzles[p.puzzleId]!.toJson())
+            .toList();
+        final seeds = <String>{};
+        final solutions = <String>{};
+        final layouts = <String>{};
+        for (var retry = 0; retry < 4; retry++) {
+          final old = repo.state.puzzles[id]!;
+          seeds.add(old.seed);
+          solutions.add(old.solution.join());
+          layouts.add(old.initial.join(','));
+          final board = roundBoard(repo, session.id);
+          final token = board.attempt!.id;
+          await repo.addElapsed(
+            session.id,
+            id,
+            board.attempt!.rules.timeLimitMs,
+          );
+          await repo.retryRound(session.id, id, attemptId: token);
+          final puzzle = repo.state.puzzles[id]!;
+          expect(seeds.contains(puzzle.seed), false);
+          expect(solutions.contains(puzzle.solution.join()), false);
+          expect(layouts.contains(puzzle.initial.join(',')), false);
+          expect(puzzle.difficulty, old.difficulty);
+          expect(puzzle.initial.where((v) => v == null).length, 38);
+          expect(
+            SeededSudokus.solveWithSingles(
+              puzzle.initial.map((v) => v ?? 0).toList(),
+            ),
+            puzzle.solution,
+          );
+          expect(
+            SeededSudokus.hasUniqueSolution(
+              puzzle.initial.map((v) => v ?? 0).toList(),
+            ),
+            true,
+          );
+          final rules = roundBoard(repo, session.id).attempt!.rules;
+          expect(
+            rules.targetBasisPoints,
+            board.attempt!.rules.targetBasisPoints,
+          );
+          expect(rules.initialLives, board.attempt!.rules.initialLives);
+          expect(rules.timeLimitMs, board.attempt!.rules.timeLimitMs);
+          expect(rules.perfectPoints, SudokuScoring.perfectScore(puzzle));
+          expect(rules.targetPoints, lessThanOrEqualTo(rules.perfectPoints));
+          expect(
+            repo.state.sessions[session.id]!.puzzles
+                .skip(1)
+                .map((p) => p.toJson())
+                .toList(),
+            otherBoards,
+          );
+          expect(
+            session.puzzles
+                .skip(1)
+                .map((p) => repo.state.puzzles[p.puzzleId]!.toJson())
+                .toList(),
+            otherDefinitions,
+          );
+          final savedBoard = roundBoard(repo, session.id).toJson();
+          final savedPuzzle = puzzle.toJson();
+          await repo.close();
+          repo = await GameRepository.open(store, enableWorld3Challenges: true);
+          await repo.startGeneratedLevel(level, worldId: 'world-3');
+          expect(repo.state.puzzles[id]!.toJson(), savedPuzzle);
+          expect(roundBoard(repo, session.id).toJson(), savedBoard);
+        }
+        await winRound(repo, session.id);
+        expect(
+          roundBoard(repo, session.id).attempt!.result!.outcome,
+          ChallengeOutcome.won,
+        );
+        expect(repo.state.sessions[session.id]!.lights, 1);
+        await repo.close();
+      },
+    );
+  }
 
   test('S09/S10: legacy migration keeps whole session unrestricted, next session opts in', () async {
     final raw = await File(

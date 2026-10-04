@@ -10,6 +10,7 @@ class TutorialLessonCard extends StatelessWidget {
     required this.message,
     required this.messageKey,
     this.progress,
+    this.footer,
     this.onFinished,
     this.controller,
     this.autoplay = true,
@@ -18,6 +19,7 @@ class TutorialLessonCard extends StatelessWidget {
   final String message;
   final String messageKey;
   final String? progress;
+  final Widget? footer;
   final VoidCallback? onFinished;
   final TutorialStoryController? controller;
   final bool autoplay;
@@ -29,6 +31,7 @@ class TutorialLessonCard extends StatelessWidget {
     key: ValueKey(messageKey),
     lines: [message, ?progress],
     tip: null,
+    footer: footer,
     interactive: false,
     textStyle: textStyle,
     onFinished: onFinished,

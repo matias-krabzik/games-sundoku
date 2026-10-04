@@ -7,7 +7,7 @@ import '../domain/scoring/adventure_challenge.dart';
 import 'game_pause.dart';
 import 'home_art.dart';
 import 'illustrated_action_button.dart';
-import 'map_art.dart';
+import 'challenge_award.dart';
 import 'score_feedback.dart';
 import 'ui_surface_art.dart';
 
@@ -96,22 +96,9 @@ class ChallengeRoundPanel extends StatelessWidget {
                                     style: homeText(compact ? 24 : 30),
                                   ),
                                   const SizedBox(height: 12),
-                                  Semantics(
-                                    label:
-                                        '${flow.session!.lights} de 3 estrellas ganadas',
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        for (var i = 0; i < 3; i++)
-                                          MapIcon(
-                                            i < flow.session!.lights
-                                                ? MapGlyph.goldStar
-                                                : MapGlyph.emptyStar,
-                                            size: compact ? 40 : 56,
-                                          ),
-                                      ],
-                                    ),
+                                  ChallengeAward(
+                                    stars: flow.session!.lights,
+                                    size: compact ? 40 : 56,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
