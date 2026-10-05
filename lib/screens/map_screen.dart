@@ -34,6 +34,7 @@ class MapScreen extends StatefulWidget {
     this.worldNavigation,
     this.onSelectWorld,
     this.onChooseWorld,
+    this.onHome,
     this.onReady,
     this.onReturn,
     this.developerActions = const [],
@@ -42,6 +43,7 @@ class MapScreen extends StatefulWidget {
   final List<DeveloperMenuAction> developerActions;
   final LevelProgress? progress;
   final VoidCallback? onChooseWorld;
+  final VoidCallback? onHome;
   final Future<void> Function()? onReady;
   final Future<void> Function()? onReturn;
   final bool showDeveloperControls;
@@ -740,7 +742,8 @@ class _MapScreenState extends State<MapScreen>
                         // The gate sits near the top-right corner when
                         // the whole panorama fits in a short window.
                         groupActions: compact && viewport.width >= 700,
-                        onBack: () => Navigator.of(context).pop(),
+                        onBack:
+                            widget.onHome ?? () => Navigator.of(context).pop(),
                       ),
                       const Spacer(),
                     ],
@@ -769,6 +772,7 @@ class _MapScreenState extends State<MapScreen>
                         unlockedLevels: _progress.unlockedCount,
                         worldNavigation: widget.worldNavigation,
                         onSelectWorld: widget.onSelectWorld,
+                        onChooseWorld: widget.onChooseWorld,
                         onPrevious: _awardingLevel == null && _activeLevel > 1
                             ? () => _focusLevel(_activeLevel - 1)
                             : null,

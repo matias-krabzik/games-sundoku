@@ -256,6 +256,8 @@ void main() {
       await _frames(tester, 40);
       await tester.tap(find.byKey(const ValueKey('home-play')));
       await _frames(tester, 30);
+      await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+      await _frames(tester, 30);
       final scroll = tester
           .widget<SingleChildScrollView>(
             find.byKey(const ValueKey('world-scroll')),

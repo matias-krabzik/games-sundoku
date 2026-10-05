@@ -86,6 +86,7 @@ Future<void> _openFromHome(
     await tester.pump(const Duration(seconds: 1));
   }
   await _tap(tester, find.byKey(const ValueKey('home-play')));
+  await _tap(tester, find.byKey(const ValueKey('choose-world-1')));
   if (find.byType(MapScreen).evaluate().isNotEmpty) {
     await _tap(tester, find.byKey(const ValueKey('level-1-label')));
     final continueAction = find.byKey(const ValueKey('level-summary-continue'));
@@ -186,7 +187,10 @@ void main() {
     await tester.pump();
     final status = find.byKey(const ValueKey('home-game-status'));
     expect(status, findsNothing);
-    await tester.tap(find.byKey(const ValueKey('home-play')));
+    await _tap(tester, find.byKey(const ValueKey('home-play')));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('choose-world-1')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
@@ -200,7 +204,9 @@ void main() {
       expect(mapRoute.showClouds, isFalse);
       expect(status, findsNothing);
       expect(
-        tester.widget<HomeScreen>(find.byType(HomeScreen)).hasStarted,
+        tester
+            .widget<HomeScreen>(find.byType(HomeScreen, skipOffstage: false))
+            .hasStarted,
         isFalse,
       );
     }
@@ -237,6 +243,7 @@ void main() {
     expect(tester.getSize(review).width, tester.getSize(review).height);
     await _tap(tester, back);
     await _tap(tester, find.byKey(const ValueKey('home-play')));
+    await _tap(tester, find.byKey(const ValueKey('choose-world-1')));
     expect(find.byType(MapScreen), findsOneWidget);
     expect(find.byType(FirstExperienceScreen), findsNothing);
     final saved = repository.state.modules[FirstExperienceController.moduleKey];
@@ -283,6 +290,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await _settle(tester);
     await _tap(tester, find.byKey(const ValueKey('home-play')));
+    await _tap(tester, find.byKey(const ValueKey('choose-world-1')));
     expect(find.byType(MapScreen), findsOneWidget);
     expect(find.byType(FirstExperienceScreen), findsNothing);
   });

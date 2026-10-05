@@ -97,6 +97,8 @@ void main() {
       expect(reopened.state.player.nameChosen, isFalse);
       await tester.tap(find.byKey(const ValueKey('home-play')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+      await tester.pumpAndSettle();
       final navigator = tester.state<NavigatorState>(
         find.byType(Navigator).first,
       );

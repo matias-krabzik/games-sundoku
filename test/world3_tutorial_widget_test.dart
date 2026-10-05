@@ -420,6 +420,17 @@ void main() {
         );
         await frames(tester, 4000);
         await tester.tap(find.byKey(const ValueKey('home-play')));
+        await frames(tester, 2000);
+        await tester.ensureVisible(
+          find.byKey(
+            ValueKey('choose-${entry == 'home' ? 'world-3' : 'world-2'}'),
+          ),
+        );
+        await tester.tap(
+          find.byKey(
+            ValueKey('choose-${entry == 'home' ? 'world-3' : 'world-2'}'),
+          ),
+        );
         await frames(tester, 4000);
         if (entry == 'summit') {
           await tester.tap(find.byKey(const ValueKey('map-world-gate')));

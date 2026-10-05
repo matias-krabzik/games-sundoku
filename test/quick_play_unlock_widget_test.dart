@@ -43,6 +43,7 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
         await scene.tap(tester, find.byKey(const ValueKey('home-play')));
+        await scene.tap(tester, find.byKey(const ValueKey('choose-world-1')));
         final navigator = Navigator.of(tester.element(find.byType(MapScreen)));
         unawaited(
           navigator.push(
@@ -87,7 +88,7 @@ void main() {
           expect(find.byType(MapScreen), findsOneWidget);
           expect(find.byType(FirstExperienceScreen), findsNothing);
           expect(repo.shouldCelebrateQuickPlay, isTrue);
-          Navigator.of(tester.element(find.byType(MapScreen))).pop();
+          await scene.tap(tester, find.byKey(const ValueKey('map-back')));
           await scene.settle(tester);
         }
         await repo.flush();

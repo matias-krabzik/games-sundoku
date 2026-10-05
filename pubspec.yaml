@@ -73,6 +73,7 @@ flutter:
     - assets/images/settings/icons.png
     - assets/images/home/
     - assets/images/map/
+    - assets/images/world-selection/
     - assets/images/map/spring-forest/
     - assets/images/map/crossed-rivers/
     - assets/images/map/crossed-rivers/ambient/

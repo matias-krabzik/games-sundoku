@@ -15,7 +15,9 @@ class MusicRouteObserver extends NavigatorObserver {
 
   MusicScene? _scene(Route<dynamic> route) => switch (route.settings.name) {
     AppRoutes.home || AppRoutes.quickPlay => MusicScene.home,
-    AppRoutes.map || AppRoutes.tutorialReview => MusicScene.map,
+    AppRoutes.worlds ||
+    AppRoutes.map ||
+    AppRoutes.tutorialReview => MusicScene.map,
     AppRoutes.game || AppRoutes.firstExperience => MusicScene.game,
     _ => null,
   };

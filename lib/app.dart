@@ -1,4 +1,5 @@
 import 'screens/challenge_tutorial_screen.dart';
+import 'screens/world_selection_screen.dart';
 
 import 'dart:async';
 
@@ -166,12 +167,81 @@ class _SunDokuAppState extends State<SunDokuApp> {
 
   Future<void> _play(BuildContext context) async {
     if (_openingPlay) return;
+    _openingPlay = true;
+    try {
+      final route = _worldSelectionRoute(
+        context,
+        const RouteSettings(name: AppRoutes.worlds),
+      );
+      unawaited(Navigator.of(context).push(route));
+      await route.entered;
+    } finally {
+      _openingPlay = false;
+    }
+  }
+
+  WorldJourneyRoute _worldSelectionRoute(
+    BuildContext context,
+    RouteSettings settings, {
+    ValueChanged<String>? onChosen,
+  }) => WorldJourneyRoute(
+    settings: settings,
+    reduceMotion:
+        MediaQuery.maybeOf(context)?.disableAnimations ??
+        WidgetsBinding
+            .instance
+            .platformDispatcher
+            .accessibilityFeatures
+            .disableAnimations,
+    builder: (context) => WorldSelectionScreen(
+      repository: _repository,
+      navigation: _worldNavigation,
+      onSelectWorld: (worldId) async {
+        if (!_worldNavigation.isUnlocked(worldId)) return;
+        if (onChosen != null) {
+          onChosen(worldId);
+          Navigator.of(context).pop();
+        } else {
+          await _enterSelectedWorld(context, worldId);
+        }
+      },
+    ),
+  );
+
+  Future<void> _chooseWorldFromMap(BuildContext context) async {
+    String? selected;
+    await Navigator.of(context).push(
+      _worldSelectionRoute(
+        context,
+        const RouteSettings(name: AppRoutes.worlds),
+        onChosen: (worldId) => selected = worldId,
+      ),
+    );
+    if (selected != null && context.mounted) {
+      try {
+        await _switchWorld(context, selected!);
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No pudimos abrir el mundo. Intenta de nuevo.'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _enterSelectedWorld(BuildContext context, String worldId) async {
+    if (_openingPlay || !_worldNavigation.isUnlocked(worldId)) return;
     _departingHomeHasStarted = _hasStarted;
     _openingPlay = true;
     try {
+      await _worldNavigation.enterWorld(worldId);
       final saved =
           _repository.state.modules[FirstExperienceController.moduleKey];
-      final firstVisit = saved is! Map || saved.isEmpty;
+      final firstVisit =
+          worldId == 'world-1' && (saved is! Map || saved.isEmpty);
       if (firstVisit) {
         await _repository.saveModule(FirstExperienceController.moduleKey, {
           'homeIntroductionShown': true,
@@ -183,7 +253,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
         context,
         const RouteSettings(name: AppRoutes.map),
         showClouds: !firstVisit,
-        worldId: _repository.lastAdventureWorld,
+        worldId: worldId,
       );
       unawaited(navigator.push(route));
       if (firstVisit) {
@@ -203,7 +273,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No pudimos guardar. Vuelve a tocar Jugar.'),
+            content: Text('No pudimos abrir el mundo. Intenta de nuevo.'),
           ),
         );
       }
@@ -247,6 +317,10 @@ class _SunDokuAppState extends State<SunDokuApp> {
       progress: _progressFor(worldId),
       worldNavigation: _worldNavigation,
       onSelectWorld: (selected) => unawaited(_switchWorld(context, selected)),
+      onChooseWorld: () => unawaited(_chooseWorldFromMap(context)),
+      onHome: () => Navigator.of(context).popUntil(
+        (route) => route.settings.name == AppRoutes.home || route.isFirst,
+      ),
       onNextWorld: worldId == 'world-1'
           ? () => _switchWorld(context, 'world-2')
           : worldId == 'world-2'
@@ -595,6 +669,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
               ),
             ),
           ),
+          AppRoutes.worlds => _worldSelectionRoute(context, settings),
           AppRoutes.map => _mapRoute(context, settings),
           AppRoutes.quickPlay when _repository.quickPlayUnlocked =>
             WorldJourneyRoute(

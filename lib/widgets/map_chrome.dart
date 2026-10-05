@@ -82,6 +82,7 @@ class MapStatusCard extends StatelessWidget {
     required this.unlockedLevels,
     this.worldNavigation,
     this.onSelectWorld,
+    this.onChooseWorld,
     required this.onPrevious,
     required this.onNext,
     this.compact = false,
@@ -92,6 +93,7 @@ class MapStatusCard extends StatelessWidget {
   final int unlockedLevels;
   final WorldNavigationService? worldNavigation;
   final ValueChanged<String>? onSelectWorld;
+  final VoidCallback? onChooseWorld;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final bool compact;
@@ -107,9 +109,11 @@ class MapStatusCard extends StatelessWidget {
         unlockedLevels: unlockedLevels,
         levelName: adventureWorld(worldId).names[level - 1],
         compact: compact,
-        onChooseWorld: navigation != null && onSelectWorld != null
-            ? () => _chooseWorld(context, navigation)
-            : null,
+        onChooseWorld:
+            onChooseWorld ??
+            (navigation != null && onSelectWorld != null
+                ? () => _chooseWorld(context, navigation)
+                : null),
         leading: _MapRoundButton(
           key: const ValueKey('map-previous'),
           label: 'Nivel anterior',

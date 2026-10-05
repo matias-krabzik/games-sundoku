@@ -83,6 +83,9 @@ void main() {
       await frames(tester, 30);
       await tester.tap(find.byKey(const ValueKey('home-play')));
       await frames(tester, 30);
+      await tester.ensureVisible(find.byKey(const ValueKey('choose-world-2')));
+      await tester.tap(find.byKey(const ValueKey('choose-world-2')));
+      await frames(tester, 30);
       expect(
         tester.widget<MapScreen>(find.byType(MapScreen)).progress!.worldId,
         'world-2',

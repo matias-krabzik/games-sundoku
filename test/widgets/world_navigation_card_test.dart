@@ -84,10 +84,13 @@ void main() {
       await frames();
       await tester.tap(find.byKey(const ValueKey('home-play')));
       await frames();
+      await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+      await frames();
       expect(find.text('Mundo 1'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
-      await tester.tap(find.byKey(const ValueKey('map-world-option-2')));
+      await tester.ensureVisible(find.byKey(const ValueKey('choose-world-2')));
+      await tester.tap(find.byKey(const ValueKey('choose-world-2')));
       await frames();
       expect(find.text('Mundo 2'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-2');
@@ -95,17 +98,15 @@ void main() {
       await frames();
       expect(
         tester
-            .widget<JuicyPress>(
-              find.byKey(const ValueKey('map-world-option-3')),
-            )
+            .widget<JuicyPress>(find.byKey(const ValueKey('choose-world-3')))
             .onPressed,
         isNull,
       );
-      await tester.tapAt(const Offset(20, 20));
+      await tester.tap(find.byKey(const ValueKey('worlds-back')));
       await frames();
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
-      await tester.tap(find.byKey(const ValueKey('map-world-option-1')));
+      await tester.tap(find.byKey(const ValueKey('choose-world-1')));
       await frames();
       expect(find.text('Mundo 1'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-1');

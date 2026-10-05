@@ -35,6 +35,8 @@ Future<void> _openMap(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump(const Duration(milliseconds: 200));
   await _finishMapTransition(tester);
+  await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+  await _finishMapTransition(tester);
   // A fresh installation now opens onboarding above the map.
   Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
   await _finishMapTransition(tester);
