@@ -185,7 +185,7 @@ class _MapScreenState extends State<MapScreen>
         if (mounted) {
           showToast(
             context,
-            'No pudimos abrir el mundo. Toca su primer juego para reintentar.',
+            'No pudimos abrir este destino. Toca su primer juego para reintentar.',
           );
         }
       }
@@ -345,7 +345,10 @@ class _MapScreenState extends State<MapScreen>
       await _progress.resetLevel(1);
     } catch (_) {
       if (mounted) {
-        showToast(context, 'No se pudo resetear el mundo. Intentá de nuevo.');
+        showToast(
+          context,
+          'No se pudo reiniciar el recorrido. Intentá de nuevo.',
+        );
       }
     }
   }
@@ -420,11 +423,17 @@ class _MapScreenState extends State<MapScreen>
       if (!mounted) return;
       await _focusLevel(_nodes.last.level);
       if (mounted) {
-        showToast(context, 'Mundo listo: falta la ronda 3 del último juego.');
+        showToast(
+          context,
+          'Recorrido listo: falta la ronda 3 del último juego.',
+        );
       }
     } catch (_) {
       if (mounted) {
-        showToast(context, 'No se pudo preparar el mundo. Intentá de nuevo.');
+        showToast(
+          context,
+          'No se pudo preparar el recorrido. Intentá de nuevo.',
+        );
       }
     } finally {
       _preparingWorld = false;
@@ -517,7 +526,7 @@ class _MapScreenState extends State<MapScreen>
   }
 
   String _lockedReason(int level) => level == 1 && !_progress.worldUnlocked
-      ? 'Completa el mundo anterior para desbloquear este nivel.'
+      ? 'Completa el destino anterior para desbloquear este nivel.'
       : 'Consigue 3 puntos en el nivel ${level - 1}';
 
   Future<void> _openSelectedLevel(int level) async {
@@ -735,15 +744,28 @@ class _MapScreenState extends State<MapScreen>
                   ),
                   child: Column(
                     children: [
-                      MapWorldHeader(
-                        onChooseWorld: widget.onChooseWorld,
-                        onViewTutorial: widget.onViewTutorial,
-                        compact: compact,
-                        // The gate sits near the top-right corner when
-                        // the whole panorama fits in a short window.
-                        groupActions: compact && viewport.width >= 700,
-                        onBack:
-                            widget.onHome ?? () => Navigator.of(context).pop(),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MapWorldHeader(
+                            onViewTutorial: widget.onViewTutorial,
+                            compact: compact,
+                            // The gate sits near the top-right corner when
+                            // the whole panorama fits in a short window.
+                            groupActions: compact && viewport.width >= 700,
+                            onBack:
+                                widget.onHome ??
+                                () => Navigator.of(context).pop(),
+                          ),
+                          SizedBox(height: compact ? 8 : 10),
+                          MapWorldIndicator(
+                            worldId: _progress.worldId,
+                            compact: compact || viewport.width < 600,
+                            worldNavigation: widget.worldNavigation,
+                            onSelectWorld: widget.onSelectWorld,
+                            onChooseWorld: widget.onChooseWorld,
+                          ),
+                        ],
                       ),
                       const Spacer(),
                     ],
@@ -770,9 +792,6 @@ class _MapScreenState extends State<MapScreen>
                         compact: compactCard,
                         level: _activeLevel,
                         unlockedLevels: _progress.unlockedCount,
-                        worldNavigation: widget.worldNavigation,
-                        onSelectWorld: widget.onSelectWorld,
-                        onChooseWorld: widget.onChooseWorld,
                         onPrevious: _awardingLevel == null && _activeLevel > 1
                             ? () => _focusLevel(_activeLevel - 1)
                             : null,
@@ -792,13 +811,13 @@ class _MapScreenState extends State<MapScreen>
                     ...widget.developerActions,
                     DeveloperMenuAction(
                       key: const ValueKey('dev-complete-world-except-last'),
-                      label: 'Completar mundo menos última ronda',
+                      label: 'Completar recorrido menos última ronda',
                       icon: Icons.flag_outlined,
                       onPressed: _completeWorldExceptLastPuzzle,
                     ),
                     DeveloperMenuAction(
                       key: const ValueKey('dev-reset-world'),
-                      label: 'Resetear mundo',
+                      label: 'Reiniciar recorrido',
                       icon: Icons.public_outlined,
                       onPressed: _resetWorld,
                     ),

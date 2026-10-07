@@ -36,7 +36,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('Mundo 1'), findsOneWidget);
+    expect(find.textContaining('Mundo '), findsNothing);
     expect(find.text('Valle del Sol'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('map-world-selector')));
     await tester.pump();
@@ -86,13 +86,13 @@ void main() {
       await frames();
       await tester.tap(find.byKey(const ValueKey('choose-world-1')));
       await frames();
-      expect(find.text('Mundo 1'), findsOneWidget);
+      expect(find.text('Valle del Sol'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
       await tester.ensureVisible(find.byKey(const ValueKey('choose-world-2')));
       await tester.tap(find.byKey(const ValueKey('choose-world-2')));
       await frames();
-      expect(find.text('Mundo 2'), findsOneWidget);
+      expect(find.text('Bosque de la Cumbre'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-2');
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
@@ -108,7 +108,7 @@ void main() {
       await frames();
       await tester.tap(find.byKey(const ValueKey('choose-world-1')));
       await frames();
-      expect(find.text('Mundo 1'), findsOneWidget);
+      expect(find.text('Valle del Sol'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-1');
       expect(tester.takeException(), isNull);
 

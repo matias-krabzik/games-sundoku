@@ -15,6 +15,8 @@ import 'package:sundoku/widgets/map_chrome.dart';
 import 'package:sundoku/widgets/map_parallax_scene.dart';
 import 'package:sundoku/widgets/world_thumbnail.dart';
 
+import '../support/world3_baseline.dart';
+
 void main() {
   test('world score retains best results and resets with the world', () async {
     final repo = GameRepository.memory();
@@ -47,6 +49,7 @@ void main() {
         const Size(834, 1210),
         const Size(390, 844),
         const Size(844, 390),
+        const Size(568, 320),
       ]) {
         tester.view.physicalSize = size;
         await tester.pumpWidget(
@@ -82,7 +85,8 @@ void main() {
         );
         expect(find.text('Valle del Sol'), findsOneWidget);
         expect(find.text('Nivel 1'), findsOneWidget);
-        expect(find.text('Mundo 1'), findsOneWidget);
+        expect(find.textContaining('Mundo '), findsNothing);
+        expect(find.byIcon(Icons.public_rounded), findsNothing);
         expect(find.text('1 / 10'), findsOneWidget);
         final progressBar = tester.getRect(
           find.byKey(const ValueKey('map-level-progress')),
@@ -98,6 +102,7 @@ void main() {
         final world = tester.getRect(
           find.byKey(const ValueKey('map-world-selector')),
         );
+        final back = tester.getRect(find.byKey(const ValueKey('map-back')));
         final previous = tester.getRect(
           find.byKey(const ValueKey('map-previous')),
         );
@@ -107,7 +112,10 @@ void main() {
         expect((next.center.dy - level.center.dy).abs(), lessThan(1));
         expect(previous.right, lessThan(level.left));
         expect(next.left, greaterThan(level.right));
+        expect(world.top, greaterThan(back.bottom));
+        expect(world.bottom, lessThan(card.top));
         expect(level.center.dy, greaterThan(world.center.dy));
+        expect(find.byType(WorldThumbnail).hitTestable(), findsOneWidget);
         expect(find.textContaining('puntos obtenidos'), findsNothing);
         expect(tester.takeException(), isNull);
         if (size.width == 834 &&
@@ -140,7 +148,7 @@ void main() {
     },
   );
 
-  testWidgets('world two progress card keeps the reference proportions', (
+  testWidgets('world two footer keeps level navigation and progress', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(622, 317);
@@ -179,13 +187,12 @@ void main() {
     );
     await tester.pump();
     final card = tester.getRect(find.byType(MapStatusCard));
-    final thumbnail = tester.getRect(find.byType(WorldThumbnail));
     final progress = tester.getRect(
       find.byKey(const ValueKey('map-level-progress')),
     );
     expect(card.width, 477);
-    expect(card.height, 204);
-    expect(thumbnail.width, 68);
+    expect(card.height, 168);
+    expect(find.byType(WorldThumbnail), findsNothing);
     expect(progress.width, 365);
     expect(progress.height, 30);
     expect(find.text('13 / 20'), findsOneWidget);
@@ -209,5 +216,80 @@ void main() {
         image.dispose();
       });
     }
+  });
+
+  testWidgets('world three keeps its indicator above the map footer', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    tester.view.physicalSize = const Size(834, 1210);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = await openBaselineRepository(baselineSave(completedWorlds: 2));
+    final progress = LevelProgress(repository: repo, worldId: 'world-3');
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildSunDokuTheme(),
+        home: RepaintBoundary(
+          key: key,
+          child: MapScreen(
+            progress: progress,
+            onViewTutorial: () {},
+            showDeveloperControls: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+    final indicator = tester.getRect(find.byType(MapWorldIndicator));
+    final footer = tester.getRect(find.byType(MapStatusCard));
+    final back = tester.getRect(find.byKey(const ValueKey('map-back')));
+    expect(indicator.top, greaterThan(back.bottom));
+    expect(indicator.bottom, lessThan(footer.top));
+    expect(find.textContaining('Mundo '), findsNothing);
+    expect(find.text('Ríos Cruzados'), findsOneWidget);
+    expect(find.text('Nivel 1'), findsOneWidget);
+    expect(find.text('1 / 30'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(MapStatusCard),
+        matching: find.byType(WorldThumbnail),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(MapStatusCard),
+        matching: find.text('Ríos Cruzados'),
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+    final capture = Platform.environment['MAP_WORLD3_CAPTURE'];
+    if (capture != null) {
+      await tester.runAsync(() async {
+        final context = key.currentContext!;
+        for (final widget in tester.widgetList<Image>(find.byType(Image))) {
+          await precacheImage(widget.image, context);
+        }
+      });
+      await tester.pump();
+      await tester.runAsync(() async {
+        final image =
+            await (key.currentContext!.findRenderObject()!
+                    as RenderRepaintBoundary)
+                .toImage();
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        await File(capture).writeAsBytes(bytes!.buffer.asUint8List());
+        image.dispose();
+      });
+    }
+    await tester.pumpWidget(const SizedBox());
+    progress.dispose();
+    await repo.close();
+    debugDefaultTargetPlatformOverride = null;
   });
 }

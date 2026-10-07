@@ -98,8 +98,8 @@ void main() {
       );
       expect(find.text('1 / 10 niveles'), findsOneWidget);
       expect(find.text('5 / 30'), findsOneWidget);
-      expect(find.text('Completa el Mundo 1'), findsOneWidget);
-      expect(find.text('Completa el Mundo 2'), findsOneWidget);
+      expect(find.text('Completa Valle del Sol'), findsOneWidget);
+      expect(find.text('Completa Bosque de la Cumbre'), findsOneWidget);
       expect(find.textContaining('Continuar'), findsNothing);
       final locked = tester.widget<JuicyPress>(
         find.byKey(const ValueKey('choose-world-2')),
@@ -144,12 +144,12 @@ void main() {
             tester.view.physicalSize = size;
             await show(tester, repo, scale: scale);
             expect(tester.takeException(), isNull);
-            expect(find.text('Elige tu mundo').hitTestable(), findsOneWidget);
+            expect(find.text('Elige tu destino').hitTestable(), findsOneWidget);
             expect(
               find.byKey(const ValueKey('worlds-back')).hitTestable(),
               findsOneWidget,
             );
-            final header = tester.getRect(find.text('Elige tu mundo'));
+            final header = tester.getRect(find.text('Elige tu destino'));
             expect(header.left, greaterThanOrEqualTo(0));
             expect(header.right, lessThanOrEqualTo(size.width));
             expect(find.byType(Scrollable), findsNothing);
@@ -173,7 +173,7 @@ void main() {
             }
             if (!allUnlocked) {
               expect(
-                find.text('Completa el Mundo 2').hitTestable(),
+                find.text('Completa Bosque de la Cumbre').hitTestable(),
                 findsOneWidget,
               );
             } else {

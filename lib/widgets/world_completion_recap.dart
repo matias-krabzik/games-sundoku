@@ -40,7 +40,7 @@ Future<WorldCompletionDestination?> showWorldCompletionRecap(
                     child: Column(
                       children: [
                         Text(
-                          '¡Mundo completado!',
+                          '¡Recorrido completado!',
                           textAlign: TextAlign.center,
                           style: homeText(27),
                         ),
@@ -81,7 +81,7 @@ Future<WorldCompletionDestination?> showWorldCompletionRecap(
                             ].join('\n\n'),
                           ],
                           tip: worldId == 'world-2'
-                              ? '¡Desbloqueaste Ríos Cruzados! Elige ese mundo desde el mapa. También puedes seguir practicando en Partida rápida y usar tus anotaciones cuando quieras.'
+                              ? '¡Desbloqueaste Ríos Cruzados! Puedes elegirlo desde el mapa. También puedes seguir practicando en Partida rápida y usar tus anotaciones cuando quieras.'
                               : worldId == 'world-3'
                               ? '¡Gracias por recorrer Ríos Cruzados! Vuelve al mapa para mirar el camino completo y seguir disfrutando de SunDoku.'
                               : '¡Desbloqueaste Partida rápida!\n\nAhora puedes elegir la dificultad y jugar nuevos sudokus para seguir practicando.\n\n¡Encontrarás tu próximo desafío en el inicio!',

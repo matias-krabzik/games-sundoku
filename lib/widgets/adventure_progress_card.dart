@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/world_catalog.dart';
-import 'game_feedback_scope.dart';
 import 'home_art.dart';
-import 'juicy_press.dart';
 import 'ui_surface_art.dart';
-import 'world_thumbnail.dart';
 
 /// The shared floating progress panel used on the home and adventure map.
 class AdventureProgressCard extends StatelessWidget {
@@ -15,7 +12,6 @@ class AdventureProgressCard extends StatelessWidget {
     required this.worldId,
     required this.unlockedLevels,
     this.levelName,
-    this.onChooseWorld,
     this.leading,
     this.trailing,
     this.compact = false,
@@ -25,7 +21,6 @@ class AdventureProgressCard extends StatelessWidget {
   final String worldId;
   final int unlockedLevels;
   final String? levelName;
-  final VoidCallback? onChooseWorld;
   final Widget? leading;
   final Widget? trailing;
   final bool compact;
@@ -36,14 +31,14 @@ class AdventureProgressCard extends StatelessWidget {
     final onMap = levelName != null;
     return Semantics(
       label:
-          'Nivel $level. Mundo ${world.number}. $unlockedLevels de ${world.nodes.length} niveles desbloqueados',
+          'Nivel $level. ${world.name}. $unlockedLevels de ${world.nodes.length} niveles desbloqueados',
       explicitChildNodes: onMap,
       excludeSemantics: !onMap,
       child: onMap
-          ? SizedBox(height: compact ? 174 : 204, child: _mapPanel(world))
+          ? SizedBox(height: compact ? 145 : 168, child: _mapPanel(world))
           : AspectRatio(
               aspectRatio: 3.12,
-              child: _panel(context, world.nodes.length, world.number),
+              child: _panel(context, world.nodes.length, world.name),
             ),
     );
   }
@@ -65,54 +60,8 @@ class AdventureProgressCard extends StatelessWidget {
               small ? 20 : 27,
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                SizedBox(
-                  height: small ? 57 : 68,
-                  child: JuicyPress(
-                    key: const ValueKey('map-world-selector'),
-                    label: 'Elegir mundo. Mundo ${world.number}: ${world.name}',
-                    onFeedback: () => GameFeedbackScope.tap(context),
-                    onPressed: onChooseWorld,
-                    builder: (context, _) => Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(left: small ? 0 : 16),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            WorldThumbnail(
-                              worldId: worldId,
-                              size: small ? 52 : 68,
-                            ),
-                            SizedBox(width: small ? 8 : 12),
-                            Flexible(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Mundo ${world.number}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: homeText(small ? 20 : 27),
-                                    textScaler: TextScaler.noScaling,
-                                  ),
-                                  Text(
-                                    world.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: homeText(small ? 12 : 15),
-                                    textScaler: TextScaler.noScaling,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
                 SizedBox(
                   height: small ? 48 : 50,
                   child: Row(
@@ -196,7 +145,7 @@ class AdventureProgressCard extends StatelessWidget {
     },
   );
 
-  Widget _panel(BuildContext context, int totalLevels, int worldNumber) =>
+  Widget _panel(BuildContext context, int totalLevels, String worldName) =>
       Stack(
         fit: StackFit.expand,
         children: [
@@ -248,7 +197,7 @@ class AdventureProgressCard extends StatelessWidget {
                           Expanded(
                             child: _StatusLabel(
                               HomeGlyph.world,
-                              'Mundo $worldNumber',
+                              worldName,
                               iconSize: onMap ? 31 * unit : 37 * unit,
                               fontSize: onMap ? 19 * unit : 22 * unit,
                               gap: onMap ? 4 * unit : 7 * unit,

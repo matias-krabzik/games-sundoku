@@ -359,7 +359,9 @@ void main() {
       }
       await _show(tester, progress);
       expect(tester.widget<MapWorldGate>(_gate).unlocked, isTrue);
-      final node = tester.getSemantics(find.bySemanticsLabel('Próximo mundo'));
+      final node = tester.getSemantics(
+        find.bySemanticsLabel('Próximo destino'),
+      );
       expect(
         node.getSemanticsData().hasAction(ui.SemanticsAction.tap),
         isFalse,

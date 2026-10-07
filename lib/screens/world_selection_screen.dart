@@ -42,7 +42,7 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No pudimos abrir el mundo. Intenta de nuevo.'),
+            content: Text('No pudimos abrir este destino. Intenta de nuevo.'),
           ),
         );
       }
@@ -204,7 +204,7 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                'Elige tu mundo',
+                                'Elige tu destino',
                                 maxLines: 1,
                                 style: homeText(compact ? 23 : 32),
                               ),

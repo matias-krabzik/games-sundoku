@@ -19,14 +19,12 @@ class MapWorldHeader extends StatelessWidget {
     super.key,
     required this.onBack,
     this.onViewTutorial,
-    this.onChooseWorld,
     this.compact = false,
     this.groupActions = false,
   });
 
   final VoidCallback onBack;
   final VoidCallback? onViewTutorial;
-  final VoidCallback? onChooseWorld;
   final bool compact;
   final bool groupActions;
 
@@ -51,15 +49,6 @@ class MapWorldHeader extends StatelessWidget {
           onPressed: onViewTutorial,
         ),
       ],
-      if (onChooseWorld != null) ...[
-        const SizedBox(width: 8),
-        _MapRoundButton(
-          label: 'Elegir mundo',
-          icon: Icons.public_rounded,
-          size: compact ? 50 : 54,
-          onPressed: onChooseWorld,
-        ),
-      ],
       if (groupActions) const SizedBox(width: 8) else const Spacer(),
       _MapRoundButton(
         key: const ValueKey('map-settings'),
@@ -73,6 +62,69 @@ class MapWorldHeader extends StatelessWidget {
   );
 }
 
+/// Illustrated current-world label below the back button.
+class MapWorldIndicator extends StatelessWidget {
+  const MapWorldIndicator({
+    super.key,
+    required this.worldId,
+    this.onChooseWorld,
+    this.worldNavigation,
+    this.onSelectWorld,
+    this.compact = false,
+  });
+
+  final String worldId;
+  final VoidCallback? onChooseWorld;
+  final WorldNavigationService? worldNavigation;
+  final ValueChanged<String>? onSelectWorld;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final world = adventureWorld(worldId);
+    final navigation = worldNavigation;
+    final select =
+        onChooseWorld ??
+        (navigation != null && onSelectWorld != null
+            ? () => _chooseWorld(context, navigation, worldId, onSelectWorld!)
+            : null);
+    return SizedBox(
+      width: compact ? 217 : 263,
+      height: compact ? 75 : 93,
+      child: JuicyPress(
+        key: const ValueKey('map-world-selector'),
+        label: '${world.name}. Elegir destino',
+        onFeedback: () => GameFeedbackScope.tap(context),
+        onPressed: select,
+        builder: (context, _) => UiSurfacePanel(
+          surface: UiSurface.goldCreamPanel,
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 17 : 22,
+            vertical: compact ? 13 : 17,
+          ),
+          child: Row(
+            children: [
+              WorldThumbnail(worldId: worldId, size: compact ? 48 : 59),
+              SizedBox(width: compact ? 7 : 9),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    world.name,
+                    maxLines: 1,
+                    style: homeText(compact ? 18 : 23),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Floating map progress panel. Stars remain on their level markers.
 class MapStatusCard extends StatelessWidget {
   const MapStatusCard({
@@ -80,9 +132,6 @@ class MapStatusCard extends StatelessWidget {
     required this.level,
     this.worldId = 'world-1',
     required this.unlockedLevels,
-    this.worldNavigation,
-    this.onSelectWorld,
-    this.onChooseWorld,
     required this.onPrevious,
     required this.onNext,
     this.compact = false,
@@ -91,16 +140,12 @@ class MapStatusCard extends StatelessWidget {
   final int level;
   final String worldId;
   final int unlockedLevels;
-  final WorldNavigationService? worldNavigation;
-  final ValueChanged<String>? onSelectWorld;
-  final VoidCallback? onChooseWorld;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final navigation = worldNavigation;
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: compact ? 400 : 477),
       child: AdventureProgressCard(
@@ -109,11 +154,6 @@ class MapStatusCard extends StatelessWidget {
         unlockedLevels: unlockedLevels,
         levelName: adventureWorld(worldId).names[level - 1],
         compact: compact,
-        onChooseWorld:
-            onChooseWorld ??
-            (navigation != null && onSelectWorld != null
-                ? () => _chooseWorld(context, navigation)
-                : null),
         leading: _MapRoundButton(
           key: const ValueKey('map-previous'),
           label: 'Nivel anterior',
@@ -136,101 +176,92 @@ class MapStatusCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Future<void> _chooseWorld(
-    BuildContext context,
-    WorldNavigationService navigation,
-  ) async {
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 410),
-          child: UiSurfacePanel(
-            surface: UiSurface.creamPanel,
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Elige un mundo', style: homeText(25)),
-                const SizedBox(height: 14),
-                for (final world in navigation.worlds) ...[
-                  SizedBox(
-                    height: 58,
-                    child: JuicyPress(
-                      key: ValueKey('map-world-option-${world.number}'),
-                      label: world.id == worldId
-                          ? 'Mundo ${world.number}: ${world.name}, actual'
-                          : 'Mundo ${world.number}: ${world.name}',
-                      onFeedback: () => GameFeedbackScope.tap(dialogContext),
-                      onPressed: navigation.isUnlocked(world.id)
-                          ? () => Navigator.of(dialogContext).pop(world.id)
-                          : null,
-                      builder: (context, _) => Opacity(
-                        opacity: navigation.isUnlocked(world.id) ? 1 : .55,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            UiSurfaceArt(
-                              world.id == worldId
-                                  ? UiSurface.goldButton
-                                  : UiSurface.creamPill,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                              ),
-                              child: Row(
-                                children: [
-                                  WorldThumbnail(worldId: world.id, size: 36),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Mundo ${world.number}',
-                                          style: homeText(17),
-                                        ),
-                                        Text(
-                                          world.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: homeText(12),
-                                        ),
-                                      ],
+Future<void> _chooseWorld(
+  BuildContext context,
+  WorldNavigationService navigation,
+  String worldId,
+  ValueChanged<String> onSelectWorld,
+) async {
+  final selected = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 410),
+        child: UiSurfacePanel(
+          surface: UiSurface.creamPanel,
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Elige tu destino', style: homeText(25)),
+              const SizedBox(height: 14),
+              for (final world in navigation.worlds) ...[
+                SizedBox(
+                  height: 58,
+                  child: JuicyPress(
+                    key: ValueKey('map-world-option-${world.number}'),
+                    label: world.id == worldId
+                        ? '${world.name}, actual'
+                        : world.name,
+                    onFeedback: () => GameFeedbackScope.tap(dialogContext),
+                    onPressed: navigation.isUnlocked(world.id)
+                        ? () => Navigator.of(dialogContext).pop(world.id)
+                        : null,
+                    builder: (context, _) => Opacity(
+                      opacity: navigation.isUnlocked(world.id) ? 1 : .55,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          UiSurfaceArt(
+                            world.id == worldId
+                                ? UiSurface.goldButton
+                                : UiSurface.creamPill,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                            child: Row(
+                              children: [
+                                WorldThumbnail(worldId: world.id, size: 36),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      world.name,
+                                      maxLines: 1,
+                                      style: homeText(17),
                                     ),
                                   ),
-                                  if (!navigation.isUnlocked(world.id))
-                                    const Icon(
-                                      Icons.lock_rounded,
-                                      size: 21,
-                                      color: homeNavy,
-                                    ),
-                                ],
-                              ),
+                                ),
+                                if (!navigation.isUnlocked(world.id))
+                                  const Icon(
+                                    Icons.lock_rounded,
+                                    size: 21,
+                                    color: homeNavy,
+                                  ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 7),
-                ],
+                ),
+                const SizedBox(height: 7),
               ],
-            ),
+            ],
           ),
         ),
       ),
-    );
-    if (context.mounted && selected != null && selected != worldId) {
-      onSelectWorld?.call(selected);
-    }
+    ),
+  );
+  if (context.mounted && selected != null && selected != worldId) {
+    onSelectWorld(selected);
   }
 }
 

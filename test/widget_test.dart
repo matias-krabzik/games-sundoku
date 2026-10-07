@@ -308,7 +308,7 @@ void main() {
           expect(bounds.width, greaterThanOrEqualTo(47.99));
           expect(bounds.height, greaterThanOrEqualTo(47.99));
         }
-        expect(find.text('Mundo 1'), findsOneWidget);
+        expect(find.text('Valle del Sol'), findsOneWidget);
         expect(find.text('Nivel $expectedLevel'), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.tap(find.byKey(const ValueKey('map-next')));

@@ -67,11 +67,14 @@ class _WorldDestinationState extends State<WorldDestination>
   Widget build(BuildContext context) {
     final w = widget;
     final compact = w.diameter < 80;
-    final requirement = 'Completa el Mundo ${w.world.number - 1}';
+    final previous = adventureWorlds.values
+        .where((world) => world.number == w.world.number - 1)
+        .firstOrNull;
+    final requirement = previous == null ? '' : 'Completa ${previous.name}';
     return JuicyPress(
       key: ValueKey('choose-${w.world.id}'),
       label:
-          'Mundo ${w.world.number}. ${w.world.name}. ${w.unlocked ? '${w.completedLevels} de ${w.world.levelCount} niveles completados. ${w.stars} de ${w.world.levelCount * 3} estrellas. Entrar al mundo' : 'Bloqueado. $requirement'}',
+          '${w.world.name}. ${w.unlocked ? '${w.completedLevels} de ${w.world.levelCount} niveles completados. ${w.stars} de ${w.world.levelCount * 3} estrellas. Entrar' : 'Bloqueado. $requirement'}',
       onPressed: w.unlocked ? w.onPressed : null,
       onFeedback: () => GameFeedbackScope.tap(context),
       builder: (context, _) => Column(
@@ -175,21 +178,9 @@ class _WorldDestinationState extends State<WorldDestination>
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'Mundo ${w.world.number}',
-                        maxLines: 1,
-                        style: homeText(compact ? 16 : 21),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
                         w.world.name,
                         maxLines: 1,
-                        style: homeText(compact ? 12 : 15),
+                        style: homeText(compact ? 16 : 21),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -238,15 +229,15 @@ class _WorldDestinationState extends State<WorldDestination>
 }
 
 @Preview(
-  name: 'Mundo disponible',
-  group: 'Selección de mundos',
+  name: 'Destino disponible',
+  group: 'Selección de destinos',
   size: Size(250, 230),
 )
 Widget availableWorldDestinationPreview() => _destinationPreview(true);
 
 @Preview(
-  name: 'Mundo bloqueado',
-  group: 'Selección de mundos',
+  name: 'Destino bloqueado',
+  group: 'Selección de destinos',
   size: Size(250, 230),
 )
 Widget lockedWorldDestinationPreview() => _destinationPreview(false);

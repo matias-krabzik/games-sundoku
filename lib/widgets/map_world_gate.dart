@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../playables/playables_runtime.dart';
+import '../data/world_catalog.dart';
 
 import '../data/services/game_feedback.dart';
 import 'game_feedback_scope.dart';
@@ -240,6 +241,7 @@ class _MapWorldGateState extends State<MapWorldGate>
 
   @override
   Widget build(BuildContext context) {
+    final destinationName = adventureWorld('world-${widget.worldNumber}').name;
     final artworkSize = widget.artworkSize;
     final artwork = Image.asset(
       widget.assetPath,
@@ -250,10 +252,10 @@ class _MapWorldGateState extends State<MapWorldGate>
     );
     return Semantics(
       value: widget.unlocked
-          ? 'Mundo ${widget.worldNumber} completado'
-          : 'Completa todas las rondas del mundo ${widget.worldNumber}',
+          ? 'Completaste $destinationName'
+          : 'Completa todas las rondas de $destinationName',
       child: JuicyPress(
-        label: 'Próximo mundo',
+        label: 'Próximo destino',
         onPressed: widget.unlocked && !widget.ignitionPending
             ? widget.onPressed
             : null,

@@ -224,7 +224,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No pudimos abrir el mundo. Intenta de nuevo.'),
+              content: Text('No pudimos abrir este destino. Intenta de nuevo.'),
             ),
           );
         }
@@ -273,7 +273,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No pudimos abrir el mundo. Intenta de nuevo.'),
+            content: Text('No pudimos abrir este destino. Intenta de nuevo.'),
           ),
         );
       }
