@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../data/world_catalog.dart';
 import 'home_art.dart';
-import 'ui_surface_art.dart';
 
 /// The shared floating progress panel used on the home and adventure map.
 class AdventureProgressCard extends StatelessWidget {
@@ -51,7 +50,7 @@ class AdventureProgressCard extends StatelessWidget {
       return Stack(
         fit: StackFit.expand,
         children: [
-          const UiSurfaceArt(UiSurface.mapProgressPanel),
+          const HomeArt(HomeSurface.status),
           Padding(
             padding: EdgeInsets.fromLTRB(
               inset,
@@ -63,19 +62,34 @@ class AdventureProgressCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 SizedBox(
-                  height: small ? 48 : 50,
+                  height: small ? 58 : 62,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       leading ?? const SizedBox(width: 48),
                       SizedBox(width: small ? 13 : 24),
                       Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Nivel $level',
-                            style: homeText(small ? 25 : 30),
-                            textScaler: TextScaler.noScaling,
+                        child: SizedBox(
+                          key: const ValueKey('map-level-summary'),
+                          width: small ? 120 : 164,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Nivel $level',
+                                  style: homeText(small ? 25 : 30),
+                                  textScaler: TextScaler.noScaling,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$unlockedLevels / $totalLevels',
+                                  style: homeText(small ? 15 : 17),
+                                  textScaler: TextScaler.noScaling,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -86,55 +100,10 @@ class AdventureProgressCard extends StatelessWidget {
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: small ? 14 : 31),
-                  child: SizedBox(
+                  child: _progressBar(
                     key: const ValueKey('map-level-progress'),
-                    height: 30,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        const UiSurfaceArt(UiSurface.mapProgressTrack),
-                        // The fill reaches the copper rim vertically. An
-                        // inset here leaves a pale gap beside a short cap.
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                          child: LayoutBuilder(
-                            builder: (context, bounds) {
-                              final fraction = (unlockedLevels / totalLevels)
-                                  .clamp(0.0, 1.0);
-                              // A visible fill starts as a circle, then grows
-                              // with progress without exceeding the track.
-                              final fillWidth = fraction == 0
-                                  ? 0.0
-                                  : (bounds.maxWidth * fraction).clamp(
-                                      bounds.biggest.shortestSide,
-                                      bounds.maxWidth,
-                                    );
-                              return Align(
-                                alignment: Alignment.centerLeft,
-                                child: SizedBox(
-                                  width: fillWidth,
-                                  height: bounds.maxHeight,
-                                  child: const UiSurfaceArt(
-                                    UiSurface.mapProgressFill,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: Text(
-                              '$unlockedLevels / $totalLevels',
-                              style: homeText(small ? 15 : 17),
-                              textScaler: TextScaler.noScaling,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    totalLevels: totalLevels,
+                    height: small ? 16 : 20,
                   ),
                 ),
               ],
@@ -230,28 +199,9 @@ class AdventureProgressCard extends StatelessWidget {
                       padding: EdgeInsets.symmetric(
                         horizontal: (onMap ? 24 : 20) * unit,
                       ),
-                      child: SizedBox(
+                      child: _progressBar(
+                        totalLevels: totalLevels,
                         height: onMap ? (compact ? 10 : 13) : 16 * unit,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            const HomeArt(HomeSurface.progressTrack),
-                            Padding(
-                              padding: EdgeInsets.all(1.6 * unit),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: FractionallySizedBox(
-                                  widthFactor: (unlockedLevels / totalLevels)
-                                      .clamp(0, 1),
-                                  heightFactor: 1,
-                                  child: const HomeArt(
-                                    HomeSurface.progressFill,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                     SizedBox(height: onMap ? 2 : 3 * unit),
@@ -267,6 +217,32 @@ class AdventureProgressCard extends StatelessWidget {
           ),
         ],
       );
+
+  Widget _progressBar({
+    Key? key,
+    required int totalLevels,
+    required double height,
+  }) => SizedBox(
+    key: key,
+    height: height,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        const HomeArt(HomeSurface.progressTrack),
+        Padding(
+          padding: EdgeInsets.all(height * .1),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: (unlockedLevels / totalLevels).clamp(0.0, 1.0),
+              heightFactor: 1,
+              child: const HomeArt(HomeSurface.progressFill),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _StatusLabel extends StatelessWidget {

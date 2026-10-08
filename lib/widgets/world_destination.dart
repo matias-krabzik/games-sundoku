@@ -100,10 +100,12 @@ class _WorldDestinationState extends State<WorldDestination>
                               : UiSurface.creamRound,
                         ),
                         Padding(
-                          padding: EdgeInsets.all(w.diameter * .25),
-                          child: CustomPaint(
-                            painter: _WorldGlyph(w.world.number),
-                          ),
+                          padding: EdgeInsets.all(w.diameter * .22),
+                          child: MapIcon(switch (w.world.id) {
+                            'world-1' => MapGlyph.sun,
+                            'world-2' => MapGlyph.mountain,
+                            _ => MapGlyph.water,
+                          }, size: w.diameter * .56),
                         ),
                       ],
                     ),
@@ -263,73 +265,3 @@ Widget _destinationPreview(bool unlocked) => MaterialApp(
     ),
   ),
 );
-
-/// Crisp blue pictograms match the approved points without relying on a font.
-class _WorldGlyph extends CustomPainter {
-  const _WorldGlyph(this.world);
-  final int world;
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.scale(size.width / 100, size.height / 100);
-    final ink = Paint()
-      ..color = const Color(0xFF0757A5)
-      ..strokeCap = StrokeCap.round;
-    if (world == 1) {
-      canvas.drawCircle(const Offset(50, 50), 23, ink);
-      ink.strokeWidth = 9;
-      for (var i = 0; i < 8; i++) {
-        final angle = i * math.pi / 4;
-        final direction = Offset(math.cos(angle), math.sin(angle));
-        canvas.drawLine(
-          const Offset(50, 50) + direction * 36,
-          const Offset(50, 50) + direction * 46,
-          ink,
-        );
-      }
-    } else if (world == 2) {
-      final mountain = Path()
-        ..moveTo(51, 76)
-        ..lineTo(76, 28)
-        ..quadraticBezierTo(78, 24, 80, 29)
-        ..lineTo(100, 76)
-        ..close();
-      canvas.drawPath(mountain, ink);
-      final tree = Path()
-        ..moveTo(33, 4)
-        ..lineTo(10, 38)
-        ..lineTo(20, 38)
-        ..lineTo(2, 64)
-        ..lineTo(14, 64)
-        ..lineTo(0, 84)
-        ..lineTo(27, 84)
-        ..lineTo(27, 99)
-        ..lineTo(40, 99)
-        ..lineTo(40, 84)
-        ..lineTo(66, 84)
-        ..lineTo(52, 64)
-        ..lineTo(64, 64)
-        ..lineTo(46, 38)
-        ..lineTo(56, 38)
-        ..close();
-      canvas.drawPath(tree, ink);
-    } else {
-      ink
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 9;
-      for (var i = 0; i < 3; i++) {
-        final y = 23.0 + i * 27;
-        canvas.drawPath(
-          Path()
-            ..moveTo(6, y)
-            ..cubicTo(32, y - 29, 60, y + 29, 94, y - 4),
-          ink,
-        );
-      }
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_WorldGlyph oldDelegate) => oldDelegate.world != world;
-}

@@ -35,7 +35,7 @@ class MapWorldHeader extends StatelessWidget {
       _MapRoundButton(
         key: const ValueKey('map-back'),
         label: 'Volver al inicio',
-        icon: Icons.home_rounded,
+        glyph: MapGlyph.home,
         size: compact ? 50 : 54,
         onPressed: onBack,
       ),
@@ -44,7 +44,7 @@ class MapWorldHeader extends StatelessWidget {
         _MapRoundButton(
           key: const ValueKey('map-tutorial'),
           label: 'Ver el tutorial',
-          icon: Icons.menu_book_rounded,
+          glyph: MapGlyph.book,
           size: compact ? 50 : 54,
           onPressed: onViewTutorial,
         ),
@@ -270,7 +270,6 @@ class _MapRoundButton extends StatelessWidget {
     super.key,
     required this.label,
     this.glyph,
-    this.icon,
     this.artwork,
     required this.size,
     required this.onPressed,
@@ -281,7 +280,6 @@ class _MapRoundButton extends StatelessWidget {
 
   final String label;
   final MapGlyph? glyph;
-  final IconData? icon;
   final Widget? artwork;
   final double size;
   final VoidCallback? onPressed;
@@ -312,26 +310,7 @@ class _MapRoundButton extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 3),
                     child: Transform.flip(
                       flipX: mirrored,
-                      child:
-                          artwork ??
-                          (icon != null
-                              ? Icon(
-                                  icon,
-                                  size: size * .5,
-                                  color: homeNavy,
-                                  shadows: const [
-                                    Shadow(
-                                      color: Color(0xFFFFFFFF),
-                                      offset: Offset(0, -1),
-                                    ),
-                                    Shadow(
-                                      color: Color(0x555C3900),
-                                      offset: Offset(0, 2),
-                                      blurRadius: 1,
-                                    ),
-                                  ],
-                                )
-                              : MapIcon(glyph!, size: size * .45)),
+                      child: artwork ?? MapIcon(glyph!, size: size * .50),
                     ),
                   ),
                 ),

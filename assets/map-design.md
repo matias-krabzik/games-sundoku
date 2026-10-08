@@ -4,6 +4,8 @@ Built-in image generation extracted/recreated the approved map indicators as reu
 
 ## Assets
 
+The map now shares illustrated PNG icons for home, the tutorial book and destination markers. `MapIcon` reuses the existing home sun and atlas arrows, locks and reward stars; the new mountain, river, home and book assets replace the plain code-drawn symbols. Generation prompts and validation: `design/world-selection/illustrated-icons.md`.
+
 - `images/map/marker-gold.png`: exec-edac02dd-9480-4225-9c79-ca12bec28db0.png.
 - `images/map/marker-ivory.png`: exec-8fa0bece-6cf0-49a9-ba64-bf13bc3bcdbb.png.
 - `images/map/icons.png`: exec-daad3dd1-8148-44c3-9e35-aa34fa655673.png.

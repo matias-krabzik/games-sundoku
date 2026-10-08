@@ -11,18 +11,18 @@ Los botones de la home usan dos iconos PNG RGBA independientes: `home/adventure-
 | `creamPanel` | `home/status-panel.png` | Estado de la home, tarjetas del mapa, modales y filas de ajustes |
 | `goldCreamPanel` | `tutorial/gold-cream-panel.png` | Encabezados, historia e instrucciones del tutorial con el borde dorado de la referencia |
 | `goldCreamCard` | `tutorial/gold-cream-panel.png` | Ronda actual en el resumen: comparte el mismo recorte nine-patch del panel y aplica un tinte amarillo suave en Flutter, conservando su alfa |
-| `mapProgressPanel` | `map/progress-card-panel.png` | Tarjeta flotante del mapa, con el radio amplio y el bisel cobrizo de la referencia |
+| `mapProgressPanel` | `map/progress-card-panel.png` | Fondo anterior del mapa, conservado como referencia; el progreso de home y mapas comparte `creamPanel` mediante `HomeArt(HomeSurface.status)` |
 | `mapProgressRound` | `map/progress-card-round.png` | Flechas habilitadas de nivel dentro de la tarjeta flotante |
-| `mapProgressTrack` | `map/progress-card-track.png` | Pista crema y cobriza del progreso de niveles |
-| `mapProgressFill` | `map/progress-card-fill.png` | Relleno dorado independiente del progreso de niveles |
+| `mapProgressTrack` | `map/progress-card-track.png` | Pista anterior del mapa, conservada como referencia |
+| `mapProgressFill` | `map/progress-card-fill.png` | Relleno anterior del mapa, conservado como referencia |
 | `goldTile` | `tutorial/block-tiles.png` | Marco del tablero, casilla seleccionada y botones numéricos |
 | `creamTile` | `tutorial/block-tiles.png` | Casillas del tablero real, tanto en el bloque inicial como al expandirse |
 | `creamPill` | `home/header-surfaces.png` | Perfil de la home |
 | `creamCapsule` | `home/header-surfaces.png` | Botón Ok de los resúmenes; reutiliza el arte circular con centro extensible para conservar extremos redondeados y bisel continuo |
 | `creamRound` | `home/header-surfaces.png` | Configuración, regresar, navegación del mapa y controles del tutorial |
 | `goldRound` | `map/icons.png` | Cerrar modales y navegación resaltada del mapa |
-| `progressTrack` | `home/progress.png` | Base del progreso en home y bloque del tutorial |
-| `progressFill` | `home/progress.png` | Relleno de progreso y separador del tutorial |
+| `progressTrack` | `home/progress.png` | Base compartida del progreso en home, mapas y bloque del tutorial |
+| `progressFill` | `home/progress.png` | Relleno compartido del progreso en home y mapas, y separador del tutorial |
 
 Las rutas de la tabla son relativas a `assets/images/`. Las coordenadas de recorte, zonas centrales y tamaños de referencia se definen una sola vez en `UiSurfaceCatalog`. `HomeArt`, `MapRoundSurface`, `SettingsPanelSurface` y `SettingsGoldSurface` delegan a ese catálogo; no mantienen copias de los recortes. La miniatura del mundo 2 es un dibujo independiente, `map/world-2-thumbnail.png`, mientras que el número y el nombre del mundo siguen siendo `Text`.
 

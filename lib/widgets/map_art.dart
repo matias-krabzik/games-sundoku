@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 
+import 'home_art.dart';
 import 'settings_art.dart';
 import 'ui_surface_art.dart';
 
-enum MapGlyph { back, chevron, lock, goldStar, emptyStar }
+enum MapGlyph {
+  back,
+  chevron,
+  lock,
+  goldStar,
+  emptyStar,
+  home,
+  book,
+  sun,
+  mountain,
+  water,
+}
 
 /// Isolated source regions from the approved map artwork, preserving real alpha.
 class MapIcon extends StatelessWidget {
@@ -14,12 +26,27 @@ class MapIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (glyph == MapGlyph.sun) return HomeIcon(HomeGlyph.sun, size: size);
+    final asset = switch (glyph) {
+      MapGlyph.home => 'assets/images/map/nav-home.png',
+      MapGlyph.book => 'assets/images/map/nav-book.png',
+      MapGlyph.mountain => 'assets/images/map/destination-mountain.png',
+      MapGlyph.water => 'assets/images/map/destination-water.png',
+      _ => 'assets/images/map/icons.png',
+    };
     final region = switch (glyph) {
       MapGlyph.goldStar => const Rect.fromLTRB(.018, .119, .325, .419),
       MapGlyph.emptyStar => const Rect.fromLTRB(.357, .119, .661, .419),
       MapGlyph.back => const Rect.fromLTRB(.686, .14, .985, .419),
       MapGlyph.chevron => const Rect.fromLTRB(.089, .607, .286, .900),
       MapGlyph.lock => const Rect.fromLTRB(.410, .635, .590, .876),
+      MapGlyph.home => const Rect.fromLTRB(.08, .11, .92, .90),
+      MapGlyph.book => const Rect.fromLTRB(.05, .185, .95, .83),
+      MapGlyph.mountain => const Rect.fromLTRB(.12, .17, .91, .87),
+      MapGlyph.water => const Rect.fromLTRB(.10, .16, .94, .93),
+      MapGlyph.sun => throw StateError(
+        'The sun uses the existing home artwork',
+      ),
     };
     final aspect = region.width / region.height;
     return SizedBox.square(
@@ -28,10 +55,7 @@ class MapIcon extends StatelessWidget {
         child: SizedBox(
           width: aspect <= 1 ? size * aspect : size,
           height: aspect <= 1 ? size : size / aspect,
-          child: SettingsArtRegion(
-            asset: 'assets/images/map/icons.png',
-            region: region,
-          ),
+          child: SettingsArtRegion(asset: asset, region: region),
         ),
       ),
     );

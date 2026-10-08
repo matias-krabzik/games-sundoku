@@ -92,8 +92,8 @@ void main() {
           find.byKey(const ValueKey('map-level-progress')),
         );
         final counter = tester.getRect(find.text('1 / 10'));
-        expect(progressBar.height, greaterThanOrEqualTo(30));
-        expect(progressBar.contains(counter.center), isTrue);
+        expect(progressBar.height, inInclusiveRange(16, 20));
+        expect(counter.bottom, lessThan(progressBar.top));
         expect(
           find.byKey(const ValueKey('map-next')).hitTestable(),
           findsOneWidget,
@@ -108,8 +108,15 @@ void main() {
         );
         final next = tester.getRect(find.byKey(const ValueKey('map-next')));
         final level = tester.getRect(find.text('Nivel 1'));
-        expect((previous.center.dy - level.center.dy).abs(), lessThan(1));
-        expect((next.center.dy - level.center.dy).abs(), lessThan(1));
+        final summary = tester.getRect(
+          find.byKey(const ValueKey('map-level-summary')),
+        );
+        expect(counter.top, greaterThan(level.bottom));
+        expect((counter.center.dx - level.center.dx).abs(), lessThan(1));
+        expect((previous.center.dy - summary.center.dy).abs(), lessThan(1));
+        expect((next.center.dy - summary.center.dy).abs(), lessThan(1));
+        expect(previous.size, const Size(48, 48));
+        expect(next.size, const Size(48, 48));
         expect(previous.right, lessThan(level.left));
         expect(next.left, greaterThan(level.right));
         expect(world.top, greaterThan(back.bottom));
@@ -194,7 +201,7 @@ void main() {
     expect(card.height, 168);
     expect(find.byType(WorldThumbnail), findsNothing);
     expect(progress.width, 365);
-    expect(progress.height, 30);
+    expect(progress.height, 20);
     expect(find.text('13 / 20'), findsOneWidget);
     expect(tester.takeException(), isNull);
     final capture = Platform.environment['MAP_CARD_REFERENCE_CAPTURE'];
