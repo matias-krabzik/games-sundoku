@@ -46,8 +46,6 @@ class TutorialJourney extends StatelessWidget {
     this.rewardBoardSlotKey,
     this.rewardActionKey,
     this.onNextGame,
-    this.onNextLevel,
-    this.nextLevelNumber,
     this.departure = const AlwaysStoppedAnimation(0),
     this.gameEntrance = const AlwaysStoppedAnimation(1),
     this.gameBoardSlotKey,
@@ -69,8 +67,6 @@ class TutorialJourney extends StatelessWidget {
   final Key? rewardBoardSlotKey;
   final Key? rewardActionKey;
   final Future<void> Function()? onNextGame;
-  final VoidCallback? onNextLevel;
-  final int? nextLevelNumber;
   final Animation<double> departure;
   final Animation<double> gameEntrance;
   final Key? gameBoardSlotKey;
@@ -259,8 +255,6 @@ class TutorialJourney extends StatelessWidget {
               )
             : null,
         action: _action,
-        nextLevelNumber: nextLevelNumber,
-        onNextLevel: flow.isBusy || navigationBlocked ? null : onNextLevel,
         finalGame: flow.step == FirstExperienceStep.complete,
         onAction: flow.isBusy || navigationBlocked
             ? null

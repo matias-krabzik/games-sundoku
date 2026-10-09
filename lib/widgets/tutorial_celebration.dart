@@ -29,8 +29,6 @@ class TutorialCelebration extends StatelessWidget {
     required this.onAction,
     required this.finalGame,
     this.summary,
-    this.nextLevelNumber,
-    this.onNextLevel,
     this.boardSlotKey,
     this.actionKey,
     this.previousBoards = const [],
@@ -46,8 +44,6 @@ class TutorialCelebration extends StatelessWidget {
   final String message;
   final String title;
   final Widget? summary;
-  final int? nextLevelNumber;
-  final VoidCallback? onNextLevel;
   final String action;
   final VoidCallback? onAction;
   final bool finalGame;
@@ -296,36 +292,16 @@ class TutorialCelebration extends StatelessWidget {
                     opacity: actionOpacity,
                     child: IgnorePointer(
                       ignoring: actionOpacity < 1,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: IllustratedActionButton(
-                              key: const ValueKey('tutorial-next'),
-                              compact: true,
-                              showPlayIcon: false,
-                              fontSize: 21,
-                              label: exitLabel,
-                              onPressed: actionOpacity < 1 ? null : onAction,
-                            ),
-                          ),
-                          if (nextLevelNumber != null) ...[
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 6,
-                              child: IllustratedActionButton(
-                                key: const ValueKey('next-level'),
-                                compact: true,
-                                showPlayIcon: false,
-                                fontSize: 21,
-                                label: 'Siguiente juego',
-                                onPressed: actionOpacity < 1
-                                    ? null
-                                    : onNextLevel,
-                              ),
-                            ),
-                          ],
-                        ],
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: IllustratedActionButton(
+                          key: const ValueKey('tutorial-next'),
+                          compact: true,
+                          showPlayIcon: false,
+                          fontSize: 21,
+                          label: exitLabel,
+                          onPressed: actionOpacity < 1 ? null : onAction,
+                        ),
                       ),
                     ),
                   ),

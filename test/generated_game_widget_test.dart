@@ -628,7 +628,7 @@ void main() {
   );
 
   testWidgets(
-    'three wins keep existing transitions and show the total summary',
+    'three wins show the total summary and return to the map without starting the next level',
     (tester) async {
       scene.configure(tester, reduced: false);
       tester.view.physicalSize = const Size(1024, 768);
@@ -640,7 +640,9 @@ void main() {
         repo,
         levelNumber: 2,
         showDeveloperControls: true,
+        withParentRoute: true,
       );
+      await scene.tap(tester, find.text('Abrir tutorial'));
       await scene.settle(tester);
       final flow = tester
           .widget<TutorialJourney>(find.byType(TutorialJourney))
@@ -716,7 +718,8 @@ void main() {
       await tester.ensureVisible(find.byType(SudokuTimeSummary));
       await scene.capture(tester, 'level-2-summary-mobile');
       expect(find.text('Volver al mapa').hitTestable(), findsOneWidget);
-      expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
+      expect(find.text('Siguiente juego'), findsNothing);
+      expect(find.byKey(const ValueKey('next-level')), findsNothing);
       expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('summary-total-points')))
@@ -732,35 +735,32 @@ void main() {
         await scene.settle(tester);
         expect(find.byKey(const ValueKey('reward-doku-fade')), findsNothing);
         expect(find.text('Volver al mapa').hitTestable(), findsOneWidget);
-        expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
+        expect(find.text('Siguiente juego'), findsNothing);
         expect(tester.takeException(), isNull);
       }
       tester.view.physicalSize = const Size(360, 640);
-      await scene.show(tester, repo, levelNumber: 2, textScale: 2);
+      await scene.show(
+        tester,
+        repo,
+        levelNumber: 2,
+        textScale: 2,
+        withParentRoute: true,
+      );
       await scene.settle(tester);
-      expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
+      expect(find.text('Volver al mapa').hitTestable(), findsOneWidget);
+      expect(find.text('Siguiente juego'), findsNothing);
       expect(tester.takeException(), isNull);
       await scene.capture(tester, 'summary-small-large-text');
-      await scene.tap(tester, find.text('Siguiente juego'));
-      await tester.pump(const Duration(milliseconds: 1600));
-      await tester.pump();
+      await scene.tap(tester, find.text('Volver al mapa'));
+      expect(find.byKey(const ValueKey('first-experience-flow')), findsNothing);
+      expect(find.text('Abrir tutorial'), findsOneWidget);
+      expect(repo.state.sessions[session.id]!.lights, 3);
+      expect(repo.state.isUnlocked(mapLevelId(3)), true);
       expect(
-        tester.widget<GameRoundStars>(find.byType(GameRoundStars)).levelNumber,
-        3,
-      );
-      expect(
-        tester
-            .widget<TutorialJourney>(find.byType(TutorialJourney))
-            .flow
-            .levelNumber,
-        3,
-      );
-      expect(
-        tester
-            .widget<TutorialJourney>(find.byType(TutorialJourney))
-            .flow
-            .readyToPlay,
-        true,
+        repo.state.sessions.values.where(
+          (session) => session.levelId == mapLevelId(3),
+        ),
+        isEmpty,
       );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

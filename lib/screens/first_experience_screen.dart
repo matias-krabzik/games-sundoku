@@ -26,7 +26,6 @@ import '../widgets/settings_art.dart';
 import '../widgets/skip_tutorial_button.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/score_feedback.dart';
-import '../data/level_catalog.dart';
 import '../widgets/tutorial_story.dart';
 import '../widgets/tutorial_block_controls.dart';
 import '../widgets/tutorial_journey.dart';
@@ -38,7 +37,6 @@ import '../widgets/tutorial_presentation.dart';
 import '../widgets/ui_surface_art.dart';
 import '../widgets/victory_particles.dart';
 import '../widgets/developer_floating_menu.dart';
-import '../widgets/world_journey_route.dart';
 import '../widgets/challenge_round_panel.dart';
 
 enum _NextSudokuPhase { leaving, entering }
@@ -320,7 +318,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
               _blockTour.isAnimating)) ||
       _settingsOpen ||
       _skippingTutorial ||
-      _openingNextLevel ||
       _flow.isBusy ||
       (_boardAnimating && (!_flow.isStory || !_canSkipTutorialAnimations)) ||
       _finishingBoard ||
@@ -967,8 +964,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             departure: _nextExit,
                             gameEntrance: _nextEntrance,
                             onNextGame: _advanceGame,
-                            nextLevelNumber: _nextLevelNumber,
-                            onNextLevel: _openNextLevel,
                             navigation: _showGame
                                 ? GameNavigationHeader(
                                     sharedPanel: mobileGameHeader,
@@ -1158,66 +1153,6 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
         ),
       ),
     );
-  }
-
-  int? get _nextLevelNumber {
-    if (_flow.isQuickPlay) return null;
-    final number = widget.levelNumber + 1;
-    if (number > _flow.world.nodes.length ||
-        !widget.repository.state.isUnlocked(
-          mapLevelId(number, worldId: widget.worldId),
-        ) ||
-        (widget
-                    .repository
-                    .state
-                    .progress[mapLevelId(number, worldId: widget.worldId)]
-                    ?.bestLights ??
-                0) >=
-            3) {
-      return null;
-    }
-    return number;
-  }
-
-  bool _openingNextLevel = false;
-  Future<void> _openNextLevel() async {
-    final number = _nextLevelNumber;
-    if (number == null || _navigationBlocked || _openingNextLevel) return;
-    setState(() => _openingNextLevel = true);
-    try {
-      await _flow.pauseGame();
-      await widget.repository.startGeneratedLevel(
-        number,
-        worldId: widget.worldId,
-      );
-      if (!mounted) return;
-      unawaited(
-        Navigator.of(context).pushReplacement<void, void>(
-          WorldJourneyRoute(
-            settings: const RouteSettings(name: AppRoutes.game),
-            reduceMotion: MediaQuery.disableAnimationsOf(context),
-            builder: (_) => FirstExperienceScreen(
-              repository: widget.repository,
-              levelNumber: number,
-              worldId: widget.worldId,
-              showDeveloperControls: widget.showDeveloperControls,
-            ),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No pudimos abrir el siguiente nivel. Intenta de nuevo.',
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _openingNextLevel = false);
-    }
   }
 
   Widget _explanationLayout(

@@ -1324,7 +1324,8 @@ void main() {
       expect(find.text('Repasar las reglas'), findsNothing);
       expect(find.byKey(const ValueKey('tutorial-review')), findsNothing);
       await settle(tester);
-      expect(find.text('Siguiente juego').hitTestable(), findsOneWidget);
+      expect(find.text('Siguiente juego'), findsNothing);
+      expect(find.byKey(const ValueKey('next-level')), findsNothing);
       expect(repo.state.isUnlocked(mapLevelId(2)), true);
       await capture(tester, 'tutorial-nivel-completo');
       expect(tester.element(board), same(element));
