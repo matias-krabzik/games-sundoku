@@ -3,12 +3,15 @@
 Depende de: W3-00–05. Esta matriz se usa desde W3-00; el cierre final consolida
 evidencia y no sustituye las pruebas de cada etapa.
 
-## Avance al 04/10/2026
+## Avance al 07/10/2026
 
-[Informe y logs de ejecución](delivery/README.md): regresión global y comparación
-con `219713f` realizadas, 16 fallos anteriores resueltos y **460 pruebas aprobadas**;
-builds Playables e iOS validados. El cierre continúa pendiente por los controles
-visuales nativos y del host YouTube detallados en el informe.
+[Informe y logs de ejecución](delivery/README.md): **472 pruebas aprobadas**, builds
+Playables/iOS válidos y tres escenarios de integración nativa aprobados tanto en
+iPad de 11″ como en teléfono, con giro real y texto ampliado. [34 capturas nativas](delivery/gallery.html).
+
+El cierre continúa pendiente únicamente de E12 y las mediciones en el host real
+de YouTube: hace falta una URL HTTPS o Dev Link. El adaptador falso no sustituye
+esa verificación. No se usó hardware físico ni se modificó el perfil del jugador.
 
 ## Orden ejecutable
 
@@ -149,17 +152,19 @@ Crear un informe de entrega dentro de esta carpeta al implementar, con:
 
 Checklist de salida:
 
-- [ ] D06 resuelta; metas y guion coinciden con la política del tiempo.
-- [ ] W3-00–05 cerradas y casos relevantes R/S/F/T/A/E verificados.
-- [ ] Sesiones previas, estrellas y récords preservados.
-- [ ] Última vida, meta exacta, pistas y nivel 30 correctos.
-- [ ] Resultado y navegación independientes de la animación.
-- [ ] Tutorial sin input de sudoku, con formato y continuidad actuales.
-- [ ] Ningún cambio accidental de arte, mapa, cámara, fauna o flujo previo.
-- [ ] Responsive, accesibilidad y Playables revisados con evidencia.
-- [ ] `design/scoring/rules.md` y `docs/guardado-local.md` actualizados al comportamiento
+- [x] D06 resuelta; metas y guion coinciden con la política del tiempo.
+- [ ] W3-00–05 cerradas y casos relevantes R/S/F/T/A/E verificados. R/S/F/T/A y
+  E01–E11/E13 aprobados; E12 pendiente en host real.
+- [x] Sesiones previas, estrellas y récords preservados.
+- [x] Última vida, meta exacta, pistas y nivel 30 correctos.
+- [x] Resultado y navegación independientes de la animación.
+- [x] Tutorial sin input de sudoku, con formato y continuidad actuales.
+- [x] Ningún cambio accidental de arte, mapa, cámara, fauna o flujo previo.
+- [ ] Responsive, accesibilidad y Playables revisados con evidencia. Matriz
+  automática y revisión nativa completadas; Playables real pendiente.
+- [x] `design/scoring/rules.md` y `docs/guardado-local.md` actualizados al comportamiento
   implementado, distinguiendo los mundos y las sesiones heredadas.
-- [ ] README de estos specs actualizado a estado real, sin declarar terminado lo pendiente.
+- [x] README de estos specs actualizado a estado real, sin declarar terminado lo pendiente.
 
 ## Validación de esta entrega documental
 

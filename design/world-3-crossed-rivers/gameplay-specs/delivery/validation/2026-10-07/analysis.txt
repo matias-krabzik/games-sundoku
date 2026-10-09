@@ -1,0 +1,8 @@
+Analyzing sundoku...                                            
+
+   info • Parameter 'position' could be a super parameter. Trying converting 'position' to a super parameter • lib/models/map_ambient_motion.dart:39:3 • use_super_parameters
+   info • Parameter 'position' could be a super parameter. Trying converting 'position' to a super parameter • lib/models/map_ambient_motion.dart:73:3 • use_super_parameters
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/models/map_ambient_motion.dart:455:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/widgets/map_parallax_scene.dart:430:23 • curly_braces_in_flow_control_structures
+
+4 issues found. (ran in 3.2s)

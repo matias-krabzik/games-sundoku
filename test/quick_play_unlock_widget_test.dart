@@ -1,3 +1,5 @@
+import 'support/world_selection.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -43,7 +45,7 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
         await scene.tap(tester, find.byKey(const ValueKey('home-play')));
-        await scene.tap(tester, find.byKey(const ValueKey('choose-world-1')));
+        await enterOverviewWorld(tester, 'world-1');
         final navigator = Navigator.of(tester.element(find.byType(MapScreen)));
         unawaited(
           navigator.push(

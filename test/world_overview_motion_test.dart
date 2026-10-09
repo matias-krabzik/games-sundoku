@@ -29,6 +29,7 @@ Future<void> showOverview(WidgetTester tester, {bool reduced = false}) async {
         child: const WorldOverviewScene(
           overview: WorldOverview(false),
           protectedRects: [],
+          lockedWorlds: {'world-2', 'world-3'},
           child: SizedBox.expand(),
         ),
       ),

@@ -7,6 +7,8 @@ import 'nine_slice_art.dart';
 
 /// Reusable skins, never one image per button or screen.
 enum UiSurface {
+  adventureRibbon,
+  adventurePlaque,
   worldFooter,
   blueScoreCapsule,
   goldButton,
@@ -48,6 +50,20 @@ class UiSurfaceSpec {
 
 extension UiSurfaceCatalog on UiSurface {
   UiSurfaceSpec get spec => switch (this) {
+    UiSurface.adventureRibbon => const UiSurfaceSpec(
+      'assets/images/world-selection/aventura-ribbon.png',
+      Size(2172, 724),
+      Rect.fromLTRB(.010, .135, .990, .960),
+      Rect.fromLTRB(.43, .38, .57, .64),
+      Size(350, 100),
+    ),
+    UiSurface.adventurePlaque => const UiSurfaceSpec(
+      'assets/images/world-selection/aventura-plaque.png',
+      Size(1254, 1254),
+      Rect.fromLTRB(.117, .075, .883, .936),
+      Rect.fromLTRB(.32, .36, .68, .65),
+      Size(108, 122),
+    ),
     UiSurface.blueButton => const UiSurfaceSpec(
       'assets/images/home/blue-button.png',
       Size(2172, 724),

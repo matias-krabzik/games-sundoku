@@ -23,6 +23,8 @@ Los botones de la home usan dos iconos PNG RGBA independientes: `home/adventure-
 | `goldRound` | `map/icons.png` | Cerrar modales y navegación resaltada del mapa |
 | `progressTrack` | `home/progress.png` | Base compartida del progreso en home, mapas y bloque del tutorial |
 | `progressFill` | `home/progress.png` | Relleno compartido del progreso en home y mapas, y separador del tutorial |
+| `adventureRibbon` | `world-selection/aventura-ribbon.png` | Lazo azul y dorado de los destinos, vacío; el nombre se compone con `CurvedRibbonTitle` |
+| `adventurePlaque` | `world-selection/aventura-plaque.png` | Placa crema y dorada compartida por los contadores de niveles y estrellas |
 
 Las rutas de la tabla son relativas a `assets/images/`. Las coordenadas de recorte, zonas centrales y tamaños de referencia se definen una sola vez en `UiSurfaceCatalog`. `HomeArt`, `MapRoundSurface`, `SettingsPanelSurface` y `SettingsGoldSurface` delegan a ese catálogo; no mantienen copias de los recortes. La miniatura del mundo 2 es un dibujo independiente, `map/world-2-thumbnail.png`, mientras que el número y el nombre del mundo siguen siendo `Text`.
 
@@ -30,7 +32,7 @@ Las rutas de la tabla son relativas a `assets/images/`. Las coordenadas de recor
 
 Personajes, fondos, logo, iconos, estrellas y medallones son dibujos: conservan su proporción y no usan nine-patch. Interruptores, campos de texto y otros controles dibujados por Flutter ya son adaptables y no necesitan nuevos PNG.
 
-La selección de mundos usa dos paisajes opacos sin texto ni controles, `world-selection/overview-portrait.png` (1024 × 1536) y `overview-landscape.png` (1536 × 1024). Ambos derivan de la propuesta aprobada con el camino ascendente y el río a la derecha. Los puntos de entrada, los candados, los nombres y el progreso se componen en Flutter con `goldRound`, `creamRound`, `goldCreamPanel` y los iconos compartidos. `WorldOverview` registra destinos, agua y vegetación sobre cada paisaje y mantiene su alineación al cambiar la ventana.
+La selección de mundos usa dos paisajes opacos sin texto ni controles, `world-selection/overview-portrait.png` (1024 × 1536) y `overview-landscape.png` (1536 × 1024). Ambos derivan de la propuesta aprobada con el camino ascendente y el río a la derecha. Cada destino compone un emblema independiente (`aventura-crest-sun.png`, `aventura-crest-mountain.png` o `aventura-crest-water.png`), un lazo `adventureRibbon` y dos placas `adventurePlaque`. Los cinco PNG conservan su alfa original. Los emblemas mantienen su proporción; las superficies comparten los recortes del catálogo. El nombre sigue la curva del lazo con widgets `Text`, y los contadores reutilizan los iconos de mapa y estrella. La entrada conserva `IllustratedActionButton`. `WorldOverview` registra destinos, agua y vegetación sobre cada paisaje y mantiene su alineación al cambiar la ventana.
 
 `world-selection/cloud.png` es un elemento independiente RGBA de 2172 × 724 píxeles, con alfa real verificado (rango 0–254), reutilizado en dos nubes móviles. Los fondos y la nube se generaron el 05-10-2026; sus originales son `exec-867b3372-054d-4110-8782-363984e0fe15.png`, `exec-4c4b3530-5dd6-4a1e-b400-9983d7cbce67.png` y `exec-e21b81a9-97d6-45ec-aab5-2653ace09ea5.png`, respectivamente. Los insectos, peces, hojas y pétalos reutilizan el arte y el comportamiento de los mapas existentes. Agua, nubes y criaturas se animan por capas y se suspenden al salir de la pantalla, pausar Playables o activar movimiento reducido.
 

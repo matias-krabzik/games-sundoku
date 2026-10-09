@@ -4,13 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 
 import '../data/world_catalog.dart';
+import 'curved_ribbon_title.dart';
 import 'game_feedback_scope.dart';
 import 'home_art.dart';
 import 'juicy_press.dart';
 import 'map_art.dart';
+import 'settings_art.dart';
 import 'ui_surface_art.dart';
 
-/// A real button and live progress label, independent from the landscape.
+/// The art, hit targets and camera all share these proportions.
+abstract final class WorldDestinationGeometry {
+  static const heightFactor = .82;
+  static const anchorFactor = .16;
+}
+
+/// A destination assembled from a crest, a ribbon and two live progress plates.
 class WorldDestination extends StatefulWidget {
   const WorldDestination({
     super.key,
@@ -19,17 +27,14 @@ class WorldDestination extends StatefulWidget {
     required this.highlighted,
     required this.completedLevels,
     required this.stars,
-    required this.diameter,
-    required this.markerLeft,
     required this.onPressed,
   });
+
   final AdventureWorld world;
   final bool unlocked;
   final bool highlighted;
   final int completedLevels;
   final int stars;
-  final double diameter;
-  final double markerLeft;
   final Future<void> Function()? onPressed;
 
   @override
@@ -64,183 +69,190 @@ class _WorldDestinationState extends State<WorldDestination>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final w = widget;
-    final compact = w.diameter < 80;
-    final previous = adventureWorlds.values
-        .where((world) => world.number == w.world.number - 1)
-        .firstOrNull;
-    final requirement = previous == null ? '' : 'Completa ${previous.name}';
-    return JuicyPress(
-      key: ValueKey('choose-${w.world.id}'),
-      label:
-          '${w.world.name}. ${w.unlocked ? '${w.completedLevels} de ${w.world.levelCount} niveles completados. ${w.stars} de ${w.world.levelCount * 3} estrellas. Entrar' : 'Bloqueado. $requirement'}',
-      onPressed: w.unlocked ? w.onPressed : null,
-      onFeedback: () => GameFeedbackScope.tap(context),
-      builder: (context, _) => Column(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) {
+      final w = widget;
+      final width = bounds.maxWidth;
+      final crest = switch (w.world.id) {
+        'world-1' => ('sun', const Rect.fromLTRB(.049, .09, .952, .925)),
+        'world-2' => ('mountain', const Rect.fromLTRB(.10, .107, .906, .933)),
+        _ => ('water', const Rect.fromLTRB(.025, .208, .976, .875)),
+      };
+      return Stack(
+        clipBehavior: Clip.none,
         children: [
-          SizedBox(
-            height: w.diameter + 6,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  left: w.markerLeft,
-                  top: 0,
-                  width: w.diameter,
-                  height: w.diameter,
-                  child: AnimatedBuilder(
-                    animation: _shine,
+          Positioned(
+            left: width * .18,
+            top: 0,
+            width: width * .64,
+            height: width * .33,
+            child: JuicyPress(
+              key: ValueKey('world-medallion-${w.world.id}'),
+              label: 'Centrar ${w.world.name}',
+              onPressed: w.unlocked ? w.onPressed : null,
+              onFeedback: () => GameFeedbackScope.tap(context),
+              builder: (context, _) => AnimatedBuilder(
+                animation: _shine,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: w.world.id == 'world-2' ? 1.95 : 2.17,
+                    child: SettingsArtRegion(
+                      asset:
+                          'assets/images/world-selection/aventura-crest-${crest.$1}.png',
+                      region: crest.$2,
+                    ),
+                  ),
+                ),
+                builder: (context, child) {
+                  final pulse = _reduced || !w.highlighted
+                      ? 0.0
+                      : math.sin(_shine.value * math.pi * 2);
+                  return Transform.translate(
+                    offset: Offset(0, -pulse * 1.3),
+                    child: Transform.scale(
+                      scale: 1 + pulse * .012,
+                      child: child,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: width * .245,
+            bottom: 0,
+            child: JuicyPress(
+              key: ValueKey('choose-${w.world.id}'),
+              label:
+                  '${w.world.name}. ${w.completedLevels} de ${w.world.levelCount} niveles completados. ${w.stars} de ${w.world.levelCount * 3} estrellas. ${w.unlocked ? 'Centrar destino' : 'Bloqueado'}',
+              onPressed: w.unlocked ? w.onPressed : null,
+              onFeedback: () => GameFeedbackScope.tap(context),
+              builder: (context, _) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  for (final starPlate in [false, true])
+                    Positioned(
+                      left: width * (starPlate ? .522 : .183),
+                      top: width * .255,
+                      width: width * .295,
+                      height: width * .32,
+                      child: _ProgressPlate(
+                        width: width * .295,
+                        stars: starPlate,
+                        label: starPlate
+                            ? '${w.stars} / ${w.world.levelCount * 3}'
+                            : '${w.completedLevels} / ${w.world.levelCount} niveles',
+                      ),
+                    ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: width * .30,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
                         UiSurfaceArt(
-                          w.unlocked
-                              ? UiSurface.goldRound
-                              : UiSurface.creamRound,
+                          UiSurface.adventureRibbon,
+                          referenceSize: Size(width, width * .30),
                         ),
-                        Padding(
-                          padding: EdgeInsets.all(w.diameter * .22),
-                          child: MapIcon(switch (w.world.id) {
-                            'world-1' => MapGlyph.sun,
-                            'world-2' => MapGlyph.mountain,
-                            _ => MapGlyph.water,
-                          }, size: w.diameter * .56),
+                        Positioned(
+                          left: width * .13,
+                          right: width * .13,
+                          top: width * .068,
+                          height: width * .14,
+                          child: CurvedRibbonTitle(
+                            key: ValueKey('world-title-${w.world.id}'),
+                            text: w.world.name,
+                            fontSize: width * .091,
+                          ),
                         ),
                       ],
-                    ),
-                    builder: (context, medallion) {
-                      final pulse = _reduced
-                          ? 0.0
-                          : (math.sin(_shine.value * math.pi * 2) + 1) / 2;
-                      return DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            if (w.highlighted)
-                              BoxShadow(
-                                color: const Color(0xFFFFE25B)
-                                    .withValues(alpha: .20 + pulse * .24),
-                                blurRadius: 12 + pulse * 12,
-                                spreadRadius: 1 + pulse * 3,
-                              ),
-                            const BoxShadow(
-                              color: Color(0x45000000),
-                              blurRadius: 7,
-                              offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Transform.scale(
-                          scale: w.highlighted ? 1 + pulse * .025 : 1,
-                          child: medallion,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                if (!w.unlocked)
-                  Positioned(
-                    left: w.markerLeft + w.diameter * .70,
-                    top: w.diameter * .68,
-                    width: w.diameter * .36,
-                    height: w.diameter * .36,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const Positioned.fill(
-                          child: UiSurfaceArt(UiSurface.creamRound),
-                        ),
-                        MapIcon(MapGlyph.lock, size: w.diameter * .23),
-                      ],
-                    ),
-                  ),
-                if (w.completedLevels == w.world.levelCount)
-                  Positioned(
-                    left: w.markerLeft + w.diameter * .72,
-                    top: w.diameter * .69,
-                    child: MapIcon(MapGlyph.goldStar, size: w.diameter * .32),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: UiSurfacePanel(
-              surface: UiSurface.goldCreamPanel,
-              constraints: const BoxConstraints.expand(),
-              padding: EdgeInsets.symmetric(
-                horizontal: compact ? 9 : 14,
-                vertical: compact ? 9 : 10,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        w.world.name,
-                        maxLines: 1,
-                        style: homeText(compact ? 16 : 21),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Expanded(
-                    flex: 2,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: w.unlocked
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${w.completedLevels} / ${w.world.levelCount} niveles',
-                                  style: homeText(compact ? 10 : 12),
-                                ),
-                                const SizedBox(width: 7),
-                                MapIcon(
-                                  MapGlyph.goldStar,
-                                  size: compact ? 13 : 17,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '${w.stars} / ${w.world.levelCount * 3}',
-                                  style: homeText(compact ? 11 : 13),
-                                ),
-                              ],
-                            )
-                          : Text(
-                              requirement,
-                              maxLines: 1,
-                              style: homeText(compact ? 10 : 12),
-                              textAlign: TextAlign.center,
-                            ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
+          if (!w.unlocked)
+            Positioned(
+              right: width * .16,
+              top: width * .15,
+              child: MapIcon(MapGlyph.lock, size: width * .10),
+            ),
         ],
+      );
+    },
+  );
+}
+
+class _ProgressPlate extends StatelessWidget {
+  const _ProgressPlate({
+    required this.width,
+    required this.stars,
+    required this.label,
+  });
+
+  final double width;
+  final bool stars;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      UiSurfaceArt(
+        UiSurface.adventurePlaque,
+        referenceSize: Size(width, width / .89),
       ),
-    );
-  }
+      Padding(
+        padding: EdgeInsets.fromLTRB(
+          width * .115,
+          width * .20,
+          width * .115,
+          width * .23,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: stars
+                    ? MapIcon(MapGlyph.goldStar, size: width * .43)
+                    : HomeIcon(HomeGlyph.map, size: width * .46),
+              ),
+            ),
+            SizedBox(height: width * .035),
+            SizedBox(
+              height: width * .23,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: homeText(stars ? width * .19 : width * .145),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 @Preview(
   name: 'Destino disponible',
   group: 'Selección de destinos',
-  size: Size(250, 230),
+  size: Size(390, 400),
 )
 Widget availableWorldDestinationPreview() => _destinationPreview(true);
 
 @Preview(
   name: 'Destino bloqueado',
   group: 'Selección de destinos',
-  size: Size(250, 230),
+  size: Size(390, 400),
 )
 Widget lockedWorldDestinationPreview() => _destinationPreview(false);
 
@@ -249,16 +261,14 @@ Widget _destinationPreview(bool unlocked) => MaterialApp(
     backgroundColor: const Color(0xFF98BF74),
     body: Center(
       child: SizedBox(
-        width: 230,
-        height: 200,
+        width: 350,
+        height: 350 * WorldDestinationGeometry.heightFactor,
         child: WorldDestination(
           world: adventureWorld(unlocked ? 'world-1' : 'world-2'),
           unlocked: unlocked,
           highlighted: unlocked,
           completedLevels: unlocked ? 2 : 0,
           stars: unlocked ? 6 : 0,
-          diameter: 110,
-          markerLeft: 60,
           onPressed: () async {},
         ),
       ),

@@ -1,3 +1,5 @@
+import '../support/world_selection.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/app.dart';
@@ -84,29 +86,24 @@ void main() {
       await frames();
       await tester.tap(find.byKey(const ValueKey('home-play')));
       await frames();
-      await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+      await enterOverviewWorld(tester, 'world-1');
       await frames();
       expect(find.text('Valle del Sol'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
-      await tester.ensureVisible(find.byKey(const ValueKey('choose-world-2')));
-      await tester.tap(find.byKey(const ValueKey('choose-world-2')));
+
+      await enterOverviewWorld(tester, 'world-2');
       await frames();
       expect(find.text('Bosque de la Cumbre'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-2');
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
-      expect(
-        tester
-            .widget<JuicyPress>(find.byKey(const ValueKey('choose-world-3')))
-            .onPressed,
-        isNull,
-      );
+      expect(find.byKey(const ValueKey('choose-world-3')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('worlds-back')));
       await frames();
       await tester.tap(find.byKey(const ValueKey('map-world-selector')));
       await frames();
-      await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+      await enterOverviewWorld(tester, 'world-1');
       await frames();
       expect(find.text('Valle del Sol'), findsOneWidget);
       expect(repository.lastAdventureWorld, 'world-1');

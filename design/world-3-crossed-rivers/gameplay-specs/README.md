@@ -9,9 +9,9 @@ W3-03 activa en la app las sesiones nuevas del mundo 3 con resultado estático,
 reintento y cuenta regresiva. Las sesiones heredadas conservan sus reglas.
 [Evidencia visible y validaciones](gameplay/README.md). W3-04 añade la introducción y el repaso con [capturas y video](introduction/README.md).
 W3-05 agrega el [resultado animado y la validación de DEV](results/README.md).
-W3-06 tiene la [regresión y compilación local registradas](delivery/README.md);
-460 pruebas pasan; el cierre integral sigue pendiente por validación visual nativa
-y del host real de YouTube.
+W3-06 tiene [472 pruebas aprobadas, validación nativa en iPad y teléfono y builds vigentes](delivery/README.md).
+La [galería nativa](delivery/gallery.html) incluye 34 capturas. El único bloqueo
+externo para cerrar el spec es la validación del host real de YouTube con URL HTTPS o Dev Link.
 Estas especificaciones incorporan las últimas correcciones del usuario; reemplazan
 la propuesta anterior de exigir una partida perfecta en todos los niveles 21–30.
 
@@ -91,7 +91,7 @@ estados anteriores: verificar el código y el catálogo antes de implementar.
 - [x] W3-03: flujo jugable y responsive verificados en pruebas automatizadas; [evidencia y límites](gameplay/README.md).
 - [x] W3-04: introducción y repaso verificados con pruebas y capturas; [evidencia y alcance](introduction/README.md).
 - [x] W3-05: contador, estrella y DEV verificados; [evidencia y alcance](results/README.md).
-- [ ] W3-06: [460 pruebas aprobadas, fallos anteriores resueltos y builds Playables/iOS válidos](delivery/README.md); pendientes detallados en el informe.
+- [ ] W3-06: [472 pruebas aprobadas y revisión nativa completada](delivery/README.md); pendiente E12 y medición de carga en host YouTube real.
 
 El checklist distingue trabajo terminado y pendiente. Las etapas de dominio no
 equivalen a activar el nuevo flujo ni a validar su presentación en dispositivos.

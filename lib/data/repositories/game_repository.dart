@@ -1238,6 +1238,42 @@ class GameRepository extends ChangeNotifier {
     );
   }
 
+  /// Complete one destination per action, atomically, in adventure order.
+  /// Existing completed levels and their best results are left intact.
+  Future<String?> completeNextDebugWorld({math.Random? random}) async {
+    String? completedWorld;
+    final generator = random ?? math.Random();
+    await _update((save) {
+      if (!kDebugMode) throw StateError('Developer controls are unavailable');
+      final worlds = adventureWorlds.values.toList()
+        ..sort((a, b) => a.number.compareTo(b.number));
+      final world = worlds.where((world) {
+        return world.nodes.any((node) {
+          final id = mapLevelId(node.level, worldId: world.id);
+          return (save.progress[id]?.bestLights ?? 0) <
+              save.levels[id]!.requiredLights;
+        });
+      }).firstOrNull;
+      if (world == null) return save;
+      var next = save;
+      for (final node in world.nodes) {
+        final id = mapLevelId(node.level, worldId: world.id);
+        if ((next.progress[id]?.bestLights ?? 0) <
+            next.levels[id]!.requiredLights) {
+          next = _completedDebugLevel(
+            next,
+            node.level,
+            generator,
+            worldId: world.id,
+          );
+        }
+      }
+      completedWorld = world.id;
+      return next;
+    });
+    return completedWorld;
+  }
+
   Future<void> completeDebugWorldExceptLastPuzzle({
     math.Random? random,
     String worldId = 'world-1',
@@ -1257,14 +1293,20 @@ class GameRepository extends ChangeNotifier {
       final module = jsonObject(next.modules[moduleKey]);
       final completed = next.sessions[module['sessionId']]!;
       final lastPuzzle = next.puzzles[completed.puzzles.last.puzzleId]!;
+      final lastRules = completed.puzzles.last.attempt?.rules;
       final session = GameSession(
         id: completed.id,
         playerId: completed.playerId,
         levelId: levelId,
         puzzles: [
           ...completed.puzzles.take(completed.puzzles.length - 1),
-          PuzzleProgress.initial(lastPuzzle),
+          PuzzleProgress.initial(lastPuzzle).copyWith(
+            attempt: lastRules == null
+                ? null
+                : RoundAttempt(id: const Uuid().v4(), rules: lastRules),
+          ),
         ],
+        rulesMode: completed.rulesMode,
         startedAt: completed.startedAt,
         updatedAt: completed.updatedAt,
       );
@@ -1310,7 +1352,7 @@ class GameRepository extends ChangeNotifier {
     const tutorialCenter = [8, 3, 5, 4, 1, 6, 9, 2, 7];
     final definitions = worldId == 'world-2'
         ? forestPuzzles(number)
-        : number == 1
+        : worldId == 'world-1' && number == 1
         ? (level.puzzleIds.every(save.puzzles.containsKey)
               ? [for (final id in level.puzzleIds) save.puzzles[id]!]
               : TutorialSudokus.create(tutorialCenter))
@@ -1323,27 +1365,58 @@ class GameRepository extends ChangeNotifier {
                   ),
           ];
     final completedAt = _now();
-    final puzzles = [
-      for (final definition in definitions)
-        PuzzleProgress(
-          puzzleId: definition.id,
-          cells: [
-            for (final value in definition.solution) CellProgress(value: value),
-          ],
-          status: PlayStatus.completed,
-          elapsedMs: 30000 + generator.nextInt(150001),
-          mistakes: generator.nextInt(4),
-          hintsUsed: generator.nextInt(2),
-          points: 501 + generator.nextInt(2000) * 2,
-          completedAt: completedAt,
-        ),
-    ];
+    final puzzles = definitions.map((definition) {
+      final rules = worldId == 'world-3' && enableWorld3Challenges
+          ? AdventureChallenges.forPuzzle(
+              worldId: worldId,
+              level: number,
+              puzzle: definition,
+            )
+          : null;
+      final elapsedMs = math.min(
+        30000 + generator.nextInt(150001),
+        rules == null ? 180000 : rules.timeLimitMs - 1,
+      );
+      final mistakes = rules == null ? generator.nextInt(4) : 0;
+      final hintsUsed = rules == null ? generator.nextInt(2) : 0;
+      final points = rules?.perfectPoints ?? 501 + generator.nextInt(2000) * 2;
+      return PuzzleProgress(
+        puzzleId: definition.id,
+        cells: [
+          for (final value in definition.solution) CellProgress(value: value),
+        ],
+        status: PlayStatus.completed,
+        elapsedMs: elapsedMs,
+        mistakes: mistakes,
+        hintsUsed: hintsUsed,
+        points: points,
+        completedAt: completedAt,
+        attempt: rules == null
+            ? null
+            : RoundAttempt(
+                id: const Uuid().v4(),
+                rules: rules,
+                acknowledged: true,
+                result: RoundResult(
+                  outcome: ChallengeOutcome.won,
+                  points: points,
+                  elapsedMs: elapsedMs,
+                  mistakes: mistakes,
+                  hintsUsed: hintsUsed,
+                  finishedAt: completedAt,
+                ),
+              ),
+      );
+    }).toList();
     final sessionId = const Uuid().v4();
     final session = GameSession(
       id: sessionId,
       playerId: save.player.id,
       levelId: levelId,
       puzzles: puzzles,
+      rulesMode: puzzles.first.attempt == null
+          ? SessionRulesMode.legacy
+          : SessionRulesMode.challenge,
       status: PlayStatus.completed,
       startedAt: completedAt.subtract(
         Duration(milliseconds: puzzles.fold(0, (sum, p) => sum + p.elapsedMs)),

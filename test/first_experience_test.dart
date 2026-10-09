@@ -1,3 +1,5 @@
+import 'support/world_selection.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +15,7 @@ import 'package:sundoku/screens/home_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/theme.dart';
 import 'package:sundoku/widgets/juicy_press.dart';
+import 'package:sundoku/widgets/map_art.dart';
 import 'package:sundoku/widgets/illustrated_action_button.dart';
 import 'package:sundoku/widgets/sudoku_board.dart';
 import 'package:sundoku/widgets/tutorial_story.dart';
@@ -86,7 +89,7 @@ Future<void> _openFromHome(
     await tester.pump(const Duration(seconds: 1));
   }
   await _tap(tester, find.byKey(const ValueKey('home-play')));
-  await _tap(tester, find.byKey(const ValueKey('choose-world-1')));
+  await enterOverviewWorld(tester, 'world-1');
   if (find.byType(MapScreen).evaluate().isNotEmpty) {
     await _tap(tester, find.byKey(const ValueKey('level-1-label')));
     final continueAction = find.byKey(const ValueKey('level-summary-continue'));
@@ -190,7 +193,7 @@ void main() {
     await _tap(tester, find.byKey(const ValueKey('home-play')));
     await tester.pump(const Duration(seconds: 2));
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('choose-world-1')));
+    await enterOverviewWorld(tester, 'world-1');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
@@ -232,7 +235,12 @@ void main() {
     expect(find.byType(MapScreen), findsOneWidget);
     final back = find.byKey(const ValueKey('map-back'));
     expect(
-      find.descendant(of: back, matching: find.byIcon(Icons.home_rounded)),
+      find.descendant(
+        of: back,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is MapIcon && widget.glyph == MapGlyph.home,
+        ),
+      ),
       findsOneWidget,
     );
     final review = find.byKey(const ValueKey('map-tutorial'));
@@ -243,7 +251,7 @@ void main() {
     expect(tester.getSize(review).width, tester.getSize(review).height);
     await _tap(tester, back);
     await _tap(tester, find.byKey(const ValueKey('home-play')));
-    await _tap(tester, find.byKey(const ValueKey('choose-world-1')));
+    await enterOverviewWorld(tester, 'world-1');
     expect(find.byType(MapScreen), findsOneWidget);
     expect(find.byType(FirstExperienceScreen), findsNothing);
     final saved = repository.state.modules[FirstExperienceController.moduleKey];
@@ -290,7 +298,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await _settle(tester);
     await _tap(tester, find.byKey(const ValueKey('home-play')));
-    await _tap(tester, find.byKey(const ValueKey('choose-world-1')));
+    await enterOverviewWorld(tester, 'world-1');
     expect(find.byType(MapScreen), findsOneWidget);
     expect(find.byType(FirstExperienceScreen), findsNothing);
   });

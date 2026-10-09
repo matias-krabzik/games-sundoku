@@ -13,6 +13,17 @@ class WorldOverview {
   List<Offset> get destinations => landscape
       ? const [Offset(.145, .511), Offset(.48, .410), Offset(.794, .264)]
       : const [Offset(.377, .74), Offset(.39, .383), Offset(.79, .163)];
+
+  /// Fog stays registered to the painted regions when the image is cropped.
+  Map<String, Rect> get fogRegions => landscape
+      ? const {
+          'world-2': Rect.fromLTRB(.25, -.20, .73, 1.20),
+          'world-3': Rect.fromLTRB(.57, -.25, 1.24, 1.15),
+        }
+      : const {
+          'world-2': Rect.fromLTRB(-.22, .16, 1.22, .64),
+          'world-3': Rect.fromLTRB(-.22, -.18, 1.22, .35),
+        };
   List<Offset> get canopies => landscape
       ? const [
           Offset(.13, .55),

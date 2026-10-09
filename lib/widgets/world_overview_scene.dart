@@ -10,6 +10,7 @@ import '../models/map_ambient_motion.dart';
 import '../models/world_map_definition.dart';
 import '../playables/playables_runtime.dart';
 import 'map_ambient_painter.dart';
+import 'world_overview_fog.dart';
 
 /// Static landscape plus independent, touch-transparent animation layers.
 class WorldOverviewScene extends StatefulWidget {
@@ -18,10 +19,16 @@ class WorldOverviewScene extends StatefulWidget {
     required this.overview,
     required this.child,
     required this.protectedRects,
+    this.lockedWorlds = const {},
+    this.cameraImage,
+    this.discovery = const {},
   });
   final WorldOverview overview;
   final Widget child;
   final List<Rect> protectedRects;
+  final Set<String> lockedWorlds;
+  final Rect? cameraImage;
+  final Map<String, double> discovery;
 
   @override
   State<WorldOverviewScene> createState() => WorldOverviewSceneState();
@@ -31,6 +38,7 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker = createTicker(_tick);
   final ValueNotifier<double> _frame = ValueNotifier(0);
+  final _fogArt = OverviewFogArt();
   late MapAmbientMotion _motion;
   final _art = MapAmbientArt(
     leafAssets: const [
@@ -66,6 +74,7 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
     _runtime?.addListener(_runtimeChanged);
     _configure();
     unawaited(_art.load());
+    unawaited(_fogArt.load());
   }
 
   void _configure() {
@@ -114,6 +123,7 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
   @override
   void didUpdateWidget(WorldOverviewScene oldWidget) {
     super.didUpdateWidget(oldWidget);
+    unawaited(_fogArt.load());
     if (oldWidget.overview.landscape != widget.overview.landscape) _configure();
   }
 
@@ -172,6 +182,7 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
     WidgetsBinding.instance.removeObserver(this);
     _ticker.dispose();
     _art.dispose();
+    _fogArt.dispose();
     _frame.dispose();
     super.dispose();
   }
@@ -181,7 +192,7 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
     builder: (context, bounds) {
       final size = bounds.biggest;
       final overview = widget.overview;
-      final image = overview.imageRect(size);
+      final image = widget.cameraImage ?? overview.imageRect(size);
       final scale = image.width / overview.sourceSize.width;
       return ClipRect(
         child: Listener(
@@ -261,6 +272,18 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
                       ),
                     ),
                   ),
+                ),
+              ),
+              TickerMode(
+                enabled: _ticker.isActive,
+                child: WorldOverviewFog(
+                  key: const ValueKey('world-overview-fog'),
+                  overview: overview,
+                  image: image,
+                  lockedWorlds: widget.lockedWorlds,
+                  frame: _frame,
+                  art: _fogArt,
+                  discovery: widget.discovery,
                 ),
               ),
               TickerMode(enabled: _ticker.isActive, child: widget.child),

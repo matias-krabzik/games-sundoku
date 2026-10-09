@@ -1,0 +1,39 @@
+SunDoku — Aventura: three transparent world emblem design previews
+
+Tool: built-in image_gen.imagegen, transparent_background=true.
+Output: RGBA PNG, 1254 x 1254, no text or button. Original generated alpha retained without conversion.
+These grouped design previews are not yet separated into production Flutter layers. Production integration should reuse the current yellow action button and separately compose icons, ribbon and progress surfaces with dynamic Text widgets.
+
+Approved visual reference:
+/Users/mati/.codex/generated_images/01a0e8d2-746d-7dc1-ad81-a4801a148f16/exec-4b6076b2-2848-4048-a5dc-26b927c4d547.png
+
+COMMON PROMPT
+
+Use case: background-extraction / precise-object-edit.
+Input 1 is the approved "Aventura" SunDoku mockup. Extract ONLY its reusable illustrated destination emblem artwork: the wide cobalt blue curved ribbon with gold edging and rolled tails; the decorative crest above it; and the two gold-framed ivory shield plaques hanging underneath. Keep the artwork extremely faithful to the approved reference: same blue satin appearance, warm polished gold, cream plaque faces, friendly rounded relief and consistent light direction.
+Make a transparent PNG of just that destination emblem on a square canvas, centered with about 7% transparent padding. Full silhouette and all leaves/ribbon tips must fit. No background scene, no appbar, no screenshot, no DEV, no labels, no action button. This is a destination badge illustration, not a complete screen or a flattened modal.
+REMOVE ALL TEXT from the ribbon and both hanging plates. Leave the broad blue title area clean, empty and spacious for the dynamic Flutter-rendered title. Both ivory plaques should be blank and empty for independently overlaid icon and progress widgets, no numbers, no captions, no star, no route icon baked onto plaque surfaces. Preserve the two little gold hanging connectors. No image borders or framing outside the artwork.
+Keep the source's ribbon silhouette and paired shield proportions the same in every world variant. Only the TOP WORLD CREST changes as specified below, with matching understated green leaf decoration at its sides. Do not add a yellow button: the existing game button is reused separately.
+Treat the emblem, ribbon and two plaques as separable reusable artwork layers: where the design has open spaces or holes, keep true transparent gaps, particularly around leaf tips, beneath ribbon tails, between hanging connectors and between the two plaques. Avoid ground shadows or a wide halo.
+Genuine transparent RGBA PNG background. Every pixel outside the requested foreground artwork must have zero alpha, including gaps between elements. No opaque background, no painted checkerboard, no scenery, no replacement backdrop, no wide halo. Preserve the foreground artwork and its clean antialiased edges.
+Extract or generate only the requested individual reusable UI artwork, never a complete screen or a flattened modal. Keep modal, card, panel and button surfaces blank, with no text, lettering, captions, labels or variable values. All UI text will be rendered separately with Flutter Text widgets. Reuse existing yellow buttons, cards and panels; do not redraw them as part of this asset. Keep the artwork independent from layout so Flutter can center the content and place yellow action buttons in the bottom action area.
+
+VARIANT: Valle del Sol
+References:
+/Users/mati/.codex/generated_images/01a0e8d2-746d-7dc1-ad81-a4801a148f16/exec-4b6076b2-2848-4048-a5dc-26b927c4d547.png
+
+WORLD 1 — Valle del Sol: keep the exact charming polished golden SUN crest from the approved Aventura mockup: rounded central disk and rounded rays, small green leaf sprays at sides and cream ornamental backing if present. Its lower portion is hidden behind the ribbon as in source. No additional scenery. All title and numeric areas blank.
+
+VARIANT: Bosque de la Cumbre
+References:
+/Users/mati/.codex/generated_images/01a0e8d2-746d-7dc1-ad81-a4801a148f16/exec-4b6076b2-2848-4048-a5dc-26b927c4d547.png
+/Users/mati/Projects/Games/SunDoku/sundoku/assets/images/map/destination-mountain.png
+
+WORLD 2 — Bosque de la Cumbre: replace ONLY the upper sun crest with the two snowcapped blue MOUNTAIN peaks and green PINE TREE from reference image 2 (existing game icon), polished to match the source badge. Fit them in the same crest region, lower edges tucked behind ribbon. No sun. Reuse the exact same blue ribbon, gold piping and two blank cream hanging plaques from input 1. All title and numeric areas blank.
+
+VARIANT: Ríos Cruzados
+References:
+/Users/mati/.codex/generated_images/01a0e8d2-746d-7dc1-ad81-a4801a148f16/exec-4b6076b2-2848-4048-a5dc-26b927c4d547.png
+/Users/mati/Projects/Games/SunDoku/sundoku/assets/images/map/destination-water.png
+
+WORLD 3 — Ríos Cruzados: replace ONLY the upper sun crest with the three softly rounded glossy TURQUOISE WATER WAVES from reference image 2 (existing game icon), matching its cyan highlights and deep-blue shading, with modest matching green leaf sprays at sides. Waves stay a compact symbolic crest, not a real river scene. Fit in the same crest region, lower edge tucked behind ribbon. No sun. Exact same blue ribbon, gold piping and two blank cream hanging plaques from input 1. All title and numeric areas blank.

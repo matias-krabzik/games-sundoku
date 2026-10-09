@@ -1,0 +1,70 @@
+/var/folders/pd/jk356v_j78g6gpxz4jgmv6h40000gn/T/sundoku-world3-qa-9mn20ti6/Runner.app: replacing existing signature
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:58528/qNcZmEtsQto=/
+VMServiceFlutterDriver: Isolate found with number: 382904029652695
+VMServiceFlutterDriver: Isolate 382904029652695 is runnable.
+VMServiceFlutterDriver: Isolate is paused at start.
+VMServiceFlutterDriver: Attempting to resume isolate
+flutter: 00:00 +0: native artwork, real rotations, tutorial and accessibility
+VMServiceFlutterDriver: Connected to Flutter application.
+-[WFIsolatedShortcutRunner init] Taking sandbox extensions for execution
+-[WFIsolatedShortcutRunner init]_block_invoke Sandbox extensions acquired
+Indexing for request: <WFToolKitIndexingRequest: 0x1024540c0>, changeset: .partial(updatedCount: 1 removedCount: 0 updated: ["com.krabzik.games.sundoku.w3qa"], removed: [], provenance: [VoiceShortcutClient.ToolKitIndexingReason.Changeset.Provenance.launchServicesSnapshot(<LaunchServicesSnapshot uuid=5DFC084F-DB6D-4A05-8834-05081905BB35, v=792)> ["com.example.gameSudoku", "com.apple.InputUI", "com.apple.CarPlaySetupApp", "com.apple.Home.HomeUIService", "com.apple.FontInstallViewService", "com.apple.ControlCenter.ControlCenterControlsExtension", "com.apple.PosterBoard", "com.apple.Bridge", "com.apple.ProximityReaderSceneUI", "com.apple.GameCenterRemoteAlert", "com.apple.siri.SiriNotebookAppIntentsExtension", "com.apple.StoreKitUISceneService", "com.apple.PassbookUIService", "com.apple.family", "com.apple.AppleCashStickerPackHost", "com.apple.DocumentsApp.DocumentAppIntents", "com.apple.iCloudMailSettingsAppIntentsExtension", "com.apple.SleepLockScreen", "com.apple.iMessageAppsViewService", "com.apple.PassKit.PassbookStubAppIntent<…>, priority: <decode: missing data>
+Type indexing (params + content items) took 0.000087s
+Action indexing took 0.000013s
+Indexed: 0
+Errored: 0
+Skipped: [:]
+Bundle cache: 0 hits, 0 misses
+Finished in 0.390822s
+-[WFIsolatedShortcutRunner unaliveProcess] Releasing sandbox extensions
+flutter: W3 native: world-1-game Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait}
+flutter: W3 native: world-1-game Size(874.0, 402.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft}
+VMServiceFlutterDriver: request_data message is taking a long time to complete...
+flutter: W3 native: world-2-game Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait}
+flutter: W3 native: world-2-game Size(874.0, 402.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft}
+flutter: W3 native: tutorial Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait}
+flutter: W3 native: tutorial-large-text Size(874.0, 402.0) DPR 3.0
+flutter: W3 presentation: text=2.0, reduced=true
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft}
+flutter: 00:16 +1: three stars through taps, failed retry and restored attempt
+flutter: W3 native: world-3-ready Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+flutter: W3 native: world-3-game Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait}
+flutter: W3 native: world-3-game Size(874.0, 402.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft}
+flutter: W3 native: world-3-restored-result Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+flutter: W3 native: world-3-no-lives Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+flutter: W3 native: world-3-star-two Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+flutter: W3 native: world-3-star-three Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait}
+flutter: W3 native: world-3-result-large-text Size(874.0, 402.0) DPR 3.0
+flutter: W3 presentation: text=2.0, reduced=true
+flutter: 03:14 +2: last level mistake, perfect retry and final recap
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: portrait; Supported: landscapeLeft}
+flutter: W3 native: world-3-perfect-30 Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+flutter: W3 native: world-3-recap Size(402.0, 874.0) DPR 3.0
+flutter: W3 presentation: text=1.0, reduced=false
+Failed to change device orientation: Error Domain=UISceneErrorDomain Code=101 "None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait" UserInfo={NSLocalizedDescription=None of the requested orientations are supported by the view controller. Requested: landscapeLeft; Supported: portrait}
+flutter: W3 native: world-3-recap-large-text Size(874.0, 402.0) DPR 3.0
+flutter: W3 presentation: text=2.0, reduced=true
+flutter: 04:18 +3: (tearDownAll)
+flutter: 04:23 +4: All tests passed!
+All tests passed.
