@@ -9,11 +9,13 @@ class WorldDestinationAction extends StatelessWidget {
     required this.worldId,
     required this.compact,
     required this.onPressed,
+    this.hitPadding = EdgeInsets.zero,
   });
 
   final String worldId;
   final bool compact;
   final Future<void> Function()? onPressed;
+  final EdgeInsets hitPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +26,18 @@ class WorldDestinationAction extends StatelessWidget {
       tween: Tween(begin: 0, end: 1),
       duration: reduced ? Duration.zero : const Duration(milliseconds: 240),
       curve: Curves.easeOutCubic,
-      child: IllustratedActionButton(
-        key: ValueKey('world-enter-$worldId'),
-        label: 'Ir al destino',
-        compact: compact,
-        fontSize: compact ? 24 : 30,
-        onPressed: onPressed,
+      child: Align(
+        child: IllustratedActionButton(
+          key: ValueKey('world-enter-$worldId'),
+          label: 'Entrar',
+          compact: compact,
+          fontSize: compact ? 24 : 30,
+          showPlayIcon: false,
+          fitToLabel: true,
+          contentPadding: const EdgeInsets.fromLTRB(30, 10, 30, 17),
+          hitPadding: hitPadding,
+          onPressed: onPressed,
+        ),
       ),
       builder: (context, progress, child) => IgnorePointer(
         ignoring: progress < 1 || onPressed == null,

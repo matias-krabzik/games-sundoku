@@ -194,6 +194,10 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
       final overview = widget.overview;
       final image = widget.cameraImage ?? overview.imageRect(size);
       final scale = image.width / overview.sourceSize.width;
+      // Decorative clouds share the terrain's camera transform. Their drift
+      // wraps at the map edges, independently of the visible viewport.
+      final cloudWidth = image.width * .24;
+      final cloudTravel = image.width + cloudWidth;
       return ClipRect(
         child: Listener(
           behavior: HitTestBehavior.translucent,
@@ -252,13 +256,19 @@ class WorldOverviewSceneState extends State<WorldOverviewScene>
                           for (var i = 0; i < 2; i++)
                             Positioned(
                               left:
-                                  (i == 0 ? -.16 : .73) * size.width +
-                                  math.sin(seconds * .07 + i * 2) * 24,
+                                  image.left +
+                                  ((i == 0 ? .32 : .88) * image.width +
+                                          seconds *
+                                              image.width *
+                                              (i == 0 ? .010 : .014)) %
+                                      cloudTravel -
+                                  cloudWidth,
                               top:
-                                  (i == 0 ? .04 : .87) * size.height +
-                                  math.cos(seconds * .05 + i) * 8,
-                              width: size.width * .48,
-                              height: size.width * .13,
+                                  image.top +
+                                  (i == 0 ? .26 : .79) * image.height +
+                                  math.cos(seconds * .05 + i) * 8 * scale,
+                              width: cloudWidth,
+                              height: cloudWidth / 3,
                               child: Opacity(
                                 opacity: .42,
                                 child: Image.asset(

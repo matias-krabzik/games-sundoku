@@ -169,7 +169,7 @@ void main() {
     expect(find.byType(FirstExperienceScreen), findsNothing);
   });
 
-  testWidgets('first adventure keeps home status hidden during departure', (
+  testWidgets('first adventure shows the valley before starting its tutorial', (
     tester,
   ) async {
     _configure(tester);
@@ -194,17 +194,30 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pump();
     await enterOverviewWorld(tester, 'world-1');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump();
+    expect(find.byType(MapScreen), findsOneWidget);
+    expect(find.byType(FirstExperienceScreen), findsNothing);
+    final mapRoute =
+        ModalRoute.of(tester.element(find.byType(MapScreen)))!
+            as WorldJourneyRoute;
+    expect(mapRoute.showClouds, isTrue);
+    for (
+      var frame = 0;
+      frame < 100 && !mapRoute.animation!.isCompleted;
+      frame++
+    ) {
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(find.byType(FirstExperienceScreen), findsNothing);
+    }
+    expect(mapRoute.animation!.isCompleted, isTrue);
+    expect(mapRoute.isCurrent, isTrue);
+    expect(
+      repository.state.modules[FirstExperienceController.moduleKey],
+      isNull,
+    );
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.byType(FirstExperienceScreen), findsOneWidget);
-      final mapRoute =
-          ModalRoute.of(tester.element(find.byType(MapScreen)))!
-              as WorldJourneyRoute;
-      expect(mapRoute.showClouds, isFalse);
+      expect(find.byType(FirstExperienceScreen), findsNothing);
+      expect(mapRoute.isCurrent, isTrue);
       expect(status, findsNothing);
       expect(
         tester
@@ -213,6 +226,10 @@ void main() {
         isFalse,
       );
     }
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump();
+    expect(find.byType(FirstExperienceScreen), findsOneWidget);
+    expect(mapRoute.isCurrent, isFalse);
     await tester.pump(const Duration(seconds: 2));
     await _settle(tester);
     expect(tester.takeException(), isNull);

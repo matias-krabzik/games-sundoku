@@ -54,7 +54,7 @@ void main() {
   );
 
   testWidgets(
-    'destination keeps live progress and both focus actions accessible',
+    'destination keeps live progress with one accessible action for all artwork',
     (tester) async {
       final semantics = tester.ensureSemantics();
       var presses = 0;
@@ -83,19 +83,19 @@ void main() {
             ),
           );
       await show(2, 7, true);
-      expect(find.text('2 / 20 niveles'), findsOneWidget);
+      expect(find.text('2 / 20'), findsOneWidget);
       expect(find.text('7 / 60'), findsOneWidget);
       expect(
         find.bySemanticsLabel(RegExp('Bosque de la Cumbre.*2 de 20 niveles')),
         findsOneWidget,
       );
-      for (final key in ['world-medallion-world-2', 'choose-world-2']) {
+      for (final key in ['world-medallion-world-2', 'world-ribbon-world-2']) {
         await tester.tap(find.byKey(ValueKey(key)));
         await tester.pump();
       }
       expect(presses, 2);
       await show(3, 10, true);
-      expect(find.text('3 / 20 niveles'), findsOneWidget);
+      expect(find.text('3 / 20'), findsOneWidget);
       expect(find.text('10 / 60'), findsOneWidget);
       await show(3, 10, false);
       await tester.tap(find.byKey(const ValueKey('choose-world-2')));

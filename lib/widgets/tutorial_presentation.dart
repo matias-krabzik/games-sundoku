@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import 'tutorial_activity.dart';
+import 'tutorial_auto_advance.dart';
 import 'tutorial_story.dart';
 import 'tutorial_story_navigation.dart';
 import 'home_art.dart';
@@ -137,13 +138,8 @@ class TutorialPresentationState extends State<TutorialPresentation>
     vsync: this,
     duration: widget.demonstrationDuration,
   )..addStatusListener(_changed);
-  late final _reading = AnimationController(
-    vsync: this,
-    duration: widget.readingPause,
-  )..addStatusListener(_changed);
   bool _narrated = false;
   bool _queued = false;
-  bool _advanced = false;
   bool _waitingForNext = false;
   bool _active = false;
   ValueListenable<bool>? _activity;
@@ -165,7 +161,6 @@ class TutorialPresentationState extends State<TutorialPresentation>
     _narrated = true;
     _entrance.value = 1;
     _demonstration.value = 1;
-    _reading.reset();
     setState(() {});
     return true;
   }
@@ -199,13 +194,10 @@ class TutorialPresentationState extends State<TutorialPresentation>
         (oldWidget.scene ?? oldWidget.step) != (widget.scene ?? widget.step);
     if (oldWidget.step != widget.step || sceneChanged) {
       _narrated = false;
-      _advanced = false;
       _waitingForNext = false;
       if (sceneChanged) _entrance.reset();
       _demonstration.reset();
-      _reading.reset();
       _demonstration.duration = widget.demonstrationDuration;
-      _reading.duration = widget.readingPause;
     }
     _schedule();
   }
@@ -215,7 +207,6 @@ class TutorialPresentationState extends State<TutorialPresentation>
     if (!_active) {
       _entrance.stop();
       _demonstration.stop();
-      _reading.stop();
     } else {
       _schedule();
     }
@@ -232,7 +223,6 @@ class TutorialPresentationState extends State<TutorialPresentation>
       if (!_active) {
         _entrance.stop();
         _demonstration.stop();
-        _reading.stop();
         return;
       }
       if (!_entrance.isCompleted) {
@@ -247,17 +237,6 @@ class TutorialPresentationState extends State<TutorialPresentation>
         } else if (!_demonstration.isAnimating) {
           _demonstration.forward();
         }
-      } else if (_demonstration.isCompleted &&
-          !_waitingForNext &&
-          !_accessible &&
-          widget.onAdvance != null &&
-          !_advanced) {
-        if (_reading.isCompleted) {
-          _advanced = true;
-          widget.onAdvance!();
-        } else if (!_reading.isAnimating) {
-          _reading.forward();
-        }
       }
       setState(() {});
     });
@@ -269,10 +248,15 @@ class TutorialPresentationState extends State<TutorialPresentation>
     _activity?.removeListener(_activityChanged);
     _entrance.dispose();
     _demonstration.dispose();
-    _reading.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, this);
+  Widget build(BuildContext context) => TutorialAutoAdvance(
+    step: (widget.scene ?? widget.step, widget.step),
+    ready: _narrated && _demonstration.isCompleted && !_waitingForNext,
+    readingPause: widget.readingPause,
+    onAdvance: widget.onAdvance,
+    child: widget.builder(context, this),
+  );
 }

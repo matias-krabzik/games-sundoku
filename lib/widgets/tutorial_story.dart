@@ -10,6 +10,13 @@ import 'ui_surface_art.dart';
 class TutorialStoryController {
   _TutorialStoryState? _state;
 
+  int get characterCount {
+    final story = _state?.widget;
+    return story == null
+        ? 0
+        : story.lines.join(' ').length + (story.tip?.length ?? 0);
+  }
+
   bool finish() {
     final state = _state;
     if (state == null || state._reveal.isCompleted) return false;

@@ -17,11 +17,13 @@ class IllustratedActionButton extends StatelessWidget {
     this.compact = false,
     this.fontSize = 34,
     this.showPlayIcon = true,
+    this.fitToLabel = false,
     this.leadingIcon,
     this.secondary = false,
     this.surface,
     this.artPadding = EdgeInsets.zero,
     this.contentPadding = const EdgeInsets.fromLTRB(24, 10, 24, 17),
+    this.hitPadding = EdgeInsets.zero,
   });
 
   final String label;
@@ -29,6 +31,9 @@ class IllustratedActionButton extends StatelessWidget {
   final bool compact;
   final double fontSize;
   final bool showPlayIcon;
+
+  /// Use the label and side padding instead of the artwork's minimum width.
+  final bool fitToLabel;
   final Widget? leadingIcon;
   final bool secondary;
 
@@ -36,6 +41,9 @@ class IllustratedActionButton extends StatelessWidget {
   final UiSurface? surface;
   final EdgeInsets artPadding;
   final EdgeInsets contentPadding;
+
+  /// Extra tappable space outside the illustrated surface.
+  final EdgeInsets hitPadding;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -54,12 +62,15 @@ class IllustratedActionButton extends StatelessWidget {
         locale: Localizations.maybeLocaleOf(context),
         maxLines: 1,
       )..layout();
+      final sidePadding = fitToLabel ? contentPadding.horizontal : 48.0;
       final naturalWidth = math.max(
-        referenceSize.width,
-        (textPainter.width + 48 + (hasIcon ? 51 : 0)).ceilToDouble(),
+        fitToLabel ? 0.0 : referenceSize.width,
+        (textPainter.width + sidePadding + (hasIcon ? 51 : 0)).ceilToDouble(),
       );
-      final width = bounds.constrainWidth(naturalWidth);
-      final height = math.max(referenceSize.height, textPainter.height + 27);
+      final width = bounds.constrainWidth(naturalWidth + hitPadding.horizontal);
+      final height =
+          math.max(referenceSize.height, textPainter.height + 27) +
+          hitPadding.vertical;
       textPainter.dispose();
       return SizedBox(
         width: width,
@@ -68,45 +79,48 @@ class IllustratedActionButton extends StatelessWidget {
           label: label,
           onFeedback: () => GameFeedbackScope.tap(context),
           onPressed: onPressed,
-          builder: (_, _) => Opacity(
-            opacity: onPressed == null ? .45 : 1,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Padding(
-                  padding: artPadding,
-                  child: UiSurfaceArt(
-                    surface ??
-                        (secondary
-                            ? UiSurface.blueButton
-                            : UiSurface.goldButton),
-                    referenceSize: referenceSize,
-                  ),
-                ),
-                Padding(
-                  padding: contentPadding,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (hasIcon) ...[
-                          leadingIcon ??
-                              const HomeIcon(HomeGlyph.play, size: 34),
-                          const SizedBox(width: 17),
-                        ],
-                        Text(
-                          label,
-                          maxLines: 1,
-                          softWrap: false,
-                          textAlign: TextAlign.center,
-                          style: textStyle,
-                        ),
-                      ],
+          builder: (_, _) => Padding(
+            padding: hitPadding,
+            child: Opacity(
+              opacity: onPressed == null ? .45 : 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Padding(
+                    padding: artPadding,
+                    child: UiSurfaceArt(
+                      surface ??
+                          (secondary
+                              ? UiSurface.blueButton
+                              : UiSurface.goldButton),
+                      referenceSize: referenceSize,
                     ),
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: contentPadding,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (hasIcon) ...[
+                            leadingIcon ??
+                                const HomeIcon(HomeGlyph.play, size: 34),
+                            const SizedBox(width: 17),
+                          ],
+                          Text(
+                            label,
+                            maxLines: 1,
+                            softWrap: false,
+                            textAlign: TextAlign.center,
+                            style: textStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -94,6 +94,42 @@ void main() {
       'Baloo2',
     )..addFont(rootBundle.load('assets/fonts/Baloo2-Variable.ttf'))).load();
   });
+  testWidgets('challenge explanations advance automatically; entering waits', (
+    tester,
+  ) async {
+    scene.configure(tester, reduced: false);
+    final repo = await challengeRepository(MemorySaveStore());
+    var finished = 0;
+    await show(
+      tester,
+      repo,
+      finished: () async {
+        finished++;
+      },
+    );
+    final state = tester.state(board);
+    for (var step = 0; step < ChallengeLesson.titles.length; step++) {
+      final title = find.text(ChallengeLesson.titles[step]);
+      expect(title, findsOneWidget);
+      expect(tester.state(board), same(state));
+      if (step == ChallengeLesson.titles.length - 1) break;
+      for (var tick = 0; tick < 300 && title.evaluate().isNotEmpty; tick++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text(ChallengeLesson.titles[step + 1]), findsOneWidget);
+    }
+    await frames(tester, 30000);
+    expect(find.text(ChallengeLesson.titles.last), findsOneWidget);
+    expect(finished, 0);
+    expect(repo.challengeTutorialCompleted, false);
+    expect(repo.state.sessions, isEmpty);
+    await press(tester);
+    expect(finished, 1);
+    expect(repo.challengeTutorialCompleted, true);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await repo.close();
+  });
   for (final view in {
     'phone': const Size(390, 844),
     'ipad': const Size(834, 1210),
@@ -195,9 +231,17 @@ void main() {
       await frames(tester, 15000);
       expect(presentation.demonstration.value, progress);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await frames(tester, 9000);
+      for (
+        var tick = 0;
+        tick < 300 && !presentation.demonstration.isCompleted;
+        tick++
+      ) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       expect(presentation.demonstration.isCompleted, true);
       expect(find.text(ChallengeLesson.titles[1]), findsOneWidget);
+      await frames(tester, 2500);
+      expect(find.text(ChallengeLesson.titles[2]), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('challenge-lesson-skip')));
       await frames(tester, 500);
       expect(repo.state.toJson(), saved);

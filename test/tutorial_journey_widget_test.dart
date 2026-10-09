@@ -1311,9 +1311,14 @@ void main() {
   );
 
   testWidgets(
-    'story taps, swipes and keyboard arrows navigate while waiting never advances',
+    'accessible story navigation waits for taps, swipes and keyboard arrows',
     (tester) async {
       configure(tester);
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(
+            disableAnimations: true,
+            accessibleNavigation: true,
+          );
       final repo = GameRepository.memory();
       await repo.saveModule(FirstExperienceController.moduleKey, {
         'step': 'expansion',
@@ -1363,10 +1368,54 @@ void main() {
     },
   );
 
+  for (final reduced in [false, true]) {
+    testWidgets(
+      'rules advance automatically through every explanation; playing waits (reduced: $reduced)',
+      (tester) async {
+        configure(tester, reduced: reduced);
+        final repo = GameRepository.memory();
+        await show(tester, repo);
+        final progress = find.byType(TutorialStoryProgress);
+        int step() => tester.widget<TutorialStoryProgress>(progress).index;
+        Element? boardElement;
+        for (
+          var expected = 0;
+          expected < tutorialStorySteps.length;
+          expected++
+        ) {
+          expect(step(), expected);
+          if (expected == 1) boardElement = tester.element(board);
+          if (expected > 1) expect(tester.element(board), same(boardElement));
+          expect(repo.state.sessions, isEmpty);
+          if (expected == tutorialStorySteps.length - 1) break;
+          for (var tick = 0; tick < 600 && step() == expected; tick++) {
+            await tester.pump(const Duration(milliseconds: 100));
+          }
+          expect(step(), expected + 1);
+        }
+        for (var tick = 0; tick < 300; tick++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(step(), tutorialStorySteps.length - 1);
+        expect(find.text('Jugar'), findsOneWidget);
+        expect(repo.state.sessions, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        await repo.flush();
+        await repo.close();
+      },
+    );
+  }
+
   testWidgets(
     'story actions remain visible with large text and scrolling does not change the story',
     (tester) async {
       configure(tester);
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(
+            disableAnimations: true,
+            accessibleNavigation: true,
+          );
       final repo = GameRepository.memory();
       await repo.saveModule(FirstExperienceController.moduleKey, {
         'step': 'rowRule',

@@ -263,6 +263,15 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
             ? 70.0
             : 78.0;
         final actionGap = short ? 8.0 : 12.0;
+        // Each target ends at the middle of the visible gap, so a near miss
+        // can select or enter a destination without triggering the other.
+        final destinationHitPadding = EdgeInsets.fromLTRB(
+          20,
+          18,
+          20,
+          actionGap / 2,
+        );
+        final actionHitPadding = EdgeInsets.fromLTRB(18, actionGap / 2, 18, 16);
         final usable = Rect.fromLTRB(
           safe.left + 16,
           safe.top + (compact ? 72 : 90),
@@ -276,10 +285,6 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
         );
         final destinationHeight =
             labelWidth * WorldDestinationGeometry.heightFactor;
-        final actionWidth = math.min(
-          labelWidth,
-          math.max(190.0, labelWidth * .80),
-        );
         final anchor = labelWidth * WorldDestinationGeometry.anchorFactor;
         _camera.configure(
           size,
@@ -333,7 +338,9 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                           for (var i = 0; i < worlds.length; i++)
                             if (widget.navigation.isUnlocked(worlds[i].id))
                               Positioned.fromRect(
-                                rect: rects[i],
+                                rect: destinationHitPadding.inflateRect(
+                                  rects[i],
+                                ),
                                 child: FocusTraversalOrder(
                                   order: NumericFocusOrder(i.toDouble()),
                                   child: WorldDestinationArrival(
@@ -344,6 +351,7 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                                         'world-point-${worlds[i].id}',
                                       ),
                                       world: worlds[i],
+                                      hitPadding: destinationHitPadding,
                                       unlocked: true,
                                       highlighted:
                                           _camera.focusedWorld == worlds[i].id,
@@ -391,20 +399,22 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                                   rects[worlds.indexWhere(
                                         (w) => w.id == centered,
                                       )]
-                                      .left +
-                                  (labelWidth - actionWidth) / 2,
+                                      .left -
+                                  actionHitPadding.left,
                               top:
                                   rects[worlds.indexWhere(
                                         (w) => w.id == centered,
                                       )]
                                       .bottom +
-                                  actionGap,
-                              width: actionWidth,
-                              height: actionHeight,
+                                  actionGap -
+                                  actionHitPadding.top,
+                              width: labelWidth + actionHitPadding.horizontal,
+                              height: actionHeight + actionHitPadding.vertical,
                               child: WorldDestinationAction(
                                 key: ValueKey('world-action-$centered'),
                                 worldId: centered,
                                 compact: compact,
+                                hitPadding: actionHitPadding,
                                 onPressed: _opening || _completing
                                     ? null
                                     : () => _enter(centered),
@@ -445,7 +455,7 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  'Elige tu destino',
+                                  'Reino de Solara',
                                   maxLines: 1,
                                   style: homeText(compact ? 23 : 32),
                                 ),

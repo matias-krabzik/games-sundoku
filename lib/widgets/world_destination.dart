@@ -28,6 +28,7 @@ class WorldDestination extends StatefulWidget {
     required this.completedLevels,
     required this.stars,
     required this.onPressed,
+    this.hitPadding = EdgeInsets.zero,
   });
 
   final AdventureWorld world;
@@ -36,6 +37,7 @@ class WorldDestination extends StatefulWidget {
   final int completedLevels;
   final int stars;
   final Future<void> Function()? onPressed;
+  final EdgeInsets hitPadding;
 
   @override
   State<WorldDestination> createState() => _WorldDestinationState();
@@ -69,122 +71,127 @@ class _WorldDestinationState extends State<WorldDestination>
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, bounds) {
-      final w = widget;
-      final width = bounds.maxWidth;
-      final crest = switch (w.world.id) {
-        'world-1' => ('sun', const Rect.fromLTRB(.049, .09, .952, .925)),
-        'world-2' => ('mountain', const Rect.fromLTRB(.10, .107, .906, .933)),
-        _ => ('water', const Rect.fromLTRB(.025, .208, .976, .875)),
-      };
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: width * .18,
-            top: 0,
-            width: width * .64,
-            height: width * .33,
-            child: JuicyPress(
-              key: ValueKey('world-medallion-${w.world.id}'),
-              label: 'Centrar ${w.world.name}',
-              onPressed: w.unlocked ? w.onPressed : null,
-              onFeedback: () => GameFeedbackScope.tap(context),
-              builder: (context, _) => AnimatedBuilder(
-                animation: _shine,
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: w.world.id == 'world-2' ? 1.95 : 2.17,
-                    child: SettingsArtRegion(
-                      asset:
-                          'assets/images/world-selection/aventura-crest-${crest.$1}.png',
-                      region: crest.$2,
-                    ),
-                  ),
-                ),
-                builder: (context, child) {
-                  final pulse = _reduced || !w.highlighted
-                      ? 0.0
-                      : math.sin(_shine.value * math.pi * 2);
-                  return Transform.translate(
-                    offset: Offset(0, -pulse * 1.3),
-                    child: Transform.scale(
-                      scale: 1 + pulse * .012,
-                      child: child,
-                    ),
-                  );
-                },
-              ),
+  Widget build(BuildContext context) => JuicyPress(
+    key: ValueKey('choose-${widget.world.id}'),
+    label:
+        '${widget.world.name}. ${widget.completedLevels} de ${widget.world.levelCount} niveles completados. ${widget.stars} de ${widget.world.levelCount * 3} estrellas. ${widget.unlocked ? 'Centrar destino' : 'Bloqueado'}',
+    onPressed: widget.unlocked ? widget.onPressed : null,
+    onFeedback: () => GameFeedbackScope.tap(context),
+    builder: (context, _) => Padding(
+      padding: widget.hitPadding,
+      child: LayoutBuilder(
+        builder: (context, bounds) {
+          final w = widget;
+          final width = bounds.maxWidth;
+          final crest = switch (w.world.id) {
+            'world-1' => ('sun', const Rect.fromLTRB(.049, .09, .952, .925)),
+            'world-2' => (
+              'mountain',
+              const Rect.fromLTRB(.10, .107, .906, .933),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: width * .245,
-            bottom: 0,
-            child: JuicyPress(
-              key: ValueKey('choose-${w.world.id}'),
-              label:
-                  '${w.world.name}. ${w.completedLevels} de ${w.world.levelCount} niveles completados. ${w.stars} de ${w.world.levelCount * 3} estrellas. ${w.unlocked ? 'Centrar destino' : 'Bloqueado'}',
-              onPressed: w.unlocked ? w.onPressed : null,
-              onFeedback: () => GameFeedbackScope.tap(context),
-              builder: (context, _) => Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final starPlate in [false, true])
-                    Positioned(
-                      left: width * (starPlate ? .522 : .183),
-                      top: width * .255,
-                      width: width * .295,
-                      height: width * .32,
-                      child: _ProgressPlate(
-                        width: width * .295,
-                        stars: starPlate,
-                        label: starPlate
-                            ? '${w.stars} / ${w.world.levelCount * 3}'
-                            : '${w.completedLevels} / ${w.world.levelCount} niveles',
+            _ => ('water', const Rect.fromLTRB(.025, .208, .976, .875)),
+          };
+          return Stack(
+            key: ValueKey('world-art-${w.world.id}'),
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: width * .18,
+                top: 0,
+                width: width * .64,
+                height: width * .33,
+                child: SizedBox(
+                  key: ValueKey('world-medallion-${w.world.id}'),
+                  child: AnimatedBuilder(
+                    animation: _shine,
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: w.world.id == 'world-2' ? 1.95 : 2.17,
+                        child: SettingsArtRegion(
+                          asset:
+                              'assets/images/world-selection/aventura-crest-${crest.$1}.png',
+                          region: crest.$2,
+                        ),
                       ),
                     ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    height: width * .30,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        UiSurfaceArt(
-                          UiSurface.adventureRibbon,
-                          referenceSize: Size(width, width * .30),
+                    builder: (context, child) {
+                      final pulse = _reduced || !w.highlighted
+                          ? 0.0
+                          : math.sin(_shine.value * math.pi * 2);
+                      return Transform.translate(
+                        offset: Offset(0, -pulse * 1.3),
+                        child: Transform.scale(
+                          scale: 1 + pulse * .012,
+                          child: child,
                         ),
-                        Positioned(
-                          left: width * .13,
-                          right: width * .13,
-                          top: width * .068,
-                          height: width * .14,
-                          child: CurvedRibbonTitle(
-                            key: ValueKey('world-title-${w.world.id}'),
-                            text: w.world.name,
-                            fontSize: width * .091,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          if (!w.unlocked)
-            Positioned(
-              right: width * .16,
-              top: width * .15,
-              child: MapIcon(MapGlyph.lock, size: width * .10),
-            ),
-        ],
-      );
-    },
+              Positioned(
+                left: 0,
+                right: 0,
+                top: width * .245,
+                bottom: 0,
+                child: Stack(
+                  key: ValueKey('world-ribbon-${w.world.id}'),
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (final starPlate in [false, true])
+                      Positioned(
+                        left: width * (starPlate ? .522 : .183),
+                        top: width * .255,
+                        width: width * .295,
+                        height: width * .32,
+                        child: _ProgressPlate(
+                          width: width * .295,
+                          stars: starPlate,
+                          label: starPlate
+                              ? '${w.stars} / ${w.world.levelCount * 3}'
+                              : '${w.completedLevels} / ${w.world.levelCount}',
+                        ),
+                      ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      height: width * .30,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          UiSurfaceArt(
+                            UiSurface.adventureRibbon,
+                            referenceSize: Size(width, width * .30),
+                          ),
+                          Positioned(
+                            left: width * .13,
+                            right: width * .13,
+                            top: width * .068,
+                            height: width * .14,
+                            child: CurvedRibbonTitle(
+                              key: ValueKey('world-title-${w.world.id}'),
+                              text: w.world.name,
+                              fontSize: width * .091,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!w.unlocked)
+                Positioned(
+                  right: width * .16,
+                  top: width * .15,
+                  child: MapIcon(MapGlyph.lock, size: width * .10),
+                ),
+            ],
+          );
+        },
+      ),
+    ),
   );
 }
 
@@ -228,11 +235,7 @@ class _ProgressPlate extends StatelessWidget {
               height: width * .23,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: homeText(stars ? width * .19 : width * .145),
-                ),
+                child: Text(label, maxLines: 1, style: homeText(width * .19)),
               ),
             ),
           ],

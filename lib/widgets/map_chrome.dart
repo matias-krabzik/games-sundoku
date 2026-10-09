@@ -197,7 +197,7 @@ Future<void> _chooseWorld(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Elige tu destino', style: homeText(25)),
+              Text('Reino de Solara', style: homeText(25)),
               const SizedBox(height: 14),
               for (final world in navigation.worlds) ...[
                 SizedBox(

@@ -242,23 +242,27 @@ class _SunDokuAppState extends State<SunDokuApp> {
           _repository.state.modules[FirstExperienceController.moduleKey];
       final firstVisit =
           worldId == 'world-1' && (saved is! Map || saved.isEmpty);
-      if (firstVisit) {
-        await _repository.saveModule(FirstExperienceController.moduleKey, {
-          'homeIntroductionShown': true,
-        });
-      }
       if (!context.mounted) return;
       final navigator = Navigator.of(context);
       final route = _mapRoute(
         context,
         const RouteSettings(name: AppRoutes.map),
-        showClouds: !firstVisit,
         worldId: worldId,
       );
       unawaited(navigator.push(route));
+      final arrived = await route.entered;
+      if (!arrived || !context.mounted || !route.isCurrent) return;
       if (firstVisit) {
-        // Install both routes in the same frame: the tutorial owns the visible
-        // journey, while the map is ready underneath for the return navigation.
+        // Give the valley its own arrival before the lesson covers the map.
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+        if (!context.mounted || !route.isCurrent) return;
+        final latest =
+            _repository.state.modules[FirstExperienceController.moduleKey];
+        if (latest is Map && latest.isNotEmpty) return;
+        await _repository.saveModule(FirstExperienceController.moduleKey, {
+          'homeIntroductionShown': true,
+        });
+        if (!context.mounted || !route.isCurrent) return;
         final tutorial = WorldJourneyRoute(
           settings: const RouteSettings(name: AppRoutes.firstExperience),
           reduceMotion: MediaQuery.disableAnimationsOf(context),
@@ -266,8 +270,6 @@ class _SunDokuAppState extends State<SunDokuApp> {
         );
         unawaited(navigator.push(tutorial));
         await tutorial.entered;
-      } else {
-        await route.entered;
       }
     } catch (_) {
       if (context.mounted) {

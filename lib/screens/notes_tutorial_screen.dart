@@ -6,6 +6,7 @@ import '../controllers/notes_tutorial_controller.dart';
 import '../data/repositories/game_repository.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/tutorial_activity.dart';
+import '../widgets/tutorial_auto_advance.dart';
 import '../widgets/tutorial_lesson_card.dart';
 import '../widgets/tutorial_presentation.dart';
 import '../widgets/tutorial_story_navigation.dart';
@@ -218,11 +219,9 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                   demonstrationDuration: Duration(
                     milliseconds: NotesLesson.durations[flow.step],
                   ),
-                  // Reduced motion removes the writing animation, not reading time.
-                  readingPause: Duration(
-                    milliseconds: MediaQuery.disableAnimationsOf(context)
-                        ? 2000 + NotesLesson.texts[flow.step].length * 32
-                        : 2000,
+                  readingPause: tutorialReadingPause(
+                    context,
+                    NotesLesson.texts[flow.step].length,
                   ),
                   onAdvance:
                       flow.step < NotesLesson.texts.length - 1 &&

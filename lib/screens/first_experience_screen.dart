@@ -31,6 +31,7 @@ import '../widgets/tutorial_journey.dart';
 import '../widgets/tutorial_celebration.dart';
 import '../widgets/tutorial_story_navigation.dart';
 import '../widgets/tutorial_activity.dart';
+import '../widgets/tutorial_auto_advance.dart';
 import '../widgets/tutorial_presentation.dart';
 import '../widgets/ui_surface_art.dart';
 import '../widgets/victory_particles.dart';
@@ -81,6 +82,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
   final _storyKey = GlobalKey();
   final _tutorialStory = TutorialStoryController();
   FirstExperienceStep? _finishedStoryStep;
+  bool _waitingForTutorialNext = false;
   late final _blockDeal =
       AnimationController(
         vsync: this,
@@ -187,7 +189,9 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
       changed = true;
     }
     if (_tutorialStory.finish()) changed = true;
-    if (changed && mounted) setState(() {});
+    if (changed && mounted) {
+      setState(() => _waitingForTutorialNext = true);
+    }
     return changed;
   }
 
@@ -195,8 +199,24 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     if (_flow.isBusy || _skippingTutorial || _settingsOpen) return;
     if (_finishTutorialAnimation()) return;
     if (_navigationBlocked) return;
+    if (_flow.reviewOnly && _flow.storyIndex == _flow.storyCount - 1) {
+      Navigator.of(context).pop();
+      return;
+    }
     await _flow.advance();
   }
+
+  bool get _tutorialReadyToAdvance =>
+      _finishedStoryStep == _flow.step &&
+      !_waitingForTutorialNext &&
+      !_navigationBlocked &&
+      !_boardAnimating &&
+      !_blockDeal.isAnimating &&
+      !_blockTourPending &&
+      !_blockTour.isAnimating &&
+      _solutionTour.isCompleted &&
+      (!_welcome || _dokuReady) &&
+      _flow.error == null;
 
   Widget _tutorialSkipButton() => SkipTutorialButton(
     key: const ValueKey('tutorial-skip'),
@@ -679,6 +699,7 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
     }
     if (_previousStep != _flow.step) {
       _finishedStoryStep = null;
+      _waitingForTutorialNext = false;
       if (_flow.step == FirstExperienceStep.solvedExample &&
           !_reduceAnimations) {
         _solutionTour.forward(from: 0);
@@ -987,26 +1008,33 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                         }
                         if (!_flow.isStory) return content;
                         return TutorialActivity(
-                          child: TutorialStoryGestures(
-                            key: const ValueKey('tutorial-story-gestures'),
-                            enabled: !_navigationBlocked,
-                            onNext: () {
-                              if (_navigationBlocked) return;
-                              if (_flow.reviewOnly &&
-                                  _flow.storyIndex == _flow.storyCount - 1) {
-                                Navigator.of(context).pop();
-                              } else {
-                                _flow.advance();
-                              }
-                            },
-                            onPrevious: _flow.storyIndex > 0
-                                ? () {
-                                    if (!_navigationBlocked) {
-                                      _flow.previousStory();
-                                    }
-                                  }
+                          paused:
+                              _flow.isBusy ||
+                              _skippingTutorial ||
+                              _settingsOpen,
+                          child: TutorialAutoAdvance(
+                            step: storyStep,
+                            ready: _tutorialReadyToAdvance,
+                            readingPause: tutorialReadingPause(
+                              context,
+                              _tutorialStory.characterCount,
+                            ),
+                            onAdvance: _flow.storyIndex < _flow.storyCount - 1
+                                ? () => unawaited(_flow.advance())
                                 : null,
-                            child: content,
+                            child: TutorialStoryGestures(
+                              key: const ValueKey('tutorial-story-gestures'),
+                              enabled: !_navigationBlocked,
+                              onNext: _continueTutorial,
+                              onPrevious: _flow.storyIndex > 0
+                                  ? () {
+                                      if (!_navigationBlocked) {
+                                        _flow.previousStory();
+                                      }
+                                    }
+                                  : null,
+                              child: content,
+                            ),
                           ),
                         );
                       },

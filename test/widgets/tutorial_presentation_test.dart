@@ -25,6 +25,52 @@ String writing(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('manual reveal cancels automatic advance until the next step', (
+    tester,
+  ) async {
+    final story = TutorialStoryController();
+    var step = 0;
+    var advances = 0;
+    late StateSetter update;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return TutorialActivity(
+              child: TutorialPresentation(
+                step: step,
+                demonstrationDuration: const Duration(seconds: 1),
+                readingPause: const Duration(milliseconds: 500),
+                onAdvance: () => advances++,
+                builder: (context, presentation) => TutorialStory(
+                  controller: story,
+                  lines: ['Explicación del paso $step'],
+                  tip: null,
+                  autoplay: presentation.storyVisible,
+                  onFinished: presentation.storyFinished,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await frames(tester, 900);
+    final state = tester.state<TutorialPresentationState>(
+      find.byType(TutorialPresentation),
+    );
+    expect(state.finishAnimations(story), true);
+    await frames(tester, 5000);
+    expect(advances, 0);
+    expect(state.finishAnimations(story), false);
+    update(() => step++);
+    await frames(tester, 6000);
+    expect(advances, 1);
+    await tester.pumpWidget(const SizedBox());
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('only a new scene repeats the entrance between steps', (
     tester,
   ) async {

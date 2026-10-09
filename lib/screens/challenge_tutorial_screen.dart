@@ -17,6 +17,7 @@ import '../widgets/sudoku_board.dart';
 import '../widgets/sudoku_help.dart';
 import '../widgets/sudoku_notes.dart';
 import '../widgets/tutorial_activity.dart';
+import '../widgets/tutorial_auto_advance.dart';
 import '../widgets/tutorial_lesson_card.dart';
 import '../widgets/tutorial_presentation.dart';
 import '../widgets/tutorial_story.dart';
@@ -132,7 +133,15 @@ class _ChallengeTutorialScreenState extends State<ChallengeTutorialScreen> {
                 demonstrationDuration: Duration(
                   milliseconds: ChallengeLesson.durations[flow.step],
                 ),
-                // Each explanation advances explicitly; its demonstration is automatic.
+                readingPause: tutorialReadingPause(
+                  context,
+                  ChallengeLesson.texts[flow.step].length,
+                ),
+                onAdvance:
+                    flow.step < ChallengeLesson.texts.length - 1 &&
+                        flow.error == null
+                    ? _next
+                    : null,
                 builder: (context, presentation) => Column(
                   children: [
                     Padding(

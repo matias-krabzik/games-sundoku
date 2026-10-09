@@ -21,6 +21,7 @@ import 'package:sundoku/widgets/world_overview_fog.dart';
 import 'package:sundoku/widgets/world_overview_scene.dart';
 import 'package:sundoku/widgets/world_overview_viewport.dart';
 import 'package:sundoku/widgets/world_destination_arrival.dart';
+import 'package:sundoku/widgets/ui_surface_art.dart';
 import 'package:sundoku/models/world_overview_camera.dart';
 
 import 'support/world3_baseline.dart';
@@ -105,7 +106,7 @@ void main() {
           selected.add(id);
         },
       );
-      expect(find.text('1 / 10 niveles'), findsOneWidget);
+      expect(find.text('1 / 10'), findsOneWidget);
       expect(find.text('5 / 30'), findsOneWidget);
       expect(find.text('Bosque de la Cumbre'), findsNothing);
       expect(find.text('Ríos Cruzados'), findsNothing);
@@ -140,7 +141,7 @@ void main() {
       expect(selected, ['world-1']);
       await repo.recordDebugLights('world-1/level-2', 3);
       await scene.settle(tester);
-      expect(find.text('2 / 10 niveles'), findsOneWidget);
+      expect(find.text('2 / 10'), findsOneWidget);
       expect(find.text('6 / 30'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       await repo.close();
@@ -171,12 +172,12 @@ void main() {
             tester.view.physicalSize = size;
             await show(tester, repo, scale: scale);
             expect(tester.takeException(), isNull);
-            expect(find.text('Elige tu destino').hitTestable(), findsOneWidget);
+            expect(find.text('Reino de Solara').hitTestable(), findsOneWidget);
             expect(
               find.byKey(const ValueKey('worlds-back')).hitTestable(),
               findsOneWidget,
             );
-            final header = tester.getRect(find.text('Elige tu destino'));
+            final header = tester.getRect(find.text('Reino de Solara'));
             expect(header.left, greaterThanOrEqualTo(0));
             expect(header.right, lessThanOrEqualTo(size.width));
             expect(find.byType(Scrollable), findsNothing);
@@ -196,7 +197,9 @@ void main() {
               }
               camera.focusWorld(id, animate: false);
               await tester.pump();
-              final card = tester.getRect(target);
+              final card = tester.getRect(
+                find.byKey(ValueKey('world-art-$id')),
+              );
               expect(card.left, greaterThan(0));
               expect(card.right, lessThan(size.width));
               expect(card.top, greaterThanOrEqualTo(header.bottom));
@@ -205,7 +208,12 @@ void main() {
               final action = find.byKey(ValueKey('world-enter-$id'));
               await tester.pump(const Duration(milliseconds: 250));
               expect(action.hitTestable(), findsOneWidget);
-              final actionRect = tester.getRect(action);
+              final actionRect = tester.getRect(
+                find.descendant(
+                  of: action,
+                  matching: find.byType(UiSurfaceArt),
+                ),
+              );
               expect(actionRect.left, greaterThanOrEqualTo(0));
               expect(actionRect.right, lessThanOrEqualTo(size.width));
               expect(actionRect.top, greaterThan(card.bottom));
@@ -513,6 +521,62 @@ void main() {
   });
 
   testWidgets(
+    'expanded selection and entry targets stay separate and allow dragging',
+    (tester) async {
+      scene.configure(tester);
+      final repo = GameRepository.memory();
+      final selected = <String>[];
+      await show(tester, repo, onSelect: (id) async => selected.add(id));
+      final camera = tester
+          .widget<WorldOverviewViewport>(find.byType(WorldOverviewViewport))
+          .camera;
+      final selection = find.byKey(const ValueKey('choose-world-1'));
+      final artwork = find.byKey(const ValueKey('world-art-world-1'));
+      final action = find.byKey(const ValueKey('world-enter-world-1'));
+
+      camera.pan(const Offset(0, 25));
+      await tester.pump();
+      final before = camera.center;
+      final nearCrest = tester.getRect(artwork).topCenter - const Offset(0, 10);
+      expect(tester.getRect(selection).contains(nearCrest), isTrue);
+      await tester.tapAt(nearCrest);
+      await scene.settle(tester);
+      expect(camera.center, isNot(before));
+      expect(selected, isEmpty);
+
+      final selectionRect = tester.getRect(selection);
+      final entryRect = tester.getRect(action);
+      expect(selectionRect.overlaps(entryRect), isFalse);
+      final nearRibbon =
+          tester.getRect(artwork).centerLeft - const Offset(10, 0);
+      await tester.tapAt(nearRibbon);
+      await scene.settle(tester);
+      expect(selected, isEmpty);
+
+      final beforeDrag = camera.center;
+      await tester.dragFrom(nearRibbon, const Offset(0, 45));
+      await scene.settle(tester);
+      expect(camera.center, isNot(beforeDrag));
+      expect(selected, isEmpty);
+      camera.focusWorld('world-1', animate: false);
+      await tester.pump();
+
+      final buttonArt = tester.getRect(
+        find.descendant(of: action, matching: find.byType(UiSurfaceArt)),
+      );
+      final nearEntry = buttonArt.centerRight + const Offset(10, 0);
+      expect(tester.getRect(action).contains(nearEntry), isTrue);
+      expect(tester.getRect(selection).contains(nearEntry), isFalse);
+      await tester.tapAt(nearEntry);
+      await scene.settle(tester);
+      expect(selected, ['world-1']);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await repo.close();
+    },
+  );
+
+  testWidgets(
     'background taps keep entry and both destination controls recenter',
     (tester) async {
       scene.configure(tester, reduced: false);
@@ -553,7 +617,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 70));
         final transform = tester.widget<Transform>(
           find.descendant(
-            of: target,
+            of: find.byKey(const ValueKey('choose-world-1')),
             matching: find.byKey(const ValueKey('juicy-press-transform')),
           ),
         );
@@ -564,9 +628,11 @@ void main() {
         }
         expect(camera.center, isNot(before));
         final cardRect = tester.getRect(
-          find.byKey(const ValueKey('world-point-world-1')),
+          find.byKey(const ValueKey('world-art-world-1')),
         );
-        final buttonRect = tester.getRect(action);
+        final buttonRect = tester.getRect(
+          find.descendant(of: action, matching: find.byType(UiSurfaceArt)),
+        );
         // The actual rendered group is centered, not merely the clamped camera.
         final group = cardRect.expandToInclude(buttonRect);
         expect(group.center.dx, closeTo(195, 1));
