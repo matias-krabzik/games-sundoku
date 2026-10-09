@@ -39,9 +39,9 @@ class SudokuHelpButton extends StatelessWidget {
             Center(
               child: Opacity(
                 opacity: onPressed == null ? .4 : 1,
-                child: const SizedBox.square(
-                  dimension: 29,
-                  child: CustomPaint(painter: _HelpBulbPainter()),
+                child: SizedBox.square(
+                  dimension: dimension * .58,
+                  child: const CustomPaint(painter: _HelpBulbPainter()),
                 ),
               ),
             ),

@@ -12,7 +12,9 @@ import 'challenge_tutorial_screen.dart';
 import 'settings_screen.dart';
 import '../widgets/game_navigation_header.dart';
 import '../widgets/game_layout.dart';
+import '../widgets/game_round_stars.dart';
 import '../data/repositories/game_repository.dart';
+import '../domain/models/game_session.dart';
 import '../domain/models/quick_play_difficulty.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../domain/models/sudoku_completion.dart';
@@ -899,18 +901,35 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             bounds.maxWidth >= 700 &&
                             bounds.maxWidth > bounds.maxHeight * 1.2;
                         final titleInGameAppBar = _showGame;
-                        final largeGameLayout =
-                            titleInGameAppBar &&
-                            GameLayout.useLargePlayLayout(bounds.biggest);
+                        final mobileGameHeader = GameLayout.useMobilePlayHeader(
+                          bounds.biggest,
+                        );
+                        final rounds =
+                            _flow.session?.puzzles ?? const <PuzzleProgress>[];
                         final flowHeader = _FlowHeader(
                           welcome: false,
                           compact: titleInGameAppBar,
-                          largeStyle: largeGameLayout,
-                          title: !_flow.isQuickPlay
-                              ? 'Juego ${_flow.levelNumber}'
-                              : TutorialJourney.title(_flow),
-                          subtitle: !_flow.isQuickPlay
-                              ? 'Ronda ${_flow.gameIndex + 1} de ${_flow.roundCount}'
+                          showSurface: !mobileGameHeader,
+                          title: TutorialJourney.title(_flow),
+                          compactContent: !_flow.isQuickPlay
+                              ? GameRoundStars(
+                                  levelNumber: _flow.levelNumber,
+                                  currentRound: _flow.gameIndex,
+                                  completedRounds: {
+                                    for (
+                                      var index = 0;
+                                      index < rounds.length;
+                                      index++
+                                    )
+                                      if (rounds[index].status ==
+                                          PlayStatus.completed)
+                                        index,
+                                  },
+                                  animate:
+                                      _flow.readyToPlay &&
+                                      !_navigationBlocked &&
+                                      !_finishingBoard,
+                                )
                               : null,
                         );
                         final Widget content;
@@ -952,16 +971,15 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
                             onNextLevel: _openNextLevel,
                             navigation: _showGame
                                 ? GameNavigationHeader(
+                                    sharedPanel: mobileGameHeader,
                                     backLabel: _flow.isQuickPlay
                                         ? 'Volver al inicio'
                                         : 'Volver al mapa',
-                                    pauseAction: largeGameLayout
-                                        ? GamePauseButton(
-                                            key: const ValueKey('game-pause'),
-                                            flow: _flow,
-                                            blocked: _navigationBlocked,
-                                          )
-                                        : null,
+                                    pauseAction: GamePauseButton(
+                                      key: const ValueKey('game-pause'),
+                                      flow: _flow,
+                                      blocked: _navigationBlocked,
+                                    ),
                                     center: titleInGameAppBar
                                         ? flowHeader
                                         : null,
@@ -1623,23 +1641,20 @@ class _FlowHeader extends StatelessWidget {
     required this.welcome,
     this.expanded = false,
     this.compact = false,
-    this.largeStyle = false,
+    this.showSurface = true,
     this.title,
-    this.subtitle,
+    this.compactContent,
   });
   final bool welcome;
   final bool expanded;
   final bool compact;
-  final bool largeStyle;
+  final bool showSurface;
   final String? title;
-  final String? subtitle;
+  final Widget? compactContent;
 
   @override
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
-    final shortLandscape = GameLayout.useCompactLandscape(
-      MediaQuery.sizeOf(context),
-    );
     final blockTitle = Text(
       title ?? (expanded ? 'Tu tablero de sudoku' : 'Empecemos con 9 casillas'),
       key: const ValueKey('intro-header-title'),
@@ -1648,6 +1663,12 @@ class _FlowHeader extends StatelessWidget {
       softWrap: !compact,
       style: homeText(largeText ? 18 : 22),
     );
+    final compactChild =
+        compactContent ??
+        Center(
+          child: FittedBox(fit: BoxFit.scaleDown, child: blockTitle),
+        );
+    if (compact && !showSurface) return compactChild;
     return Column(
       crossAxisAlignment: compact
           ? CrossAxisAlignment.center
@@ -1702,72 +1723,19 @@ class _FlowHeader extends StatelessWidget {
               ],
             ),
           ),
-        if (!welcome && compact && largeStyle)
+        if (!welcome && compact)
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 340),
-            child: UiSurfacePanel(
-              key: const ValueKey('intro-header'),
-              surface: UiSurface.goldCreamPanel,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-              child: Center(
-                heightFactor: 1,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      blockTitle,
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle!,
-                          key: const ValueKey('game-round-subtitle'),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          style: homeText(13, weight: FontWeight.w600),
-                        ),
-                      ],
-                    ],
-                  ),
+            child: SizedBox(
+              height: GameLayout.controlSize,
+              child: UiSurfacePanel(
+                key: const ValueKey('intro-header'),
+                surface: UiSurface.goldCreamPanel,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 5,
                 ),
-              ),
-            ),
-          ),
-        if (!welcome && compact && !largeStyle)
-          FractionallySizedBox(
-            widthFactor: shortLandscape
-                ? .55
-                : GameLayout.titleWidthFactor(
-                    MediaQuery.sizeOf(context).shortestSide,
-                  ),
-            child: UiSurfacePanel(
-              key: const ValueKey('intro-header'),
-              surface: UiSurface.goldCreamPanel,
-              padding: EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: shortLandscape ? 8 : 20.5,
-              ),
-              child: Center(
-                heightFactor: 1,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      blockTitle,
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle!,
-                          key: const ValueKey('game-round-subtitle'),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          style: homeText(13, weight: FontWeight.w600),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+                child: compactChild,
               ),
             ),
           ),

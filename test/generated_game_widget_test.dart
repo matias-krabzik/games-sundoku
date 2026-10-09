@@ -14,6 +14,7 @@ import 'package:sundoku/widgets/tutorial_journey.dart';
 import 'package:sundoku/widgets/sudoku_time_summary.dart';
 import 'package:sundoku/widgets/game_pause.dart';
 import 'package:sundoku/widgets/game_layout.dart';
+import 'package:sundoku/widgets/game_round_stars.dart';
 import 'package:sundoku/widgets/score_feedback.dart';
 
 import 'tutorial_journey_widget_test.dart' as scene;
@@ -77,13 +78,16 @@ void main() {
           final status = tester.getRect(
             find.byKey(const ValueKey('game-status-slot')),
           );
-          expect(board.top - status.bottom, closeTo(12, .1));
+          expect(
+            board.top - status.bottom,
+            closeTo(GameLayout.useCompactLandscape(safe.size) ? 12 : 24, .1),
+          );
           expect(tester.state(scene.board), same(state));
           expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
           expect(board.center.dx, closeTo(safe.center.dx, 1), reason: '$size');
           expect(
             board.left - safe.left,
-            greaterThanOrEqualTo(safe.width * .08 - 1),
+            greaterThanOrEqualTo(safe.width * .025 - 1),
           );
           final first = tester.getRect(
             find.byKey(const ValueKey('intro-number-1')),
@@ -93,7 +97,41 @@ void main() {
           );
           expect(first.top, greaterThan(board.bottom));
           expect(ninth.top, closeTo(first.top, .1));
-          expect(first.width, lessThanOrEqualTo(54));
+          expect(
+            first.width,
+            closeTo(GameLayout.boardCellSize(board.width), .1),
+          );
+          expect(
+            tester
+                .getSize(find.byKey(const ValueKey('game-status-panel')))
+                .width,
+            closeTo(board.width, .1),
+          );
+          final statusScale = safe.size.shortestSide >= 600 ? 1.35 : 1.0;
+          for (final key in ['game-score', 'game-timer']) {
+            final text = tester.widget<Text>(find.byKey(ValueKey(key)));
+            expect(text.style!.fontSize, closeTo(20 * statusScale, .001));
+          }
+          if (statusScale > 1) {
+            final panel = tester.getRect(
+              find.byKey(const ValueKey('game-status-panel')),
+            );
+            final lives = tester.getRect(
+              find.byKey(const ValueKey('game-unlimited-lives')),
+            );
+            final timer = tester.getRect(
+              find.byKey(const ValueKey('game-timer')),
+            );
+            expect(lives.height, closeTo(19 * statusScale, .1));
+            expect(lives.left - panel.left, closeTo(28, .1));
+            expect(panel.right - timer.right, closeTo(28, .1));
+            expect(panel.height, greaterThanOrEqualTo(92));
+          }
+          for (final key in ['intro-clear', 'game-help']) {
+            final tool = tester.getSize(find.byKey(ValueKey(key)));
+            expect(tool.width, closeTo(first.width, .001));
+            expect(tool.height, closeTo(first.height, .001));
+          }
           for (final rect in [
             board,
             first,
@@ -164,9 +202,9 @@ void main() {
       final erase = tester.getRect(find.byKey(const ValueKey('intro-clear')));
       final help = tester.getRect(find.byKey(const ValueKey('game-help')));
       expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
-      expect(boardRect.width, lessThanOrEqualTo(430));
-      expect(boardRect.left, greaterThanOrEqualTo(size.width * .08 - 1));
-      expect(boardRect.right, lessThanOrEqualTo(size.width * .92 + 1));
+      expect(boardRect.width, lessThanOrEqualTo(size.width * .95));
+      expect(boardRect.left, greaterThanOrEqualTo(size.width * .025 - 1));
+      expect(boardRect.right, lessThanOrEqualTo(size.width * .975 + 1));
       expect(firstNumber.top, greaterThan(boardRect.bottom));
       expect(lastNumber.top, closeTo(firstNumber.top, .1));
       for (final rect in [boardRect, firstNumber, lastNumber, erase, help]) {
@@ -182,96 +220,114 @@ void main() {
     await repo.close();
   });
 
-  testWidgets('generated game fills iPad without scrolling or losing play', (
-    tester,
-  ) async {
-    scene.configure(tester);
-    tester.view.physicalSize = const Size(834, 1210);
-    final repo = GameRepository.memory();
-    await repo.recordDebugLights(mapLevelId(1), 3);
-    await repo.startGeneratedLevel(2);
-    await scene.show(tester, repo, levelNumber: 2);
-    await scene.settle(tester);
-
-    final flow = tester
-        .widget<TutorialJourney>(find.byType(TutorialJourney))
-        .flow;
-    final cell = flow.boardValues.indexOf(null);
-    await scene.tap(tester, find.byKey(ValueKey('sudoku-cell-$cell')));
-    final originalBoardState = tester.state(scene.board);
-    final originalValues = flow.boardValues;
-
-    for (final size in [
-      const Size(834, 1210),
-      const Size(768, 1024),
-      const Size(1210, 834),
-      const Size(390, 844),
-      const Size(834, 1210),
-    ]) {
-      tester.view.physicalSize = size;
+  testWidgets(
+    'generated game uses 80% of iPad width without scrolling or losing play',
+    (tester) async {
+      scene.configure(tester);
+      tester.view.physicalSize = const Size(834, 1210);
+      final repo = GameRepository.memory();
+      await repo.recordDebugLights(mapLevelId(1), 3);
+      await repo.startGeneratedLevel(2);
+      await scene.show(tester, repo, levelNumber: 2);
       await scene.settle(tester);
-      final board = tester.getRect(scene.board);
-      final first = tester.getRect(
-        find.byKey(const ValueKey('intro-number-1')),
-      );
-      final ninth = tester.getRect(
-        find.byKey(const ValueKey('intro-number-9')),
-      );
-      final clear = tester.getRect(find.byKey(const ValueKey('intro-clear')));
-      final help = tester.getRect(find.byKey(const ValueKey('game-help')));
-      final back = tester.getRect(find.byKey(const ValueKey('game-back')));
-      final settings = tester.getRect(
-        find.byKey(const ValueKey('game-settings')),
-      );
-      final pause = tester.getRect(find.byKey(const ValueKey('game-pause')));
-      final timer = tester.getRect(find.byKey(const ValueKey('game-timer')));
 
-      expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
-      expect(tester.state(scene.board), same(originalBoardState));
-      expect(tester.widget<SudokuBoard>(scene.board).selectedIndex, cell);
-      expect(flow.boardValues, originalValues);
-      expect(board.center.dx, closeTo(size.width / 2, 1));
-      expect(first.top, greaterThan(board.bottom));
-      expect(ninth.top, closeTo(first.top, .1));
-      expect(first.width, lessThanOrEqualTo(GameLayout.controlSize + .1));
-      expect(clear.width, lessThanOrEqualTo(52.1));
-      for (final rect in [
-        board,
-        first,
-        ninth,
-        clear,
-        help,
-        back,
-        settings,
-        pause,
-        timer,
+      final flow = tester
+          .widget<TutorialJourney>(find.byType(TutorialJourney))
+          .flow;
+      final cell = flow.boardValues.indexOf(null);
+      await scene.tap(tester, find.byKey(ValueKey('sudoku-cell-$cell')));
+      final originalBoardState = tester.state(scene.board);
+      final originalValues = flow.boardValues;
+
+      for (final size in [
+        const Size(834, 1210),
+        const Size(768, 1024),
+        const Size(1210, 834),
+        const Size(390, 844),
+        const Size(834, 1210),
       ]) {
-        expect(rect.top, greaterThanOrEqualTo(-1));
-        expect(rect.bottom, lessThanOrEqualTo(size.height + 1));
-      }
-      if (size.width >= 700) {
-        if (size.height > size.width) {
-          expect(board.width, inInclusiveRange(500, 540.1));
-        } else {
-          expect(board.width, inInclusiveRange(430.1, 540.1));
-          await scene.capture(tester, 'generated-game-ipad-1210x834');
-        }
-        expect(board.left, greaterThanOrEqualTo(80));
-        expect(size.width - board.right, greaterThanOrEqualTo(80));
-        expect(find.byKey(const ValueKey('game-status-panel')), findsOneWidget);
-        expect(pause.right, lessThan(settings.left));
-      } else {
-        expect(board.width, lessThan(400));
-        expect(find.byKey(const ValueKey('game-status-panel')), findsNothing);
-      }
-      expect(tester.takeException(), isNull);
-    }
+        tester.view.physicalSize = size;
+        await scene.settle(tester);
+        final board = tester.getRect(scene.board);
+        final first = tester.getRect(
+          find.byKey(const ValueKey('intro-number-1')),
+        );
+        final ninth = tester.getRect(
+          find.byKey(const ValueKey('intro-number-9')),
+        );
+        final clear = tester.getRect(find.byKey(const ValueKey('intro-clear')));
+        final help = tester.getRect(find.byKey(const ValueKey('game-help')));
+        final back = tester.getRect(find.byKey(const ValueKey('game-back')));
+        final settings = tester.getRect(
+          find.byKey(const ValueKey('game-settings')),
+        );
+        final pause = tester.getRect(find.byKey(const ValueKey('game-pause')));
+        final timer = tester.getRect(find.byKey(const ValueKey('game-timer')));
 
-    await scene.capture(tester, 'generated-game-ipad-834x1210');
-    await tester.pumpWidget(const SizedBox());
-    await scene.settle(tester);
-    await repo.close();
-  });
+        expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
+        expect(tester.state(scene.board), same(originalBoardState));
+        expect(tester.widget<SudokuBoard>(scene.board).selectedIndex, cell);
+        expect(flow.boardValues, originalValues);
+        expect(board.center.dx, closeTo(size.width / 2, 1));
+        expect(first.top, greaterThan(board.bottom));
+        expect(ninth.top, closeTo(first.top, .1));
+        expect(first.width, closeTo(GameLayout.boardCellSize(board.width), .1));
+        for (final tool in [clear, help]) {
+          expect(tool.width, closeTo(first.width, .001));
+          expect(tool.height, closeTo(first.height, .001));
+        }
+        for (final rect in [
+          board,
+          first,
+          ninth,
+          clear,
+          help,
+          back,
+          settings,
+          pause,
+          timer,
+        ]) {
+          expect(rect.top, greaterThanOrEqualTo(-1));
+          expect(rect.bottom, lessThanOrEqualTo(size.height + 1));
+        }
+        if (size.width >= 700) {
+          if (size.height > size.width) {
+            expect(board.width, closeTo(size.width * .8, .1));
+          } else {
+            expect(board.width, greaterThan(430));
+            await scene.capture(tester, 'generated-game-ipad-1210x834');
+          }
+          expect(board.left, greaterThanOrEqualTo(size.width * .1 - .1));
+          expect(
+            size.width - board.right,
+            greaterThanOrEqualTo(size.width * .1 - .1),
+          );
+          expect(
+            find.byKey(const ValueKey('game-status-panel')),
+            findsOneWidget,
+          );
+          expect(pause.right, lessThan(settings.left));
+        } else {
+          expect(board.width, lessThan(400));
+          expect(
+            find.byKey(const ValueKey('game-status-panel')),
+            findsOneWidget,
+          );
+        }
+        expect(
+          tester.getSize(find.byKey(const ValueKey('game-status-panel'))).width,
+          closeTo(board.width, .1),
+        );
+        expect(pause.right, lessThan(settings.left));
+        expect(tester.takeException(), isNull);
+      }
+
+      await scene.capture(tester, 'generated-game-ipad-834x1210');
+      await tester.pumpWidget(const SizedBox());
+      await scene.settle(tester);
+      await repo.close();
+    },
+  );
 
   testWidgets(
     'a saved correct move updates score and launches the board popup',
@@ -333,8 +389,10 @@ void main() {
           final session = await repo.startGeneratedLevel(2);
           await scene.show(tester, repo, levelNumber: 2, withParentRoute: true);
           await scene.tap(tester, find.text('Abrir tutorial'));
-          expect(find.text('Ronda 1 de 3'), findsOneWidget);
-          final title = tester.getRect(find.text('Ronda 1 de 3'));
+          expect(find.byType(GameRoundStars), findsOneWidget);
+          final title = tester.getRect(
+            find.byKey(const ValueKey('game-round-stars')),
+          );
           final back = tester.getRect(find.byKey(const ValueKey('game-back')));
           final settings = tester.getRect(
             find.byKey(const ValueKey('game-settings')),
@@ -345,6 +403,7 @@ void main() {
           final header = tester.getRect(
             find.byKey(const ValueKey('intro-header')),
           );
+          expect(title.center.dy, closeTo(header.center.dy, 1));
           if (desktop) {
             expect(
               title.center.dx,
@@ -359,19 +418,27 @@ void main() {
             expect(pause.size, settings.size);
             expect(find.byType(GamePauseButton), findsOneWidget);
           } else {
-            expect(title.left, greaterThanOrEqualTo(back.right));
-            expect(title.right, lessThanOrEqualTo(settings.left));
-            expect(header.center.dy, closeTo(back.center.dy, 3));
+            expect(header.top, lessThan(back.top));
+            expect(header.bottom, greaterThan(back.bottom));
+            expect(header.top, lessThan(settings.top));
+            expect(header.bottom, greaterThan(settings.bottom));
+            expect(title.left, greaterThan(back.right));
+            expect(title.right, lessThan(pause.left));
             expect(
-              pause.left,
-              greaterThan(
-                tester.getRect(find.byKey(const ValueKey('game-timer'))).right,
-              ),
+              header.center.dx,
+              closeTo(tester.view.physicalSize.width / 2, 1),
             );
-            expect(pause.top, greaterThan(settings.bottom));
-            expect(find.byType(GamePauseButton), findsNothing);
+            expect(pause.right, lessThan(settings.left));
+            expect(pause.center.dy, closeTo(settings.center.dy, .1));
+            expect(pause.size, settings.size);
+            expect(find.byType(GamePauseButton), findsOneWidget);
           }
-          expect(tester.widget<Text>(find.text('Ronda 1 de 3')).maxLines, 1);
+          final stars = tester.widget<GameRoundStars>(
+            find.byType(GameRoundStars),
+          );
+          expect(stars.levelNumber, 2);
+          expect(stars.currentRound, 0);
+          expect(stars.completedRounds, isEmpty);
           expect(
             find.byKey(const ValueKey('intro-header-rays-left')),
             findsNothing,
@@ -386,7 +453,7 @@ void main() {
             findsOneWidget,
           );
           final status = find.byKey(const ValueKey('game-status-panel'));
-          expect(status, desktop ? findsOneWidget : findsNothing);
+          expect(status, findsOneWidget);
           if (desktop) {
             for (final key in [
               'game-unlimited-lives',
@@ -606,6 +673,13 @@ void main() {
           await scene.settle(tester);
           expect(flow.gameIndex, index + 1);
           expect(flow.readyToPlay, true);
+          final stars = tester.widget<GameRoundStars>(
+            find.byType(GameRoundStars),
+          );
+          expect(stars.currentRound, index + 1);
+          expect(stars.completedRounds, {
+            for (var round = 0; round <= index; round++) round,
+          });
           expect(find.text('En pausa'), findsNothing);
         }
       }
@@ -670,7 +744,10 @@ void main() {
       await scene.tap(tester, find.text('Siguiente juego'));
       await tester.pump(const Duration(milliseconds: 1600));
       await tester.pump();
-      expect(find.text('Ronda 1 de 3'), findsOneWidget);
+      expect(
+        tester.widget<GameRoundStars>(find.byType(GameRoundStars)).levelNumber,
+        3,
+      );
       expect(
         tester
             .widget<TutorialJourney>(find.byType(TutorialJourney))

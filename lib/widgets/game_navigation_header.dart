@@ -6,6 +6,7 @@ import 'home_art.dart';
 import 'juicy_press.dart';
 import 'map_art.dart';
 import 'settings_art.dart';
+import 'ui_surface_art.dart';
 
 class GameNavigationHeader extends StatelessWidget {
   const GameNavigationHeader({
@@ -14,12 +15,14 @@ class GameNavigationHeader extends StatelessWidget {
     this.onSettings,
     this.center,
     this.pauseAction,
+    this.sharedPanel = false,
     this.backLabel = 'Volver al mapa',
   });
   final VoidCallback? onBack;
   final VoidCallback? onSettings;
   final Widget? center;
   final Widget? pauseAction;
+  final bool sharedPanel;
   final String backLabel;
 
   @override
@@ -37,20 +40,51 @@ class GameNavigationHeader extends StatelessWidget {
         onPressed: onSettings,
         icon: const SettingsIcon(SettingsGlyph.gear, size: 33),
       );
+      final actions = pauseAction == null
+          ? settings
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [pauseAction!, const SizedBox(width: 8), settings],
+            );
+      if (sharedPanel && center != null) {
+        return SizedBox(
+          height: GameLayout.controlSize + GameLayout.mobileHeaderInset * 2,
+          child: UiSurfacePanel(
+            key: const ValueKey('intro-header'),
+            surface: UiSurface.goldCreamPanel,
+            padding: const EdgeInsets.all(GameLayout.mobileHeaderInset),
+            child: Row(
+              children: [
+                back,
+                const SizedBox(width: 8),
+                Expanded(child: center!),
+                if (pauseAction != null) ...[
+                  const SizedBox(width: 8),
+                  pauseAction!,
+                ],
+                const SizedBox(width: 8),
+                settings,
+              ],
+            ),
+          ),
+        );
+      }
       if (pauseAction == null) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             back,
-            if (center != null) Expanded(child: Center(child: center)),
+            if (center != null)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Center(child: center),
+                ),
+              ),
             settings,
           ],
         );
       }
-      final actions = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [pauseAction!, const SizedBox(width: 8), settings],
-      );
       const sideWidth = 116.0;
       if (center == null) {
         return Row(
@@ -58,27 +92,21 @@ class GameNavigationHeader extends StatelessWidget {
           children: [back, actions],
         );
       }
-      if (bounds.maxWidth < sideWidth * 2 + 300) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [back, actions],
-            ),
-            const SizedBox(height: 8),
-            Center(child: center),
-          ],
-        );
-      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: sideWidth,
+            width: bounds.maxWidth >= sideWidth * 2 + 300
+                ? sideWidth
+                : GameLayout.controlSize,
             child: Align(alignment: Alignment.centerLeft, child: back),
           ),
-          Expanded(child: Center(child: center)),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(child: center),
+            ),
+          ),
           SizedBox(
             width: sideWidth,
             child: Align(alignment: Alignment.centerRight, child: actions),

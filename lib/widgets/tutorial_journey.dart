@@ -297,34 +297,21 @@ class TutorialJourney extends StatelessWidget {
                 bounds.maxWidth >= 700 &&
                 bounds.maxWidth > bounds.maxHeight * 1.2);
         final largeWindow = bounds.maxWidth >= 700 || bounds.maxHeight >= 900;
-        final statusWidth = desktopPlay
-            ? _maxBoardWidth
-            : compactLandscape
-            ? math.min(_maxBoardWidth, bounds.maxWidth * .8)
-            : GameLayout.mobileBoardSize(MediaQuery.sizeOf(context).width);
-        final statusScale = desktopPlay || compactLandscape
-            ? 1.0
-            : (statusWidth / 360).clamp(1.0, 1.8);
+        final navigationMargin = _playing
+            ? (GameLayout.useMobilePlayHeader(bounds.biggest) ? 8.0 : 16.0)
+            : (largeWindow ? 32.0 : 16.0);
         return Column(
           children: [
             if (navigation != null)
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  desktopPlay
-                      ? 16
-                      : largeWindow
-                      ? 32
-                      : 16,
+                  navigationMargin,
                   compactLandscape
                       ? 8
                       : largeWindow
                       ? 16
                       : 10,
-                  desktopPlay
-                      ? 16
-                      : largeWindow
-                      ? 32
-                      : 16,
+                  navigationMargin,
                   0,
                 ),
                 child: _gameUi(navigation!, 'navigation', .60),
@@ -333,36 +320,23 @@ class TutorialJourney extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: desktopPlay
-                        ? GameLayout.maxPlayBoardSize + 32
+                    maxWidth: _playing
+                        ? double.infinity
                         : wide
                         ? 950
-                        : (_playing
-                              ? double.infinity
-                              : GameLayout.maxTutorialTextWidth + 32),
+                        : GameLayout.maxTutorialTextWidth + 32,
                   ),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
-                      16,
+                      _playing ? 0 : 16,
                       compactLandscape ? 6 : 10,
-                      16,
+                      _playing ? 0 : 16,
                       compactLandscape ? 6 : 10,
                     ),
                     child: Column(
                       children: [
-                        _gameUi(
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: desktopPlay
-                                  ? _maxBoardWidth
-                                  : double.infinity,
-                            ),
-                            child: header,
-                          ),
-                          'header',
-                          .60,
-                        ),
-                        const SizedBox(height: 8),
+                        if (!_playing) _gameUi(header, 'header', .60),
+                        if (!_playing) const SizedBox(height: 8),
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, body) {
@@ -400,17 +374,15 @@ class TutorialJourney extends StatelessWidget {
                                 return height;
                               }
 
-                              final statusHeight = desktopPlay
-                                  ? math.max(76.0, textScaler.scale(20) + 36)
-                                  : math.max(
-                                          (42 * statusScale)
-                                              .clamp(42, 54)
-                                              .toDouble(),
-                                          textScaler.scale(20 * statusScale) *
-                                              1.5,
-                                        ) +
-                                        8;
-                              var extraHeight = statusHeight + 12;
+                              final statusScale = GameLayout.playStatusScale(
+                                bounds.biggest,
+                              );
+                              final statusHeight = GameLayout.playStatusHeight(
+                                compact: compactLandscape,
+                                textHeight: textScaler.scale(20 * statusScale),
+                                large: statusScale > 1,
+                              );
+                              var extraHeight = statusHeight;
 
                               if (_playing && !sideInformation) {
                                 if (help != null) {
@@ -512,10 +484,7 @@ class TutorialJourney extends StatelessWidget {
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
                                               TutorialEraseButton(
-                                                dimension: math.min(
-                                                  boardCellSize,
-                                                  52,
-                                                ),
+                                                dimension: boardCellSize,
                                                 iconSize: boardCellSize * .55,
                                                 surface: UiSurface.creamTile,
                                                 onPressed:
@@ -643,8 +612,9 @@ class TutorialJourney extends StatelessWidget {
                                       child: Center(
                                         child: _gameUi(
                                           SizedBox(
-                                            width: statusWidth,
+                                            width: boardWidth,
                                             child: GameplayStatusBar(
+                                              height: statusHeight,
                                               scale: statusScale,
                                               points: flow.points,
                                               initialLives: flow
@@ -660,12 +630,12 @@ class TutorialJourney extends StatelessWidget {
                                               targetPoints: flow
                                                   .challengeRules
                                                   ?.targetPoints,
-                                              illustrated: desktopPlay,
+                                              illustrated: true,
                                               trailing: GameTimerControls(
                                                 flow: flow,
                                                 scale: statusScale,
                                                 blocked: navigationBlocked,
-                                                showPause: !desktopPlay,
+                                                showPause: false,
                                               ),
                                             ),
                                           ),
@@ -674,9 +644,17 @@ class TutorialJourney extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      height: compactLandscape
+                                          ? 12
+                                          : GameLayout.playStatusBoardGap,
+                                    ),
                                     boardArea,
-                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      height: compactLandscape
+                                          ? 20
+                                          : GameLayout.playBoardControlsGap,
+                                    ),
                                     SizedBox(
                                       width: body.maxWidth,
                                       child: _gameUi(

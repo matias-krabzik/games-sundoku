@@ -190,6 +190,14 @@ void main() {
           same(boardElement),
         );
         expect(tester.takeException(), isNull);
+        final numberSize = tester.getSize(
+          find.byKey(const ValueKey('intro-number-1')),
+        );
+        for (final key in ['intro-clear', 'game-notes', 'game-help']) {
+          final tool = tester.getSize(find.byKey(ValueKey(key)));
+          expect(tool.width, closeTo(numberSize.width, .001));
+          expect(tool.height, closeTo(numberSize.height, .001));
+        }
         final directory = Platform.environment['NOTES_CAPTURE_DIR'];
         if (directory != null && sample.scale == 1) {
           await tester.runAsync(() async {

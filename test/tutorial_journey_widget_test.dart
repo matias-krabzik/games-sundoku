@@ -20,6 +20,7 @@ import 'package:sundoku/widgets/sudoku_digit.dart';
 import 'package:sundoku/widgets/home_art.dart';
 import 'package:sundoku/widgets/game_feedback_scope.dart';
 import 'package:sundoku/widgets/game_layout.dart';
+import 'package:sundoku/widgets/game_round_stars.dart';
 import 'package:sundoku/widgets/illustrated_action_button.dart';
 import 'package:sundoku/widgets/tutorial_block_controls.dart';
 import 'package:sundoku/widgets/tutorial_story_navigation.dart';
@@ -793,7 +794,10 @@ void main() {
     expect(tester.getRect(board), initialRect);
     expect(find.byType(TutorialReward), findsNothing);
     expect(next, findsNothing);
-    expect(find.text('Ronda 1 de 3'), findsOneWidget);
+    final stars = tester.widget<GameRoundStars>(find.byType(GameRoundStars));
+    expect(stars.currentRound, 0);
+    expect(stars.completedRounds, {0});
+    expect(stars.animate, false);
     expect(repo.state.totalLights, 1);
     await tester.pump(const Duration(milliseconds: 100));
     await capture(tester, 'onda-final-inicio', settleAnimations: false);
@@ -1114,7 +1118,9 @@ void main() {
       final lives = tester.getRect(
         find.byKey(const ValueKey('game-unlimited-lives')),
       );
-      final banner = tester.getRect(find.text('Ronda 1 de 3'));
+      final banner = tester.getRect(
+        find.byKey(const ValueKey('game-round-stars')),
+      );
       expect(lives.top, greaterThan(banner.bottom));
       expect(lives.bottom, lessThanOrEqualTo(after.top));
       expect(clear.top, greaterThan(buttons.first.bottom));
@@ -1127,7 +1133,8 @@ void main() {
       );
       expect(clear.width, closeTo(clear.height, .001));
       expect(buttons.first.width, closeTo(boardCellSize, 1));
-      expect(clear.width, lessThanOrEqualTo(52));
+      expect(clear.width, closeTo(boardCellSize, .1));
+      expect(help.width, closeTo(boardCellSize, .1));
       expect(
         (repo.state.modules[FirstExperienceController.moduleKey]
             as Map)['briefingAccepted'],
@@ -1140,7 +1147,7 @@ void main() {
   );
 
   testWidgets(
-    'normal play aligns navigation around the title and returns to the map',
+    'phone play groups navigation and round stars in one card and returns to the map',
     (tester) async {
       configure(tester);
       final repo = GameRepository.memory();
@@ -1161,15 +1168,35 @@ void main() {
       expect(next, findsNothing);
       expect(find.text('Pista'), findsNothing);
       expect(find.text('Seguir'), findsNothing);
-      final title = tester.getRect(find.text('Ronda 1 de 3'));
+      final title = tester.getRect(
+        find.byKey(const ValueKey('game-round-stars')),
+      );
       final back = find.byKey(const ValueKey('game-back'));
       final settings = find.byKey(const ValueKey('game-settings'));
+      final pause = tester.getRect(find.byKey(const ValueKey('game-pause')));
       expect(title.left, greaterThan(tester.getRect(back).right));
-      expect(title.right, lessThan(tester.getRect(settings).left));
-      expect(tester.getRect(back).left, 16);
+      expect(title.right, lessThan(pause.left));
+      expect(title.center.dy, closeTo(tester.getRect(back).center.dy, 1));
+      expect(pause.right, lessThan(tester.getRect(settings).left));
+      final card = find.byKey(const ValueKey('intro-header'));
+      for (final key in [
+        'game-back',
+        'game-round-stars',
+        'game-pause',
+        'game-settings',
+      ]) {
+        expect(
+          find.descendant(of: card, matching: find.byKey(ValueKey(key))),
+          findsOneWidget,
+        );
+      }
+      final stars = tester.widget<GameRoundStars>(find.byType(GameRoundStars));
+      expect(stars.currentRound, 0);
+      expect(stars.completedRounds, isEmpty);
+      expect(tester.getRect(back).left, 24);
       expect(
         tester.getRect(settings).right,
-        tester.view.physicalSize.width - 16,
+        tester.view.physicalSize.width - 24,
       );
       expect(tester.widget<SudokuBoard>(board).selectedIndex, isNull);
       final session = repo.state.sessions.values.single;
@@ -1493,22 +1520,20 @@ void main() {
           find.byKey(const ValueKey('game-back')),
         );
         final large = GameLayout.useLargePlayLayout(size);
-        final navigationMargin = large
-            ? 16.0
-            : (size.width >= 700 || size.height >= 900 ? 32.0 : 16.0);
+        final navigationMargin = GameLayout.useMobilePlayHeader(size)
+            ? 24.0
+            : 16.0;
         expect(backBounds.left, closeTo(navigationMargin, .1));
         expect(
           settingsBounds.right,
           closeTo(size.width - navigationMargin, .1),
         );
         final boardBounds = tester.getRect(board);
-        final sideMargin = math.max(24.0, size.width * .08);
+        final sideMargin = size.width * .025;
         expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
         expect(
           boardBounds.width,
-          lessThanOrEqualTo(
-            large ? GameLayout.maxPlayBoardSize : GameLayout.maxBoardSize,
-          ),
+          lessThanOrEqualTo(size.width * GameLayout.playBoardWidthFraction),
         );
         expect(boardBounds.left, greaterThanOrEqualTo(sideMargin - 1));
         expect(
@@ -1521,30 +1546,23 @@ void main() {
           find.byKey(const ValueKey('desktop-play-group')),
           large ? findsOneWidget : findsNothing,
         );
+        expect(find.byKey(const ValueKey('game-status-panel')), findsOneWidget);
         expect(
-          find.byKey(const ValueKey('game-status-panel')),
-          large ? findsOneWidget : findsNothing,
+          tester.getRect(find.byKey(const ValueKey('game-status-panel'))).width,
+          closeTo(boardBounds.width, .1),
         );
         final pauseBounds = tester.getRect(
           find.byKey(const ValueKey('game-pause')),
         );
+        expect(pauseBounds.right, lessThan(settingsBounds.left));
+        expect(pauseBounds.center.dy, closeTo(settingsBounds.center.dy, .1));
         if (large) {
-          expect(pauseBounds.right, lessThan(settingsBounds.left));
-          expect(pauseBounds.center.dy, closeTo(settingsBounds.center.dy, .1));
           expect(
             tester
                 .getRect(find.byKey(const ValueKey('game-status-panel')))
                 .height,
             greaterThanOrEqualTo(70),
           );
-        } else {
-          expect(
-            pauseBounds.left,
-            greaterThan(
-              tester.getRect(find.byKey(const ValueKey('game-timer'))).right,
-            ),
-          );
-          expect(pauseBounds.top, greaterThan(settingsBounds.bottom));
         }
         expect(
           tester

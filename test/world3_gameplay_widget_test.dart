@@ -12,6 +12,7 @@ import 'package:sundoku/theme.dart';
 import 'package:sundoku/widgets/completed_level_popover.dart';
 import 'package:sundoku/widgets/game_feedback_scope.dart';
 import 'package:sundoku/widgets/gameplay_status_bar.dart';
+import 'package:sundoku/widgets/game_layout.dart';
 import 'package:sundoku/widgets/challenge_lives.dart';
 import 'package:sundoku/widgets/sudoku_board.dart';
 import 'package:sundoku/widgets/sudoku_help.dart';
@@ -337,13 +338,17 @@ void main() {
             find.byKey(const ValueKey('intro-number-1')),
           );
           expect(number.top, greaterThan(board.bottom));
+          expect(board.width, lessThanOrEqualTo(size.width * .95));
           expect(
-            board.width,
-            lessThanOrEqualTo(
-              size.width >= 700 && size.height >= 600 ? 540 : 430,
-            ),
+            number.width,
+            closeTo(GameLayout.boardCellSize(board.width), .1),
           );
-          expect(number.width, lessThanOrEqualTo(54));
+          expect(
+            tester
+                .getSize(find.byKey(const ValueKey('game-status-panel')))
+                .width,
+            closeTo(board.width, .1),
+          );
           expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
         }
         await flow.placeGameNumber(

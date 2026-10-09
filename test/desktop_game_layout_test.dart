@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -62,10 +60,11 @@ void main() {
           expect(ninthRect.top, closeTo(firstRect.top, .1));
           expect(ninthRect.left, greaterThan(firstRect.right));
           expect((firstRect.left + ninthRect.right) / 2, closeTo(512, 1));
-          expect(firstRect.width, lessThanOrEqualTo(GameLayout.controlSize));
           expect(
             boardRect.width,
-            lessThanOrEqualTo(GameLayout.maxPlayBoardSize + .1),
+            lessThanOrEqualTo(
+              1024 * GameLayout.largePlayBoardWidthFraction + .1,
+            ),
           );
           final clear = tester.getRect(
             find.byKey(const ValueKey('intro-clear')),
@@ -73,8 +72,10 @@ void main() {
           final help = tester.getRect(find.byKey(const ValueKey('game-help')));
           expect(clear.top, greaterThan(firstRect.bottom));
           expect(help.top, greaterThan(ninthRect.bottom));
-          expect(clear.width, lessThanOrEqualTo(52));
-          expect(help.width, lessThanOrEqualTo(GameLayout.controlSize));
+          for (final tool in [clear, help]) {
+            expect(tool.width, closeTo(firstRect.width, .001));
+            expect(tool.height, closeTo(firstRect.height, .001));
+          }
           expect(
             find.byKey(const ValueKey('desktop-play-group')),
             findsOneWidget,
@@ -100,6 +101,7 @@ void main() {
           expect(pause.width, closeTo(settings.width, .1));
           expect(header.center.dx, closeTo(512, 1));
           expect(header.width, lessThanOrEqualTo(340.1));
+          expect(header.height, closeTo(back.height, .1));
           expect(header.left, greaterThan(back.right));
           expect(header.right, lessThan(pause.left));
           final status = find.byKey(const ValueKey('game-status-panel'));
@@ -107,6 +109,9 @@ void main() {
           final statusRect = tester.getRect(status);
           expect(statusRect.height, greaterThanOrEqualTo(70));
           expect(statusRect.center.dx, closeTo(512, 1));
+          expect(statusRect.width, closeTo(boardRect.width, .1));
+          expect(boardRect.top - statusRect.bottom, closeTo(24, .1));
+          expect(firstRect.top - boardRect.bottom, closeTo(28, .1));
           for (final key in [
             'game-unlimited-lives',
             'game-score',
@@ -195,7 +200,7 @@ void main() {
             );
             expect(
               find.byKey(const ValueKey('game-status-panel')),
-              large ? findsOneWidget : findsNothing,
+              findsOneWidget,
             );
             final resizedBoard = tester.getRect(scene.board);
             final resizedFirst = tester.getRect(first);
@@ -206,7 +211,8 @@ void main() {
             final resizedHelp = tester.getRect(
               find.byKey(const ValueKey('game-help')),
             );
-            final sideMargin = math.max(24.0, size.width * .08);
+            final sideMargin =
+                size.width * (1 - GameLayout.playBoardWidthFactor(size)) / 2;
             expect(find.byKey(const ValueKey('intro-scroll')), findsNothing);
             expect(resizedBoard.left, greaterThanOrEqualTo(sideMargin - 1));
             expect(
@@ -232,8 +238,10 @@ void main() {
               resizedFirst.width,
               closeTo(GameLayout.boardCellSize(resizedBoard.width), .1),
             );
-            expect(resizedFirst.width, lessThanOrEqualTo(54.1));
-            expect(resizedClear.width, lessThanOrEqualTo(52.1));
+            for (final tool in [resizedClear, resizedHelp]) {
+              expect(tool.width, closeTo(resizedFirst.width, .001));
+              expect(tool.height, closeTo(resizedFirst.height, .001));
+            }
             expect(resizedBoard.center.dx, closeTo(size.width / 2, 1));
             expect(resizedFirst.top, greaterThan(resizedBoard.bottom));
             expect(resizedNinth.top, closeTo(resizedFirst.top, .1));
@@ -249,8 +257,74 @@ void main() {
             final resizedSettings = tester.getRect(
               find.byKey(const ValueKey('game-settings')),
             );
-            final resizedTimer = tester.getRect(
-              find.byKey(const ValueKey('game-timer')),
+            final resizedStatus = tester.getRect(status);
+            final resizedHeader = tester.getRect(
+              find.byKey(const ValueKey('intro-header')),
+            );
+            expect(resizedStatus.width, closeTo(resizedBoard.width, .1));
+            expect(resizedPause.right, lessThan(resizedSettings.left));
+            expect(
+              resizedPause.center.dy,
+              closeTo(resizedSettings.center.dy, .1),
+            );
+            expect(
+              resizedHeader.height,
+              closeTo(GameLayout.playHeaderHeight(size), .1),
+            );
+            expect(
+              find.byKey(const ValueKey('game-round-stars')),
+              findsOneWidget,
+            );
+            if (GameLayout.useMobilePlayHeader(size)) {
+              expect(resizedHeader.top, lessThan(resizedSettings.top));
+              expect(resizedHeader.bottom, greaterThan(resizedSettings.bottom));
+              expect(resizedHeader.center.dx, closeTo(size.width / 2, 1));
+              for (final key in [
+                'game-back',
+                'game-round-stars',
+                'game-pause',
+                'game-settings',
+              ]) {
+                expect(
+                  find.descendant(
+                    of: find.byKey(const ValueKey('intro-header')),
+                    matching: find.byKey(ValueKey(key)),
+                  ),
+                  findsOneWidget,
+                );
+              }
+              final title = tester.getRect(
+                find.byKey(const ValueKey('game-round-stars')),
+              );
+              expect(
+                title.left,
+                greaterThan(
+                  tester.getRect(find.byKey(const ValueKey('game-back'))).right,
+                ),
+              );
+              expect(title.right, lessThan(resizedPause.left));
+              expect(title.center.dy, closeTo(resizedSettings.center.dy, 1));
+            } else {
+              expect(
+                resizedHeader.left,
+                greaterThan(
+                  tester
+                          .getRect(find.byKey(const ValueKey('game-back')))
+                          .right +
+                      8,
+                ),
+              );
+              expect(resizedHeader.right, lessThan(resizedPause.left - 8));
+              expect(
+                resizedHeader.center.dy,
+                closeTo(resizedSettings.center.dy, .1),
+              );
+            }
+            expect(
+              resizedBoard.width,
+              lessThanOrEqualTo(
+                size.width * GameLayout.playBoardWidthFactor(size) + .1,
+              ),
             );
             if (large) {
               expect(resizedPause.right, lessThan(resizedSettings.left));
@@ -259,18 +333,11 @@ void main() {
                 closeTo(resizedSettings.center.dy, .1),
               );
               expect(
-                resizedBoard.width,
-                lessThanOrEqualTo(GameLayout.maxPlayBoardSize + .1),
-              );
-              expect(
                 tester
                     .getRect(find.byKey(const ValueKey('game-status-panel')))
                     .height,
                 greaterThanOrEqualTo(70),
               );
-            } else {
-              expect(resizedPause.left, greaterThan(resizedTimer.right));
-              expect(resizedPause.top, greaterThan(resizedSettings.bottom));
             }
             if (size == const Size(320, 568)) {
               narrowBoardWidth = resizedBoard.width;
@@ -281,27 +348,30 @@ void main() {
             if (size == const Size(768, 1024) ||
                 size == const Size(834, 1210)) {
               ipadBoardWidths[size] = resizedBoard.width;
-              expect(resizedBoard.width, inInclusiveRange(500, 540.1));
-              expect(resizedBoard.left, greaterThanOrEqualTo(80));
-              expect(size.width - resizedBoard.right, greaterThanOrEqualTo(80));
+              expect(resizedBoard.width, greaterThan(600));
+              if (size == const Size(834, 1210)) {
+                expect(resizedBoard.width, closeTo(size.width * .8, .1));
+              }
             }
             if (size == const Size(1210, 834)) {
               ipadLandscapeBoardWidth = resizedBoard.width;
               expect(resizedBoard.width, greaterThan(430));
-              expect(resizedBoard.width, lessThanOrEqualTo(540.1));
             }
             if (size == const Size(844, 390)) {
               shortLandscapeBoardWidth = resizedBoard.width;
-              expect(resizedBoard.width, greaterThanOrEqualTo(150));
+              expect(resizedBoard.width, greaterThanOrEqualTo(120));
               if (platform == TargetPlatform.macOS) {
                 await scene.capture(tester, 'landscape-game-844x390');
               }
             }
+            if (size == const Size(390, 844)) {
+              expect(resizedBoard.width, closeTo(size.width * .95, .1));
+            }
             expect(
               tester.getRect(find.byKey(const ValueKey('game-back'))).left,
-              large || (size.width < 700 && size.height < 900)
-                  ? inInclusiveRange(16, 21)
-                  : closeTo(32, .1),
+              GameLayout.useMobilePlayHeader(size)
+                  ? closeTo(24, .1)
+                  : inInclusiveRange(16, 21),
             );
             expect(tester.takeException(), isNull);
           }
@@ -332,7 +402,7 @@ void main() {
             final helpCard = tester.getRect(find.byType(SudokuHelpCard));
             final lastNumber = tester.getRect(ninth);
             if (size == const Size(844, 390)) {
-              expect(boardWithHelp.width, greaterThanOrEqualTo(150));
+              expect(boardWithHelp.width, greaterThanOrEqualTo(120));
               if (platform == TargetPlatform.macOS) {
                 await scene.capture(tester, 'landscape-game-help-844x390');
               }
