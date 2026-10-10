@@ -521,10 +521,17 @@ void main() {
       expect(find.text('¡Lo completaste todo!'), findsOneWidget);
       expect(find.textContaining('Siguiente nivel'), findsNothing);
       expect(repo.worldCompleted('world-3'), true);
-      await expectLater(
-        repo.startGeneratedLevel(30, worldId: 'world-3'),
-        throwsStateError,
-      );
+      await tester.pumpWidget(const SizedBox());
+      await scene.settle(tester);
+      final replay = await repo.startGeneratedLevel(30, worldId: 'world-3');
+      expect(replay.id, isNot(session.id));
+      expect(replay.lights, 0);
+      await showChallenge(tester, repo, level: 30);
+      await scene.settle(tester);
+      expect(flowOf(tester).gameIndex, 0);
+      expect(find.byKey(const ValueKey('challenge-ready')), findsOneWidget);
+      expect(find.byKey(const ValueKey('challenge-result')), findsNothing);
+      expect(repo.worldCompleted('world-3'), isTrue);
       await tester.pumpWidget(const SizedBox());
       await scene.settle(tester);
       await repo.close();

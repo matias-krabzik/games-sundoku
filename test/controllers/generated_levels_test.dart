@@ -24,53 +24,67 @@ class _FailingStore extends MemorySaveStore {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-    'levels 2–10 have three saved puzzles, unlock in order and cannot replay',
-    () async {
-      final repo = GameRepository.memory();
-      await repo.recordDebugLights(mapLevelId(1), 3);
-      for (var level = 2; level <= 10; level++) {
-        final session = await repo.startGeneratedLevel(level);
-        final flow = FirstExperienceController(repo, levelNumber: level);
-        expect(flow.step, FirstExperienceStep.playing);
-        expect(session.puzzles.length, 3);
-        if (level < 10) {
-          expect(repo.state.isUnlocked(mapLevelId(level + 1)), false);
-        }
-        await flow.resumeGame();
-        for (var game = 0; game < 3; game++) {
-          expect(flow.gameIndex, game);
-          expect(flow.puzzleDefinition!.difficulty, 'easy');
-          await repo.addElapsed(
-            session.id,
-            flow.puzzleDefinition!.id,
-            (game + 1) * 1000,
-          );
-          await solve(flow);
-          if (game < 2) await flow.advance();
-        }
-        expect(flow.session!.status, PlayStatus.completed);
-        expect(flow.session!.elapsedMs, greaterThanOrEqualTo(6000));
-        expect(
-          repo.state.progress[mapLevelId(level)]!.bestElapsedMs,
-          flow.session!.elapsedMs,
-        );
-        expect(repo.state.progress[mapLevelId(level)]!.bestLights, 3);
-        if (level < 10) {
-          expect(repo.state.isUnlocked(mapLevelId(level + 1)), true);
-        }
-        await expectLater(repo.startGeneratedLevel(level), throwsStateError);
-        await expectLater(
-          repo.startOrResumeLevel(mapLevelId(level), restart: true),
-          throwsStateError,
-        );
-        flow.dispose();
-        await flow.flush();
+  test('levels 2–10 unlock in order and replay from round one without losing records', () async {
+    final repo = GameRepository.memory();
+    await repo.recordDebugLights(mapLevelId(1), 3);
+    for (var level = 2; level <= 10; level++) {
+      final session = await repo.startGeneratedLevel(level);
+      final flow = FirstExperienceController(repo, levelNumber: level);
+      expect(flow.step, FirstExperienceStep.playing);
+      expect(session.puzzles.length, 3);
+      if (level < 10) {
+        expect(repo.state.isUnlocked(mapLevelId(level + 1)), false);
       }
-      expect(repo.state.modules[FirstExperienceController.moduleKey], isNull);
-      await repo.close();
-    },
-  );
+      await flow.resumeGame();
+      for (var game = 0; game < 3; game++) {
+        expect(flow.gameIndex, game);
+        expect(flow.puzzleDefinition!.difficulty, 'easy');
+        await repo.addElapsed(
+          session.id,
+          flow.puzzleDefinition!.id,
+          (game + 1) * 1000,
+        );
+        await solve(flow);
+        if (game < 2) await flow.advance();
+      }
+      expect(flow.session!.status, PlayStatus.completed);
+      expect(flow.session!.elapsedMs, greaterThanOrEqualTo(6000));
+      expect(
+        repo.state.progress[mapLevelId(level)]!.bestElapsedMs,
+        flow.session!.elapsedMs,
+      );
+      expect(repo.state.progress[mapLevelId(level)]!.bestLights, 3);
+      if (level < 10) {
+        expect(repo.state.isUnlocked(mapLevelId(level + 1)), true);
+      }
+      flow.dispose();
+      await flow.flush();
+      final completed = repo.state.sessions[session.id]!.toJson();
+      final record = repo.state.progress[mapLevelId(level)]!.toJson();
+      final totalLights = repo.state.totalLights;
+      final replay = await repo.startGeneratedLevel(level);
+      final replayFlow = FirstExperienceController(repo, levelNumber: level);
+      expect(replay.id, isNot(session.id));
+      expect(replay.lights, 0);
+      expect(replay.points, 0);
+      expect(replay.elapsedMs, 0);
+      expect(replay.nextPuzzleId, session.puzzles.first.puzzleId);
+      expect(replayFlow.step, FirstExperienceStep.playing);
+      expect(replayFlow.gameIndex, 0);
+      expect(replayFlow.isPaused, isFalse);
+      expect(
+        replay.puzzles.first.cells.map((cell) => cell.value).toList(),
+        repo.state.puzzles[replay.nextPuzzleId]!.initial,
+      );
+      expect(repo.state.sessions[session.id]!.toJson(), completed);
+      expect(repo.state.progress[mapLevelId(level)]!.toJson(), record);
+      expect(repo.state.totalLights, totalLights);
+      replayFlow.dispose();
+      await replayFlow.flush();
+    }
+    expect(repo.state.modules[FirstExperienceController.moduleKey], isNull);
+    await repo.close();
+  });
 
   test(
     'disk reopen restores seeds, input, selection, hints and paused session',

@@ -355,7 +355,10 @@ class GameRepository extends ChangeNotifier {
   RoundChallengeRules? previewChallenge(int number, {required String worldId}) {
     final levelId = mapLevelId(number, worldId: worldId);
     final existing = state.sessions.values
-        .where((s) => s.levelId == levelId && s.canResume)
+        .where(
+          (s) =>
+              s.levelId == levelId && (s.canResume || s.pendingResult != null),
+        )
         .firstOrNull;
     if (existing != null) {
       if (existing.rulesMode == SessionRulesMode.legacy) return null;
@@ -364,9 +367,7 @@ class GameRepository extends ChangeNotifier {
           .attempt!
           .rules;
     }
-    if (!enableWorld3Challenges ||
-        worldId != 'world-3' ||
-        (state.progress[levelId]?.bestLights ?? 0) >= 3) {
+    if (!enableWorld3Challenges || worldId != 'world-3') {
       return null;
     }
     final id = state.levels[levelId]!.puzzleIds.first;
@@ -395,6 +396,9 @@ class GameRepository extends ChangeNotifier {
     final level = state.levels[id]!;
     final key = adventureModuleKey(worldId, number);
     final savedModule = state.modules[key];
+    final savedSession = savedModule is Map
+        ? state.sessions[savedModule['sessionId']]
+        : null;
     return startOrResumeLevel(
       id,
       definitions: worldId == 'world-2'
@@ -410,7 +414,8 @@ class GameRepository extends ChangeNotifier {
       moduleKey: key,
       moduleData:
           savedModule is Map &&
-              state.sessions.containsKey(savedModule['sessionId'])
+              savedSession != null &&
+              (savedSession.canResume || savedSession.pendingResult != null)
           ? jsonObject(savedModule)
           : {'step': 'playing', 'gameIndex': 0, 'started': false},
     );
@@ -558,15 +563,6 @@ class GameRepository extends ChangeNotifier {
           'Complete the notes lesson before entering the forest games',
         );
       }
-      if (!(level.worldId == 'world-1' && levelId == mapLevelId(1)) &&
-          adventureWorlds.containsKey(level.worldId) &&
-          (((save.progress[levelId]?.bestLights ?? 0) >= level.requiredLights &&
-                  !save.sessions.values.any(
-                    (s) => s.levelId == levelId && s.pendingResult != null,
-                  )) ||
-              restart)) {
-        throw StateError('This level cannot be replayed');
-      }
       final registered = {...save.puzzles};
       if (definitionSnapshot != null) {
         if (!listEquals(
@@ -595,7 +591,8 @@ class GameRepository extends ChangeNotifier {
           pending = session;
         }
       }
-      if (pending != null && !restart) {
+      if (pending != null &&
+          (!restart || pending.status == PlayStatus.completed)) {
         sessionId = pending.id;
       } else {
         if (pending != null) {
@@ -604,10 +601,23 @@ class GameRepository extends ChangeNotifier {
             updatedAt: _now(),
           );
         }
+        sessionId = const Uuid().v4();
+        final separatePuzzles =
+            enableWorld3Challenges &&
+            level.worldId == 'world-3' &&
+            sessions.values.any((session) => session.levelId == levelId);
         final boards = level.puzzleIds.map((id) {
-          final puzzle = registered[id];
+          var puzzle = registered[id];
           if (puzzle == null) {
             throw StateError('Register the level sudokus before playing');
+          }
+          if (separatePuzzles) {
+            // A retry must only replace this replay's definition.
+            puzzle = SudokuDefinition.fromJson({
+              ...puzzle.toJson(),
+              'id': '$id/replay/$sessionId',
+            });
+            registered[puzzle.id] = puzzle;
           }
           final rules = enableWorld3Challenges && level.worldId == 'world-3'
               ? AdventureChallenges.forPuzzle(
@@ -622,7 +632,6 @@ class GameRepository extends ChangeNotifier {
                 : RoundAttempt(id: const Uuid().v4(), rules: rules),
           );
         }).toList();
-        sessionId = const Uuid().v4();
         sessions[sessionId] = GameSession(
           id: sessionId,
           playerId: save.player.id,

@@ -81,11 +81,14 @@ void main() {
           repo.state.isUnlocked(mapLevelId(2, worldId: 'world-3')),
           isTrue,
         );
-        // Preserve the current no-replay flow; retry will apply to failed rounds.
-        await expectLater(
-          repo.startGeneratedLevel(1, worldId: 'world-3'),
-          throwsStateError,
-        );
+        final completed = repo.state.sessions.values.single;
+        final record = repo.state.progress[level]!.toJson();
+        final replay = await repo.startGeneratedLevel(1, worldId: 'world-3');
+        expect(replay.id, isNot(completed.id));
+        expect(replay.lights, 0);
+        expect(replay.nextPuzzleId, completed.puzzles.first.puzzleId);
+        expect(repo.state.sessions[completed.id]!.toJson(), completed.toJson());
+        expect(repo.state.progress[level]!.toJson(), record);
       }
       expect(repo.worldCompleted('world-3'), name == 'world-3-complete');
     });

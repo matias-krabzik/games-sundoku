@@ -576,7 +576,7 @@ void main() {
   });
 
   testWidgets(
-    'map opens an unfinished generated level but never a completed or locked one',
+    'map replays completed levels, opens unfinished levels and keeps locked levels closed',
     (tester) async {
       scene.configure(tester);
       final repo = GameRepository.memory();
@@ -602,7 +602,10 @@ void main() {
           .onTap();
       await scene.settle(tester);
       expect(find.text('¡Completado!'), findsOneWidget);
-      await scene.tap(tester, find.byKey(const ValueKey('level-summary-ok')));
+      expect(find.text('Volver a jugar').hitTestable(), findsOneWidget);
+      expect(find.text('Continuar'), findsNothing);
+      await scene.tap(tester, find.byKey(const ValueKey('level-replay')));
+      expect(opened, [2]);
 
       tester
           .widgetList<MapLevelButton>(find.byType(MapLevelButton))
@@ -617,9 +620,9 @@ void main() {
           .onTap();
       await scene.settle(tester);
       expect(find.text('En progreso'), findsOneWidget);
-      expect(opened, isEmpty);
+      expect(opened, [2]);
       await scene.tap(tester, find.byKey(const ValueKey('level-summary-play')));
-      expect(opened, [3]);
+      expect(opened, [2, 3]);
       await tester.pumpWidget(const SizedBox());
       await scene.settle(tester);
       progress.dispose();

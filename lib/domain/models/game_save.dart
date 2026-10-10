@@ -195,8 +195,13 @@ class GameSave {
         } else if (foundPending) {
           throw const FormatException('Challenges completed out of order');
         }
-        final puzzle = puzzles[session.puzzles[i].puzzleId];
-        if (puzzle == null || puzzle.id != level.puzzleIds[i]) {
+        final expectedId = level.puzzleIds[i];
+        final puzzle = puzzles[board.puzzleId];
+        final matchesLevel =
+            board.puzzleId == expectedId ||
+            (session.rulesMode == SessionRulesMode.challenge &&
+                board.puzzleId == '$expectedId/replay/${session.id}');
+        if (puzzle == null || !matchesLevel) {
           throw const FormatException('Missing session puzzle');
         }
         session.puzzles[i].validate(puzzle);

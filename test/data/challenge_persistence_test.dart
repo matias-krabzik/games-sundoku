@@ -127,7 +127,7 @@ void main() {
     );
   });
 
-  test('S05/S11: third round failure does not complete level; successful retry awards once, no replay', () async {
+  test('S05/S11: third round retry awards once; replay preserves records and renews attempts', () async {
     final repo = await challengeRepository(MemorySaveStore(), level: 30);
     addTearDown(repo.close);
     final session = await startChallenge(repo, level: 30);
@@ -157,10 +157,34 @@ void main() {
     final revision = repo.state.revision;
     await acknowledge(repo, session.id, 2);
     expect(repo.state.revision, revision);
-    await expectLater(
-      repo.startOrResumeLevel(session.levelId),
-      throwsStateError,
-    );
+    final completedSession = repo.state.sessions[session.id]!;
+    final completed = completedSession.toJson();
+    final record = repo.state.progress[session.levelId]!.toJson();
+    final totalLights = repo.state.totalLights;
+    final replay = await repo.startOrResumeLevel(session.levelId);
+    expect(replay.id, isNot(session.id));
+    expect(replay.rulesMode, SessionRulesMode.challenge);
+    expect(replay.lights, 0);
+    expect(replay.points, 0);
+    expect(replay.elapsedMs, 0);
+    for (var i = 0; i < 3; i++) {
+      final board = replay.puzzles[i];
+      expect(board.status, PlayStatus.pending);
+      expect(board.mistakes, 0);
+      expect(board.hintsUsed, 0);
+      expect(board.attempt!.id, isNot(completedSession.puzzles[i].attempt!.id));
+      expect(board.attempt!.result, isNull);
+      expect(board.attempt!.rules.toJson(), {
+        ...completedSession.puzzles[i].attempt!.rules.toJson(),
+        'puzzleId': board.puzzleId,
+      });
+    }
+    await winRound(repo, replay.id);
+    expect(repo.state.sessions[replay.id]!.lights, 1);
+    expect(repo.state.totalLights, totalLights);
+    expect(repo.state.progress[session.levelId]!.toJson(), record);
+    expect(repo.state.sessions[session.id]!.toJson(), completed);
+    expect(repo.worldCompleted('world-3'), isTrue);
     await expectLater(
       repo.retryRound(session.id, id, attemptId: token),
       throwsStateError,

@@ -245,10 +245,10 @@ class LevelSummaryCard extends StatelessWidget {
               const SizedBox(height: 8),
               _SummaryActions(
                 primaryKey: _isComplete
-                    ? null
+                    ? const ValueKey('level-replay')
                     : const ValueKey('level-summary-continue'),
                 primaryLabel: _isComplete
-                    ? null
+                    ? 'Volver a jugar'
                     : session?.pendingResult != null &&
                           (session!.pendingResult!.status !=
                                   PlayStatus.completed ||

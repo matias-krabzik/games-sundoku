@@ -255,7 +255,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('completed summary uses a small cream Ok at bottom right', (
+  testWidgets('completed summary offers replay beside the small cream Ok', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -263,9 +263,14 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     var closes = 0;
+    var replays = 0;
 
     await tester.pumpWidget(
-      summary(complete: true, onContinue: () {}, onOk: () => closes++),
+      summary(
+        complete: true,
+        onContinue: () => replays++,
+        onOk: () => closes++,
+      ),
     );
     await settle(tester);
 
@@ -276,6 +281,12 @@ void main() {
     expect(find.text('Tiempo: 02:10'), findsOneWidget);
     expect(find.text('¡Ganaste las 3 estrellas!'), findsOneWidget);
     expect(find.byKey(const ValueKey('level-summary-continue')), findsNothing);
+    expect(find.text('Volver a jugar'), findsOneWidget);
+    final replay = find.byKey(const ValueKey('level-replay'));
+    expect(replay.hitTestable(), findsOneWidget);
+    await tester.tap(replay);
+    await settle(tester);
+    expect(replays, 1);
     expect(find.byIcon(Icons.close), findsNothing);
     final card = tester.getRect(find.byKey(const ValueKey('level-summary')));
     final ok = find.byKey(const ValueKey('level-summary-ok'));
@@ -287,6 +298,36 @@ void main() {
     expect(closes, 1);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'an unfinished replay keeps Continue despite its saved three stars',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SafeArea(
+              child: LevelSummaryCard(
+                level: 3,
+                lights: 3,
+                session: resumableSession(),
+                record: LevelRecord(bestLights: 3),
+                onContinue: () {},
+                onOk: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+      expect(find.text('Continuar').hitTestable(), findsOneWidget);
+      expect(find.byKey(const ValueKey('level-replay')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('completed practice keeps its message and replay action', (
     tester,
