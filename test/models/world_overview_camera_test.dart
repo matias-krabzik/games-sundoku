@@ -71,10 +71,12 @@ void main() {
       camera.beginGesture(const Offset(195, 420));
       expect(camera.centeredWorld, 'world-2');
       expect(camera.entryWorld, 'world-2');
+      expect(camera.selectedWorld, 'world-2');
       camera.updateGesture(const Offset(165, 460), 1);
       camera.endGesture(Offset.zero);
       expect(camera.centeredWorld, isNull);
       expect(camera.entryWorld, 'world-2');
+      expect(camera.selectedWorld, isNull);
       camera.focusWorld('world-2', animate: false);
       expect(camera.centeredWorld, 'world-2');
       camera.pan(const Offset(0, 30));
@@ -87,6 +89,14 @@ void main() {
         'world-3',
         reason: 'Reselecting the centered card must not hide its entry',
       );
+      expect(camera.selectedWorld, 'world-3');
+      final center = camera.center;
+      camera.clearSelection();
+      expect(camera.selectedWorld, isNull);
+      expect(camera.entryWorld, 'world-3');
+      expect(camera.center, center);
+      camera.discover({'world-1', 'world-2', 'world-3'});
+      expect(camera.selectedWorld, isNull);
     },
   );
 
@@ -153,6 +163,7 @@ void main() {
     a.endGesture(Offset.zero);
     expect(a.center, initial);
     expect(a.entryWorld, 'world-2');
+    expect(a.selectedWorld, 'world-2');
     for (final camera in [a, b]) {
       camera.beginGesture(const Offset(200, 200));
       camera.updateGesture(const Offset(175, 175), 1);

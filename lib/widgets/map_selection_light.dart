@@ -6,12 +6,14 @@ import '../playables/playables_runtime.dart';
 
 import '../data/level_node.dart';
 import 'map_level_button.dart';
+import 'selection_light_art.dart';
 
 /// A viewport-sized light layer; only its canvas repaints on animation frames.
 class MapSelectionLight extends StatefulWidget {
   const MapSelectionLight({
     super.key,
     required this.level,
+    required this.child,
     this.enabled = true,
     this.scoreLevels = const <int>{},
     required this.worldSize,
@@ -22,6 +24,7 @@ class MapSelectionLight extends StatefulWidget {
   });
 
   final int level;
+  final Widget child;
   final bool enabled;
   final Set<int> scoreLevels;
   final Size worldSize;
@@ -38,7 +41,7 @@ class _MapSelectionLightState extends State<MapSelectionLight>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _shimmer = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 4800),
+    duration: const Duration(seconds: 12),
   );
   late final AnimationController _travel = AnimationController(
     vsync: this,
@@ -49,6 +52,7 @@ class _MapSelectionLightState extends State<MapSelectionLight>
   Map<int, double> _fadingLights = {};
   bool _reduceMotion = false;
   bool _foreground = true;
+  bool _ticking = true;
 
   Offset _node(int level) {
     final node = widget.nodes[level - 1];
@@ -81,12 +85,15 @@ class _MapSelectionLightState extends State<MapSelectionLight>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    _reduceMotion =
+        MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context);
+    _ticking = TickerMode.valuesOf(context).enabled;
     _syncMotion();
   }
 
   void _syncMotion() {
-    if (_reduceMotion || !_foreground || !widget.enabled) {
+    if (_reduceMotion || !_foreground || !_ticking || !widget.enabled) {
       _shimmer.stop();
       _travel.stop();
       if (_reduceMotion || !widget.enabled) _travel.value = 1;
@@ -142,11 +149,14 @@ class _MapSelectionLightState extends State<MapSelectionLight>
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) => IgnorePointer(
+  Widget _lightLayer({required bool rays}) => IgnorePointer(
     child: RepaintBoundary(
       child: CustomPaint(
+        key: ValueKey(
+          rays ? 'map-level-selection-rays' : 'map-selection-trail',
+        ),
         painter: _LightPainter(
+          rays: rays,
           repaint: Listenable.merge([_shimmer, _travel, widget.scroll]),
           phase: () => _reduceMotion ? 0.25 : _shimmer.value,
           progress: () => _travel.value,
@@ -162,6 +172,12 @@ class _MapSelectionLightState extends State<MapSelectionLight>
       ),
     ),
   );
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [_lightLayer(rays: true), widget.child, _lightLayer(rays: false)],
+  );
 }
 
 Offset _arc(Offset from, Offset to, double t, Size world) {
@@ -176,6 +192,7 @@ Offset _arc(Offset from, Offset to, double t, Size world) {
 class _LightPainter extends CustomPainter {
   _LightPainter({
     required Listenable repaint,
+    required this.rays,
     required this.phase,
     required this.progress,
     required this.intensities,
@@ -188,6 +205,7 @@ class _LightPainter extends CustomPainter {
     required this.scroll,
   }) : super(repaint: repaint);
 
+  final bool rays;
   final double Function() phase;
   final double Function() progress;
   final Map<int, double> Function() intensities;
@@ -257,6 +275,23 @@ class _LightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.clipRect(Offset.zero & size);
+    if (rays) {
+      final radius = nodeSize * 1.4;
+      final viewport = (Offset.zero & size).inflate(radius);
+      for (final light in intensities().entries) {
+        final node = nodes[light.key - 1];
+        final center = _screen(Offset(node.x, node.y), size);
+        if (!viewport.contains(center)) continue;
+        SelectionLightArt.paint(
+          canvas,
+          center: center,
+          radius: radius,
+          phase: phase() * math.pi * 2,
+          opacity: light.value,
+        );
+      }
+      return;
+    }
     final scoreCutouts = Path()
       ..fillType = PathFillType.evenOdd
       ..addRect(Offset.zero & size);
@@ -273,45 +308,9 @@ class _LightPainter extends CustomPainter {
       }
     }
     canvas.clipPath(scoreCutouts);
-    final double p = phase() * math.pi * 2;
-    final double radius = nodeSize * 0.54;
-    for (final light in intensities().entries) {
-      if (light.value <= 0.005) continue;
-      final node = nodes[light.key - 1];
-      final center = _screen(Offset(node.x, node.y), size);
-      if (!(Offset.zero & size).inflate(100).contains(center)) continue;
-      final double energy = light.value * (0.83 + math.sin(p) * 0.17);
-      final double haloRadius = radius * 1.7;
-      canvas.drawCircle(
-        center,
-        haloRadius,
-        Paint()
-          ..blendMode = BlendMode.plus
-          ..shader = RadialGradient(
-            colors: [
-              Colors.transparent,
-              Colors.transparent,
-              _gold.withValues(alpha: energy * 0.14),
-              _gold.withValues(alpha: energy * 0.035),
-              Colors.transparent,
-            ],
-            stops: const [0, 0.54, 0.68, 0.82, 1],
-          ).createShader(Rect.fromCircle(center: center, radius: haloRadius)),
-      );
-      for (int i = 0; i < 3; i++) {
-        final angle = -2.2 + i * 2.1 + math.sin(p + i) * 0.12;
-        final centerOfFlare =
-            center + Offset(math.cos(angle), math.sin(angle)) * radius;
-        final strength =
-            energy *
-            .12 *
-            (0.52 + 0.48 * math.pow((math.sin(p + i * 2.3) + 1) / 2, 3));
-        _flare(canvas, centerOfFlare, strength, -0.3);
-      }
-    }
 
     final double t = progress();
-    if (t <= 0 || t >= 1) return;
+    if (t <= 0 || t >= 1 || position(0) == position(1)) return;
     final double strength = math.sin(math.pi * t).clamp(0, 1);
     // A short luminous tail follows the same arc as the white-hot head.
     for (int i = 20; i > 0; i--) {

@@ -84,7 +84,6 @@ class _SunDokuAppState extends State<SunDokuApp> {
   bool _openingPlay = false;
   bool _openingQuickPlay = false;
   bool _switchingWorld = false;
-  bool? _departingHomeHasStarted;
   bool _welcomeChecked = false;
 
   bool get _hasStarted {
@@ -94,9 +93,6 @@ class _SunDokuAppState extends State<SunDokuApp> {
         _repository.state.sessions.isNotEmpty ||
         _levelOneComplete;
   }
-
-  LevelProgress get _adventureProgress =>
-      _progressFor(_repository.lastAdventureWorld);
 
   LevelProgress _progressFor(String worldId) => switch (worldId) {
     'world-2' => _forestProgress,
@@ -234,14 +230,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
 
   Future<void> _enterSelectedWorld(BuildContext context, String worldId) async {
     if (_openingPlay || !_worldNavigation.isUnlocked(worldId)) return;
-    _departingHomeHasStarted = _hasStarted;
     _openingPlay = true;
     try {
       await _worldNavigation.enterWorld(worldId);
-      final saved =
-          _repository.state.modules[FirstExperienceController.moduleKey];
-      final firstVisit =
-          worldId == 'world-1' && (saved is! Map || saved.isEmpty);
       if (!context.mounted) return;
       final navigator = Navigator.of(context);
       final route = _mapRoute(
@@ -250,27 +241,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
         worldId: worldId,
       );
       unawaited(navigator.push(route));
-      final arrived = await route.entered;
-      if (!arrived || !context.mounted || !route.isCurrent) return;
-      if (firstVisit) {
-        // Give the valley its own arrival before the lesson covers the map.
-        await Future<void>.delayed(const Duration(milliseconds: 650));
-        if (!context.mounted || !route.isCurrent) return;
-        final latest =
-            _repository.state.modules[FirstExperienceController.moduleKey];
-        if (latest is Map && latest.isNotEmpty) return;
-        await _repository.saveModule(FirstExperienceController.moduleKey, {
-          'homeIntroductionShown': true,
-        });
-        if (!context.mounted || !route.isCurrent) return;
-        final tutorial = WorldJourneyRoute(
-          settings: const RouteSettings(name: AppRoutes.firstExperience),
-          reduceMotion: MediaQuery.disableAnimationsOf(context),
-          builder: (_) => FirstExperienceScreen(repository: _repository),
-        );
-        unawaited(navigator.push(tutorial));
-        await tutorial.entered;
-      }
+      await route.entered;
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -281,9 +252,6 @@ class _SunDokuAppState extends State<SunDokuApp> {
       }
     } finally {
       _openingPlay = false;
-      if (mounted) {
-        setState(() => _departingHomeHasStarted = null);
-      }
     }
   }
 
@@ -328,11 +296,6 @@ class _SunDokuAppState extends State<SunDokuApp> {
           : worldId == 'world-2'
           ? () => _switchWorld(context, 'world-3')
           : null,
-      onReady: worldId == 'world-2'
-          ? () => _forestReady(context)
-          : worldId == 'world-3'
-          ? () => _riverReady(context)
-          : null,
       onReturn: () => showNotesUnlock(context, _repository),
       onViewTutorial: () => unawaited(_agenda(context)),
       onOpenIntroduction: worldId == 'world-1'
@@ -360,7 +323,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
             icon: Icons.edit_note,
             onPressed: () async {
               await _repository.resetDebugNotesTutorial();
-              if (context.mounted) await _forestReady(context);
+              if (context.mounted) await _openNotesLesson(context);
             },
           ),
       ],
@@ -375,7 +338,11 @@ class _SunDokuAppState extends State<SunDokuApp> {
     bool replace = false,
   }) async {
     if (worldId == 'world-2' && !_repository.notesTutorialCompleted) {
-      await _forestReady(context);
+      await _openNotesLesson(context);
+      return;
+    }
+    if (worldId == 'world-3' && _repository.needsChallengeTutorial(number)) {
+      await _openChallengeLesson(context, number);
       return;
     }
     final session = await _repository.startGeneratedLevel(
@@ -401,7 +368,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
     }
   }
 
-  Future<void> _forestReady(BuildContext context) async {
+  Future<void> _openNotesLesson(BuildContext context) async {
     if (!_repository.forestUnlocked || _openingForestLesson) return;
     await _repository.visitWorld('world-2');
     if (!context.mounted) return;
@@ -441,8 +408,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
   }
 
   bool _openingRiverLesson = false;
-  Future<void> _riverReady(BuildContext context) async {
-    final level = _riverProgress.latestUnlocked;
+  Future<void> _openChallengeLesson(BuildContext context, int level) async {
     if (_openingRiverLesson || !_repository.needsChallengeTutorial(level)) {
       return;
     }
@@ -658,13 +624,9 @@ class _SunDokuAppState extends State<SunDokuApp> {
                   unawaited(_welcome(homeContext));
                 },
                 onResetAll: _repository.resetDebugSave,
-                hasStarted: _departingHomeHasStarted ?? _hasStarted,
                 quickPlayUnlocked: _repository.quickPlayUnlocked,
                 quickPlayIsNew: _repository.quickPlayIsNew,
                 celebrateQuickPlay: _repository.shouldCelebrateQuickPlay,
-                worldId: _repository.lastAdventureWorld,
-                availableLevel: _adventureProgress.latestUnlocked,
-                unlockedLevels: _adventureProgress.unlockedCount,
                 playerName: _repository.state.player.nameChosen
                     ? _repository.state.player.name
                     : 'Jugador',

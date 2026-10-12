@@ -83,7 +83,7 @@ void main() {
   );
 
   testWidgets(
-    'dismissed welcome stays dismissed after restart and status follows Play',
+    'dismissed welcome stays dismissed and home has no level summary after playing',
     (tester) async {
       final store = MemorySaveStore();
       final repository = await GameRepository.open(store);
@@ -107,7 +107,7 @@ void main() {
       navigator.popUntil((route) => route.isFirst);
       await tester.pumpAndSettle();
       expect(find.byType(ProfileScreen), findsNothing);
-      expect(find.byKey(const ValueKey('home-game-status')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-game-status')), findsNothing);
     },
   );
 

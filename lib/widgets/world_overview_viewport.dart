@@ -27,6 +27,7 @@ class WorldOverviewViewport extends StatelessWidget {
     },
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTap: camera.clearSelection,
       onScaleStart: (details) => camera.beginGesture(details.localFocalPoint),
       onScaleUpdate: (details) =>
           camera.updateGesture(details.localFocalPoint, details.scale),

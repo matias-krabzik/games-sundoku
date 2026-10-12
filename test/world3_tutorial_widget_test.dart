@@ -309,7 +309,7 @@ void main() {
     },
   );
   testWidgets(
-    'authorized deep link opens one introduction; locked link cannot unlock world',
+    'authorized deep link opens the map and waits for level one; locked link cannot unlock world',
     (tester) async {
       scene.configure(tester);
       final repo = await challengeRepository(MemorySaveStore());
@@ -320,6 +320,12 @@ void main() {
       final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
       nav.pushNamed(AppRoutes.challengeIntroduction);
       await frames(tester, 3000);
+      expect(find.byType(MapScreen), findsOneWidget);
+      expect(find.byType(ChallengeTutorialScreen), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('map-level-1')));
+      await frames(tester, 1000);
+      await tester.tap(find.byKey(const ValueKey('level-summary-play')));
+      await frames(tester, 1000);
       expect(find.byType(ChallengeTutorialScreen), findsOneWidget);
       expect(repo.state.sessions, isEmpty);
       await tester.tap(find.byKey(const ValueKey('challenge-lesson-skip')));
@@ -450,7 +456,7 @@ void main() {
   );
   for (final entry in ['home', 'summit']) {
     testWidgets(
-      '$entry enters once; notebook replay is isolated and fits small landscape',
+      '$entry waits for level one to teach challenges; notebook replay remains isolated',
       (tester) async {
         scene.configure(tester);
         final repo = await challengeRepository(MemorySaveStore());
@@ -476,6 +482,15 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('map-world-gate')));
           await frames(tester, 4000);
         }
+        expect(find.byType(MapScreen), findsOneWidget);
+        expect(find.byType(ChallengeTutorialScreen), findsNothing);
+        expect(repo.challengeTutorialCompleted, isFalse);
+        await tester.tap(find.byKey(const ValueKey('map-level-1')));
+        await frames(tester, 1000);
+        expect(find.byKey(const ValueKey('level-summary')), findsOneWidget);
+        expect(find.byType(ChallengeTutorialScreen), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('level-summary-play')));
+        await frames(tester, 1000);
         expect(find.byType(ChallengeTutorialScreen), findsOneWidget);
         expect(repo.state.sessions, isEmpty);
         await tester.tap(find.byKey(const ValueKey('challenge-lesson-skip')));

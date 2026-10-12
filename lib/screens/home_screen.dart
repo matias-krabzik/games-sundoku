@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../playables/playables_runtime.dart';
 
 import '../routes.dart';
-import '../widgets/adventure_progress_card.dart';
 import '../widgets/game_feedback_scope.dart';
 import '../widgets/home_art.dart';
 import '../widgets/illustrated_action_button.dart';
@@ -17,18 +16,14 @@ import '../widgets/settings_art.dart';
 import '../widgets/ui_surface_art.dart';
 import '../widgets/developer_floating_menu.dart';
 
-/// Sunny title screen with Doku, illustrated controls, and live game progress.
+/// Sunny title screen with Doku and illustrated play controls.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
-    this.availableLevel = 1,
-    this.worldId = 'world-1',
-    this.unlockedLevels = 1,
     this.playerName = 'Jugador',
     this.onPlay,
     this.onQuickPlay,
     this.onReady,
-    this.hasStarted = false,
     this.quickPlayUnlocked = false,
     this.quickPlayIsNew = false,
     this.celebrateQuickPlay = false,
@@ -37,14 +32,10 @@ class HomeScreen extends StatefulWidget {
     this.onResetAll,
   });
 
-  final int availableLevel;
-  final String worldId;
-  final int unlockedLevels;
   final String playerName;
   final VoidCallback? onPlay;
   final VoidCallback? onQuickPlay;
   final ValueChanged<BuildContext>? onReady;
-  final bool hasStarted;
   final bool quickPlayUnlocked;
   final bool quickPlayIsNew;
   final bool celebrateQuickPlay;
@@ -131,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 minimumHeight:
                                     landscape || !widget.quickPlayUnlocked
                                     ? 0
-                                    : (widget.quickPlayIsNew ? 340 : 300) +
+                                    : (widget.quickPlayIsNew ? 240 : 200) +
                                           MediaQuery.textScalerOf(
                                             context,
                                           ).scale(
@@ -175,14 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               child: Center(
                                                 child: SingleChildScrollView(
                                                   child: _HomeActions(
-                                                    worldId: widget.worldId,
                                                     onQuickPlay:
                                                         widget.onQuickPlay,
                                                     onPlay: widget.onPlay,
-                                                    availableLevel:
-                                                        widget.availableLevel,
-                                                    unlockedLevels:
-                                                        widget.unlockedLevels,
                                                     compact: true,
                                                     quickPlayIsNew:
                                                         widget.quickPlayIsNew,
@@ -190,8 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         .celebrateQuickPlay,
                                                     onQuickPlayCelebrated: widget
                                                         .onQuickPlayCelebrated,
-                                                    hasStarted:
-                                                        widget.hasStarted,
                                                     quickPlayUnlocked: widget
                                                         .quickPlayUnlocked,
                                                   ),
@@ -241,18 +225,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const Expanded(child: _Doku()),
                                       const SizedBox(height: 8),
                                       _HomeActions(
-                                        worldId: widget.worldId,
                                         onQuickPlay: widget.onQuickPlay,
                                         onPlay: widget.onPlay,
-                                        availableLevel: widget.availableLevel,
-                                        unlockedLevels: widget.unlockedLevels,
                                         compact: height < 650,
                                         quickPlayIsNew: widget.quickPlayIsNew,
                                         celebrateQuickPlay:
                                             widget.celebrateQuickPlay,
                                         onQuickPlayCelebrated:
                                             widget.onQuickPlayCelebrated,
-                                        hasStarted: widget.hasStarted,
                                         quickPlayUnlocked:
                                             widget.quickPlayUnlocked,
                                       ),
@@ -391,28 +371,20 @@ class _HomeHeader extends StatelessWidget {
 
 class _HomeActions extends StatelessWidget {
   const _HomeActions({
-    required this.availableLevel,
-    required this.worldId,
-    required this.unlockedLevels,
     required this.compact,
     required this.quickPlayIsNew,
     required this.celebrateQuickPlay,
     this.onQuickPlayCelebrated,
-    required this.hasStarted,
     required this.quickPlayUnlocked,
     this.onPlay,
     this.onQuickPlay,
   });
   final VoidCallback? onPlay;
   final VoidCallback? onQuickPlay;
-  final int availableLevel;
-  final String worldId;
-  final int unlockedLevels;
   final bool compact;
   final bool quickPlayIsNew;
   final bool celebrateQuickPlay;
   final VoidCallback? onQuickPlayCelebrated;
-  final bool hasStarted;
   final bool quickPlayUnlocked;
 
   @override
@@ -431,18 +403,6 @@ class _HomeActions extends StatelessWidget {
           SizedBox(height: compact ? 12 : 16),
         ],
         _adventureButton(context),
-        if (hasStarted) ...[
-          SizedBox(height: compact ? 9 : 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
-            child: AdventureProgressCard(
-              key: const ValueKey('home-game-status'),
-              level: availableLevel,
-              worldId: worldId,
-              unlockedLevels: unlockedLevels,
-            ),
-          ),
-        ],
       ],
     ),
   );

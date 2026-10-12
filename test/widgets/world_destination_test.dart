@@ -54,6 +54,79 @@ void main() {
   );
 
   testWidgets(
+    'destination pieces sway independently and stop with reduced motion',
+    (tester) async {
+      Future<void> show({bool reduced = false, bool ticking = true}) =>
+          tester.pumpWidget(
+            MaterialApp(
+              home: MediaQuery(
+                data: MediaQueryData(disableAnimations: reduced),
+                child: TickerMode(
+                  enabled: ticking,
+                  child: Center(
+                    child: SizedBox(
+                      width: 350,
+                      height: 350 * WorldDestinationGeometry.heightFactor,
+                      child: WorldDestination(
+                        world: adventureWorld('world-2'),
+                        unlocked: true,
+                        highlighted: true,
+                        completedLevels: 2,
+                        stars: 7,
+                        onPressed: () async {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+      Matrix4 transform(String part) => tester
+          .widget<Transform>(find.byKey(ValueKey('world-$part-motion-world-2')))
+          .transform
+          .clone();
+      await show();
+      final initial = {
+        for (final part in ['totem', 'levels', 'stars', 'ribbon'])
+          part: transform(part),
+      };
+      await tester.pump(const Duration(milliseconds: 1500));
+      for (final part in initial.keys) {
+        expect(transform(part), isNot(initial[part]), reason: '$part moves');
+      }
+      final levels =
+          transform('levels').entry(0, 3) - initial['levels']!.entry(0, 3);
+      final stars =
+          transform('stars').entry(0, 3) - initial['stars']!.entry(0, 3);
+      expect(
+        levels * stars,
+        lessThan(0),
+        reason: 'The plates swing independently',
+      );
+      expect(transform('ribbon').entry(1, 0), isNot(0));
+
+      await show(ticking: false);
+      final paused = {for (final part in initial.keys) part: transform(part)};
+      await tester.pump(const Duration(seconds: 3));
+      for (final part in initial.keys) {
+        expect(transform(part), paused[part], reason: '$part pauses off-route');
+      }
+      await show(reduced: true);
+      for (final part in initial.keys) {
+        expect(
+          transform(part),
+          Matrix4.identity(),
+          reason: '$part respects reduced motion',
+        );
+      }
+      await tester.pump(const Duration(seconds: 3));
+      expect(transform('ribbon'), Matrix4.identity());
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'destination keeps live progress with one accessible action for all artwork',
     (tester) async {
       final semantics = tester.ensureSemantics();

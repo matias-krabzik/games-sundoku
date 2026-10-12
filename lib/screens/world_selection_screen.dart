@@ -9,6 +9,7 @@ import '../models/world_overview_camera.dart';
 import '../playables/playables_runtime.dart';
 import '../widgets/world_destination_arrival.dart';
 import '../widgets/world_destination_action.dart';
+import '../widgets/world_frontier_notice.dart';
 import '../widgets/world_overview_viewport.dart';
 
 import '../data/level_catalog.dart';
@@ -55,11 +56,25 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
   bool _visible = false;
   bool _rememberScheduled = false;
   bool _remembering = false;
+  final Map<String, int> _focusPulses = {};
 
   Set<String> get _unlocked => {
     for (final world in widget.navigation.worlds)
       if (widget.navigation.isUnlocked(world.id)) world.id,
   };
+
+  int _completedLevels(AdventureWorld world) => world.nodes
+      .where(
+        (node) =>
+            (widget
+                    .repository
+                    .state
+                    .progress[mapLevelId(node.level, worldId: world.id)]
+                    ?.bestLights ??
+                0) >=
+            3,
+      )
+      .length;
 
   @override
   void initState() {
@@ -197,6 +212,16 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
   bool _opening = false;
   bool _completing = false;
 
+  Future<void> _focusWorld(String worldId) async {
+    if (_opening || _completing || !widget.navigation.isUnlocked(worldId)) {
+      return;
+    }
+    setState(() {
+      _focusPulses[worldId] = (_focusPulses[worldId] ?? 0) + 1;
+      _camera.focusWorld(worldId);
+    });
+  }
+
   Future<void> _completeNextWorld() async {
     if (_completing || _opening || _camera.discovery.values.any((p) => p < 1)) {
       return;
@@ -260,9 +285,9 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
         final actionHeight = short
             ? 54.0
             : compact
-            ? 70.0
-            : 78.0;
-        final actionGap = short ? 8.0 : 12.0;
+            ? 64.0
+            : 72.0;
+        const actionGap = 4.0;
         // Each target ends at the middle of the visible gap, so a near miss
         // can select or enter a destination without triggering the other.
         final destinationHitPadding = EdgeInsets.fromLTRB(
@@ -299,6 +324,20 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
             final image = _camera.image;
             final worlds = widget.navigation.worlds;
             final centered = _camera.entryWorld;
+            final lockedIndex = worlds.indexWhere(
+              (world) => !widget.navigation.isUnlocked(world.id),
+            );
+            final previousWorld = lockedIndex > 0
+                ? worlds[lockedIndex - 1]
+                : null;
+            final frontier = lockedIndex > 0
+                ? overview.frontiers[worlds[lockedIndex].id]
+                : null;
+            final frontierPoint = frontier == null
+                ? null
+                : landscape
+                ? Offset(image.left + frontier * image.width, usable.center.dy)
+                : Offset(usable.center.dx, image.top + frontier * image.height);
             final points = [
               for (final anchor in overview.destinations)
                 overview.project(anchor, image),
@@ -354,22 +393,13 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                                       hitPadding: destinationHitPadding,
                                       unlocked: true,
                                       highlighted:
-                                          _camera.focusedWorld == worlds[i].id,
-                                      completedLevels: worlds[i].nodes
-                                          .where(
-                                            (node) =>
-                                                (widget
-                                                        .repository
-                                                        .state
-                                                        .progress[mapLevelId(
-                                                          node.level,
-                                                          worldId: worlds[i].id,
-                                                        )]
-                                                        ?.bestLights ??
-                                                    0) >=
-                                                3,
-                                          )
-                                          .length,
+                                          _camera.selectedWorld == worlds[i].id,
+                                      centered:
+                                          _camera.centeredWorld == worlds[i].id,
+                                      pulse: _focusPulses[worlds[i].id] ?? 0,
+                                      completedLevels: _completedLevels(
+                                        worlds[i],
+                                      ),
                                       stars: worlds[i].nodes.fold(
                                         0,
                                         (total, node) =>
@@ -386,9 +416,7 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                                       ),
                                       onPressed: _opening || _completing
                                           ? null
-                                          : () async => _camera.focusWorld(
-                                              worlds[i].id,
-                                            ),
+                                          : () => _focusWorld(worlds[i].id),
                                     ),
                                   ),
                                 ),
@@ -420,6 +448,29 @@ class _WorldSelectionScreenState extends State<WorldSelectionScreen>
                                     : () => _enter(centered),
                               ),
                             ),
+                          Positioned.fill(
+                            child: WorldFrontierNotice(
+                              key: const ValueKey('world-frontier-notice'),
+                              world: previousWorld,
+                              completedLevels: previousWorld == null
+                                  ? 0
+                                  : _completedLevels(previousWorld),
+                              frontier: frontierPoint,
+                              usable: usable,
+                              landscape: landscape,
+                              onPressed:
+                                  previousWorld == null ||
+                                      _opening ||
+                                      _completing
+                                  ? null
+                                  : () => _focusWorld(previousWorld.id),
+                              enabled:
+                                  _camera.centeredWorld == null &&
+                                  !_camera.discovery.values.any(
+                                    (value) => value < 1,
+                                  ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -8,7 +8,6 @@ import 'package:sundoku/app.dart';
 import 'package:sundoku/data/level_progress.dart';
 import 'package:sundoku/data/services/game_feedback.dart';
 import 'package:sundoku/screens/home_screen.dart';
-import 'package:sundoku/screens/first_experience_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
 import 'package:sundoku/widgets/juicy_press.dart';
 import 'package:sundoku/widgets/map_selection_light.dart';
@@ -38,9 +37,6 @@ Future<void> _openMap(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 200));
   await _finishMapTransition(tester);
   await enterOverviewWorld(tester, 'world-1');
-  await _finishMapTransition(tester);
-  // A fresh installation now opens onboarding above the map.
-  Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
   await _finishMapTransition(tester);
 }
 
@@ -86,7 +82,7 @@ void main() {
           await tester.pumpWidget(
             MaterialApp(
               key: ValueKey('$platform-$size'),
-              home: const HomeScreen(hasStarted: true, quickPlayUnlocked: true),
+              home: const HomeScreen(quickPlayUnlocked: true),
             ),
           );
           await tester.pump();
@@ -120,9 +116,7 @@ void main() {
     expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: HomeScreen(hasStarted: true, quickPlayUnlocked: true),
-      ),
+      const MaterialApp(home: HomeScreen(quickPlayUnlocked: true)),
     );
     final quickPlay = find.byKey(const ValueKey('home-quick-play'));
     expect(quickPlay.hitTestable(), findsOneWidget);
@@ -139,9 +133,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
-      const MaterialApp(
-        home: HomeScreen(hasStarted: true, quickPlayUnlocked: true),
-      ),
+      const MaterialApp(home: HomeScreen(quickPlayUnlocked: true)),
     );
     await tester.pump();
 

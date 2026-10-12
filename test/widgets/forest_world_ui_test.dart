@@ -242,7 +242,7 @@ void main() {
   );
 
   testWidgets(
-    'sun opens world 2 lesson and Practicar replaces it with the first forest game',
+    'sun opens the forest map; starting level one teaches notes before playing',
     (tester) async {
       final repo = GameRepository.memory();
       await repo.prepareDebugForest();
@@ -269,8 +269,18 @@ void main() {
       await _frames(tester);
       await tester.tap(find.byKey(const ValueKey('map-world-gate')));
       await _frames(tester, 30);
-      expect(find.byType(NotesTutorialScreen), findsOneWidget);
+      expect(find.byType(MapScreen), findsOneWidget);
+      expect(find.byType(NotesTutorialScreen), findsNothing);
       expect(repo.lastAdventureWorld, 'world-2');
+      expect(repo.notesTutorialCompleted, isFalse);
+      expect(repo.state.modules['tutorials/notes/v1'], isNull);
+      await tester.tap(find.byKey(const ValueKey('map-level-1')));
+      await _frames(tester);
+      expect(find.byKey(const ValueKey('level-summary')), findsOneWidget);
+      expect(find.byType(NotesTutorialScreen), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('level-summary-play')));
+      await _frames(tester);
+      expect(find.byType(NotesTutorialScreen), findsOneWidget);
       Future<void> next() async {
         final finder = find.byKey(const ValueKey('notes-lesson-next'));
         expect(

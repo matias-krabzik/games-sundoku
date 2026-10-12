@@ -169,7 +169,7 @@ void main() {
     expect(find.byType(FirstExperienceScreen), findsNothing);
   });
 
-  testWidgets('first adventure shows the valley before starting its tutorial', (
+  testWidgets('valley waits until level one starts its tutorial', (
     tester,
   ) async {
     _configure(tester);
@@ -219,15 +219,22 @@ void main() {
       expect(find.byType(FirstExperienceScreen), findsNothing);
       expect(mapRoute.isCurrent, isTrue);
       expect(status, findsNothing);
-      expect(
-        tester
-            .widget<HomeScreen>(find.byType(HomeScreen, skipOffstage: false))
-            .hasStarted,
-        isFalse,
-      );
     }
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await _settle(tester);
+    expect(find.byType(FirstExperienceScreen), findsNothing);
+    expect(mapRoute.isCurrent, isTrue);
+    expect(
+      repository.state.modules[FirstExperienceController.moduleKey],
+      isNull,
+    );
+    await _tap(tester, find.byKey(const ValueKey('level-1-label')));
+    expect(find.byKey(const ValueKey('level-summary')), findsOneWidget);
+    expect(find.byType(FirstExperienceScreen), findsNothing);
+    await _tap(tester, find.byKey(const ValueKey('level-summary-ok')));
+    expect(find.byType(FirstExperienceScreen), findsNothing);
+    await _tap(tester, find.byKey(const ValueKey('level-1-label')));
+    await _tap(tester, find.byKey(const ValueKey('level-summary-play')));
     expect(find.byType(FirstExperienceScreen), findsOneWidget);
     expect(mapRoute.isCurrent, isFalse);
     await tester.pump(const Duration(seconds: 2));

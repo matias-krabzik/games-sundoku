@@ -217,6 +217,7 @@ void main() {
               expect(actionRect.left, greaterThanOrEqualTo(0));
               expect(actionRect.right, lessThanOrEqualTo(size.width));
               expect(actionRect.top, greaterThan(card.bottom));
+              expect(actionRect.top - card.bottom, lessThanOrEqualTo(14));
               expect(actionRect.bottom, lessThanOrEqualTo(size.height - 20));
 
               expect(
@@ -704,7 +705,7 @@ void main() {
   );
 
   testWidgets(
-    'home opens worlds first; choosing world one preserves its first tutorial and map',
+    'home opens worlds first; choosing world one waits for level one to start the tutorial',
     (tester) async {
       scene.configure(tester);
       final repo = GameRepository.memory();
@@ -723,6 +724,12 @@ void main() {
         tester,
         find.byKey(const ValueKey('world-enter-world-1')),
       );
+      expect(find.byType(MapScreen), findsOneWidget);
+      expect(find.byType(FirstExperienceScreen), findsNothing);
+      expect(repo.state.modules[FirstExperienceController.moduleKey], isNull);
+      await scene.tap(tester, find.byKey(const ValueKey('level-1-label')));
+      expect(find.byType(FirstExperienceScreen), findsNothing);
+      await scene.tap(tester, find.byKey(const ValueKey('level-summary-play')));
       expect(find.byType(FirstExperienceScreen), findsOneWidget);
       Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
       await scene.settle(tester);

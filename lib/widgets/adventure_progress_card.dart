@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/world_catalog.dart';
 import 'home_art.dart';
 
-/// The shared floating progress panel used on the home and adventure map.
+/// Floating progress panel for the adventure map.
 class AdventureProgressCard extends StatelessWidget {
   const AdventureProgressCard({
     super.key,

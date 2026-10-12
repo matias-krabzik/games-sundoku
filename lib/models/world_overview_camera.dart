@@ -21,11 +21,13 @@ class WorldOverviewCamera extends ChangeNotifier {
     required String initialWorld,
   }) : _unlocked = {...revealedWorlds},
        _progress = {for (final id in revealedWorlds) id: 1},
-       _focusedWorld = initialWorld;
+       _focusedWorld = initialWorld,
+       _selectedWorld = initialWorld;
 
   Set<String> _unlocked;
   final Map<String, double> _progress;
   String _focusedWorld;
+  String? _selectedWorld;
   String? _pendingFocus;
   Size _viewport = Size.zero;
   Rect _usable = Rect.zero;
@@ -50,6 +52,15 @@ class WorldOverviewCamera extends ChangeNotifier {
   Offset get center => _center;
   double get zoom => _zoom;
   String get focusedWorld => _focusedWorld;
+
+  /// Visual focus is independent of the entry action retained while exploring.
+  String? get selectedWorld => _selectedWorld;
+
+  void clearSelection() {
+    if (_selectedWorld == null) return;
+    _selectedWorld = null;
+    notifyListeners();
+  }
 
   /// Selection survives background taps and free exploration of the map.
   String? get entryWorld => _entryWorld;
@@ -140,11 +151,13 @@ class WorldOverviewCamera extends ChangeNotifier {
     final size = _overview.imageRect(_viewport).size * (zoom ?? _zoom);
     final halfX = _viewport.width / size.width / 2;
     final halfY = _viewport.height / size.height / 2;
-    final frontier = !_unlocked.contains('world-2')
-        ? (_overview.landscape ? .32 : .61)
-        : !_unlocked.contains('world-3')
-        ? (_overview.landscape ? .65 : .30)
-        : (_overview.landscape ? 1.0 : 0.0);
+    var frontier = _overview.landscape ? 1.0 : 0.0;
+    for (final entry in _overview.frontiers.entries) {
+      if (!_unlocked.contains(entry.key)) {
+        frontier = entry.value;
+        break;
+      }
+    }
     return Offset(
       value.dx.clamp(
         halfX,
@@ -207,6 +220,7 @@ class WorldOverviewCamera extends ChangeNotifier {
     _unlocked = {...unlocked};
     _progress.removeWhere((id, _) => !unlocked.contains(id));
     if (!unlocked.contains(_entryWorld)) _entryWorld = null;
+    if (!unlocked.contains(_selectedWorld)) _selectedWorld = null;
     for (final id in newly) {
       _progress[id] = reducedMotion ? 1 : 0;
     }
@@ -226,6 +240,7 @@ class WorldOverviewCamera extends ChangeNotifier {
     }
     if (_focusedWorld != id || _progress[id] != 1) _entryWorld = null;
     _focusedWorld = id;
+    _selectedWorld = id;
     _gesturing = false;
     final targetZoom = math.max(_zoom, _minimumFocusZoom(id));
     final target = _focusCenter(id, zoom: targetZoom);
@@ -300,6 +315,7 @@ class WorldOverviewCamera extends ChangeNotifier {
   void pan(Offset delta) {
     _cancelTravel();
     _velocity = Offset.zero;
+    _selectedWorld = null;
     _pan(delta);
     notifyListeners();
   }
@@ -325,6 +341,7 @@ class WorldOverviewCamera extends ChangeNotifier {
       return;
     }
     _gesturing = true;
+    _selectedWorld = null;
     _cancelTravel();
     _zoom = (_gestureZoom * scale).clamp(minZoom, maxZoom);
     final size = _overview.imageRect(_viewport).size * _zoom;
@@ -358,6 +375,7 @@ class WorldOverviewCamera extends ChangeNotifier {
   /// Wheel scrolling includes a short, bounded tail instead of stopping cold.
   void scroll(Offset delta) {
     if (delta == Offset.zero) return;
+    _selectedWorld = null;
     _cancelTravel();
     _pan(delta * (reducedMotion ? 1 : .85));
     _velocity = reducedMotion

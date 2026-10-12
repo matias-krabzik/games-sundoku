@@ -35,7 +35,6 @@ class MapScreen extends StatefulWidget {
     this.onSelectWorld,
     this.onChooseWorld,
     this.onHome,
-    this.onReady,
     this.onReturn,
     this.developerActions = const [],
   });
@@ -44,7 +43,6 @@ class MapScreen extends StatefulWidget {
   final LevelProgress? progress;
   final VoidCallback? onChooseWorld;
   final VoidCallback? onHome;
-  final Future<void> Function()? onReady;
   final Future<void> Function()? onReturn;
   final bool showDeveloperControls;
   final VoidCallback? onOpenIntroduction;
@@ -73,7 +71,6 @@ class _MapScreenState extends State<MapScreen>
   };
   List<LevelNode> get _nodes => _progress.world.nodes;
   WorldMapDefinition get _definition => _progress.world.map;
-  bool _readyChecked = false;
   bool _replaying = false;
   bool _openingLevel = false;
   bool _checkQueued = false;
@@ -175,22 +172,6 @@ class _MapScreenState extends State<MapScreen>
   }
 
   Future<void> _syncMapEntry() async {
-    if (!_readyChecked && widget.onReady != null) {
-      if (!_routeArrived) return;
-      _readyChecked = true;
-      try {
-        await widget.onReady!();
-      } catch (_) {
-        _readyChecked = false;
-        if (mounted) {
-          showToast(
-            context,
-            'No pudimos abrir este destino. Toca su primer juego para reintentar.',
-          );
-        }
-      }
-      if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
-    }
     await _revealSavedRewards();
     if (!mounted ||
         _awardingLevel != null ||
@@ -635,70 +616,6 @@ class _MapScreenState extends State<MapScreen>
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      SingleChildScrollView(
-                        key: const ValueKey('world-scroll'),
-                        controller: _scroll,
-                        scrollDirection: Axis.horizontal,
-                        physics:
-                            _awardingLevel == null &&
-                                !_focusingGate &&
-                                !_ignitingGate
-                            ? const ClampingScrollPhysics()
-                            : const NeverScrollableScrollPhysics(),
-                        child: SizedBox(
-                          width: _worldWidth,
-                          height: viewport.height,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              if (gate != null)
-                                Positioned(
-                                  left: gateRect.left,
-                                  top: gateRect.top + worldTop,
-                                  width: gateSize,
-                                  height: gateSize,
-                                  child: MapWorldGate(
-                                    key: const ValueKey('map-world-gate'),
-                                    assetPath: gate.asset,
-                                    worldNumber: _progress.world.number,
-                                    unlocked: _worldComplete,
-                                    ignitionPending: _gatePending,
-                                    ignite: _ignitingGate,
-                                    onIgnited: () => unawaited(_gateIgnited()),
-                                    artworkSize: gateArtworkSize,
-                                    onPressed: _awardingLevel == null
-                                        ? widget.onNextWorld
-                                        : null,
-                                  ),
-                                ),
-                              for (final node in _nodes)
-                                Positioned(
-                                  left: node.x * _worldWidth - nodeSize / 2,
-                                  top:
-                                      node.y * worldHeight +
-                                      worldTop -
-                                      nodeSize / 2,
-                                  width: nodeSize,
-                                  height: nodeSize + 22,
-                                  child: MapLevelButton(
-                                    key: ValueKey('map-level-${node.level}'),
-                                    level: node.level,
-                                    textNumber: !_definition.numberAssets
-                                        .containsKey(node.level),
-                                    numberAsset:
-                                        _definition.numberAssets[node.level],
-                                    lights: _lightsFor(node.level),
-                                    unlocked: _unlocked(node.level),
-                                    lockedReason: _lockedReason(node.level),
-                                    active: node.level == _activeLevel,
-                                    onTap: () =>
-                                        _focusLevel(node.level, select: true),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
                       MapSelectionLight(
                         nodes: _nodes,
                         worldTop: worldTop,
@@ -710,6 +627,71 @@ class _MapScreenState extends State<MapScreen>
                         worldSize: Size(_worldWidth, worldHeight),
                         nodeSize: nodeSize,
                         scroll: _scroll,
+                        child: SingleChildScrollView(
+                          key: const ValueKey('world-scroll'),
+                          controller: _scroll,
+                          scrollDirection: Axis.horizontal,
+                          physics:
+                              _awardingLevel == null &&
+                                  !_focusingGate &&
+                                  !_ignitingGate
+                              ? const ClampingScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                          child: SizedBox(
+                            width: _worldWidth,
+                            height: viewport.height,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                if (gate != null)
+                                  Positioned(
+                                    left: gateRect.left,
+                                    top: gateRect.top + worldTop,
+                                    width: gateSize,
+                                    height: gateSize,
+                                    child: MapWorldGate(
+                                      key: const ValueKey('map-world-gate'),
+                                      assetPath: gate.asset,
+                                      worldNumber: _progress.world.number,
+                                      unlocked: _worldComplete,
+                                      ignitionPending: _gatePending,
+                                      ignite: _ignitingGate,
+                                      onIgnited: () =>
+                                          unawaited(_gateIgnited()),
+                                      artworkSize: gateArtworkSize,
+                                      onPressed: _awardingLevel == null
+                                          ? widget.onNextWorld
+                                          : null,
+                                    ),
+                                  ),
+                                for (final node in _nodes)
+                                  Positioned(
+                                    left: node.x * _worldWidth - nodeSize / 2,
+                                    top:
+                                        node.y * worldHeight +
+                                        worldTop -
+                                        nodeSize / 2,
+                                    width: nodeSize,
+                                    height: nodeSize + 22,
+                                    child: MapLevelButton(
+                                      key: ValueKey('map-level-${node.level}'),
+                                      level: node.level,
+                                      textNumber: !_definition.numberAssets
+                                          .containsKey(node.level),
+                                      numberAsset:
+                                          _definition.numberAssets[node.level],
+                                      lights: _lightsFor(node.level),
+                                      unlocked: _unlocked(node.level),
+                                      lockedReason: _lockedReason(node.level),
+                                      active: node.level == _activeLevel,
+                                      onTap: () =>
+                                          _focusLevel(node.level, select: true),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                       if (_awardingLevel != null)
                         LightAwardOverlay(

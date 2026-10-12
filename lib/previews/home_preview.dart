@@ -10,5 +10,5 @@ import '../theme.dart';
 Widget homePreview() => MaterialApp(
   debugShowCheckedModeBanner: false,
   theme: buildSunDokuTheme(),
-  home: const HomeScreen(availableLevel: 4, unlockedLevels: 4),
+  home: const HomeScreen(),
 );

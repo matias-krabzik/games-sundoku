@@ -43,6 +43,7 @@ void main() {
         await tester.pump(const Duration(seconds: 3));
         await scene.settle(tester);
         expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byKey(const ValueKey('home-game-status')), findsNothing);
         expect(find.byKey(const ValueKey('home-quick-play')), findsNothing);
         await scene.tap(tester, find.byKey(const ValueKey('home-play')));
         await enterOverviewWorld(tester, 'world-1');
@@ -217,9 +218,6 @@ void main() {
                   child: child!,
                 ),
                 home: const HomeScreen(
-                  hasStarted: true,
-                  availableLevel: 10,
-                  unlockedLevels: 10,
                   quickPlayUnlocked: true,
                   quickPlayIsNew: true,
                 ),

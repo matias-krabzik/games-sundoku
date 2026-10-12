@@ -14,6 +14,11 @@ class WorldOverview {
       ? const [Offset(.145, .511), Offset(.48, .410), Offset(.794, .264)]
       : const [Offset(.377, .74), Offset(.39, .383), Offset(.79, .163)];
 
+  /// Camera limits and frontier notices share the edge of each fog bank.
+  Map<String, double> get frontiers => landscape
+      ? const {'world-2': .32, 'world-3': .65}
+      : const {'world-2': .61, 'world-3': .30};
+
   /// Fog stays registered to the painted regions when the image is cropped.
   Map<String, Rect> get fogRegions => landscape
       ? const {
