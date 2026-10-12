@@ -129,16 +129,4 @@ const valleyMap = WorldMapDefinition(
     asset: 'assets/images/map/gate-sun.png',
     sourceDiameter: 104,
   ),
-  numberAssets: {
-    1: 'assets/images/level-number-1.png',
-    2: 'assets/images/level-number-2.png',
-    3: 'assets/images/level-number-3.png',
-    4: 'assets/images/level-number-4.png',
-    5: 'assets/images/level-number-5.png',
-    6: 'assets/images/level-number-6.png',
-    7: 'assets/images/level-number-7.png',
-    8: 'assets/images/level-number-8.png',
-    9: 'assets/images/level-number-9.png',
-    10: 'assets/images/level-number-10.png',
-  },
 );

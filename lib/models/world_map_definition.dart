@@ -164,7 +164,6 @@ class WorldMapDefinition {
     this.terrainTilt = Offset.zero,
     this.gate,
     this.ambient,
-    this.numberAssets = const {},
     this.markerSeparation = 1.55,
     this.focusLastWhenCompleted = false,
     this.allowVerticalPan = false,
@@ -178,8 +177,6 @@ class WorldMapDefinition {
   final Offset terrainTilt;
   final MapGateDefinition? gate;
   final MapAmbientDefinition? ambient;
-  // Existing illustrated numbers can be reused; every other number uses Text.
-  final Map<int, String> numberAssets;
   final double markerSeparation;
   final bool focusLastWhenCompleted;
   final bool allowVerticalPan;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/world_catalog.dart';
 import 'home_art.dart';
+import 'ui_surface_art.dart';
 
 /// Floating progress panel for the adventure map.
 class AdventureProgressCard extends StatelessWidget {
@@ -50,7 +51,7 @@ class AdventureProgressCard extends StatelessWidget {
       return Stack(
         fit: StackFit.expand,
         children: [
-          const HomeArt(HomeSurface.status),
+          const UiSurfaceArt(UiSurface.goldCreamPanel),
           Padding(
             padding: EdgeInsets.fromLTRB(
               inset,

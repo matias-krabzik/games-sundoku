@@ -145,14 +145,10 @@ void main() {
         findsNothing,
       );
       expect(find.byKey(const ValueKey('level-1-star-crest')), findsOneWidget);
-      final levelImage = tester.widget<Image>(
+      final levelLabel = tester.widget<Text>(
         find.byKey(const ValueKey('level-1-label')),
       );
-      final resizedNumber = levelImage.image as ResizeImage;
-      expect(
-        (resizedNumber.imageProvider as AssetImage).assetName,
-        'assets/images/level-number-1.png',
-      );
+      expect(levelLabel.data, '1');
     },
   );
 

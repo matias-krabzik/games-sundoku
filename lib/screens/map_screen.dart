@@ -676,10 +676,6 @@ class _MapScreenState extends State<MapScreen>
                                     child: MapLevelButton(
                                       key: ValueKey('map-level-${node.level}'),
                                       level: node.level,
-                                      textNumber: !_definition.numberAssets
-                                          .containsKey(node.level),
-                                      numberAsset:
-                                          _definition.numberAssets[node.level],
                                       lights: _lightsFor(node.level),
                                       unlocked: _unlocked(node.level),
                                       lockedReason: _lockedReason(node.level),

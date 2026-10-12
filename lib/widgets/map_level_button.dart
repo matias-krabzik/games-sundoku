@@ -23,8 +23,6 @@ class MapLevelButton extends StatefulWidget {
   const MapLevelButton({
     super.key,
     required this.level,
-    this.textNumber = false,
-    this.numberAsset,
     required this.active,
     required this.lights,
     required this.unlocked,
@@ -33,8 +31,6 @@ class MapLevelButton extends StatefulWidget {
   });
 
   final int level;
-  final bool textNumber;
-  final String? numberAsset;
   final bool active;
   final int lights;
   final bool unlocked;
@@ -137,30 +133,38 @@ class _MapLevelButtonState extends State<MapLevelButton> {
                         widget.onTap();
                       },
                       child: Center(
-                        child:
-                            widget.textNumber ||
-                                (widget.numberAsset == null &&
-                                    widget.level > 10)
-                            ? Text(
-                                '${widget.level}',
-                                style: homeText(size * .49),
-                                textAlign: TextAlign.center,
-                              )
-                            : Image.asset(
-                                widget.numberAsset ??
-                                    'assets/images/level-number-${widget.level}.png',
-                                key: ValueKey('level-${widget.level}-label'),
-                                width: widget.level == 10
-                                    ? size * .60
-                                    : size * .49,
-                                height: size * .58,
-                                fit: BoxFit.contain,
-                                cacheWidth: 200,
-                                excludeFromSemantics: true,
-                                opacity: AlwaysStoppedAnimation(
-                                  widget.unlocked ? 1 : .58,
+                        child: Transform.translate(
+                          // The ribbon puts the illustrated circle above the
+                          // hit area's center. Also balance Baloo's baseline.
+                          offset: Offset(0, -size * (gold ? .07 : .06)),
+                          child: SizedBox(
+                            width: size * .64,
+                            height: size * .50,
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: ExcludeSemantics(
+                                  child: Text(
+                                    '${widget.level}',
+                                    key: ValueKey(
+                                      'level-${widget.level}-label',
+                                    ),
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    textScaler: TextScaler.noScaling,
+                                    style: homeText(size * .44).copyWith(
+                                      height: 1,
+                                      color: homeNavy.withValues(
+                                        alpha: widget.unlocked ? 1 : .58,
+                                      ),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
