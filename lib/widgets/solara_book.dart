@@ -20,9 +20,13 @@ class SolaraBook extends StatefulWidget {
     super.key,
     required this.onOpenSummary,
     required this.onClose,
+    this.sections = bookSections,
+    this.initialLesson = BookLesson.rules,
   });
-  final Future<void> Function() onOpenSummary;
+  final Future<void> Function(BookLesson lesson) onOpenSummary;
   final VoidCallback onClose;
+  final List<BookSection> sections;
+  final BookLesson initialLesson;
 
   @override
   State<SolaraBook> createState() => _SolaraBookState();
@@ -39,10 +43,11 @@ class _SolaraBookState extends State<SolaraBook> {
   void _paginate(Size size, bool large) {
     final scaler = MediaQuery.textScalerOf(context);
     final direction = Directionality.of(context);
-    final signature = (size, large, scaler, direction);
+    final signature = (size, large, scaler, direction, widget.sections);
     if (_layout == signature) return;
     final anchor = _leaves.isEmpty ? null : _leaves[_page];
     final next = paginateBook(
+      sections: widget.sections,
       width: math.max(1, size.width - 4),
       height: math.max(1, size.height - 2),
       large: large,
@@ -50,6 +55,12 @@ class _SolaraBookState extends State<SolaraBook> {
       direction: direction,
     );
     var target = 0;
+    if (anchor == null) {
+      final first = next.indexWhere(
+        (leaf) => widget.sections[leaf.section].lesson == widget.initialLesson,
+      );
+      if (first >= 0) target = first;
+    }
     if (anchor != null) {
       for (var i = 0; i < next.length; i++) {
         if (next[i].section == anchor.section &&
@@ -86,11 +97,11 @@ class _SolaraBookState extends State<SolaraBook> {
     }
   }
 
-  Future<void> _openSummary() async {
+  Future<void> _openSummary(BookLesson lesson) async {
     if (_opening) return;
     setState(() => _opening = true);
     try {
-      await widget.onOpenSummary();
+      await widget.onOpenSummary(lesson);
     } finally {
       if (mounted) setState(() => _opening = false);
     }
@@ -125,7 +136,12 @@ class _SolaraBookState extends State<SolaraBook> {
                 },
                 itemBuilder: (context, page) => _LeafPage(
                   leaf: _leaves[page],
-                  onOpenSummary: _opening ? null : _openSummary,
+                  section: widget.sections[_leaves[page].section],
+                  onOpenSummary: _opening
+                      ? null
+                      : () => _openSummary(
+                          widget.sections[_leaves[page].section].lesson,
+                        ),
                 ),
               ),
             ),
@@ -272,21 +288,32 @@ class _SolaraBookState extends State<SolaraBook> {
 }
 
 class _LeafPage extends StatelessWidget {
-  const _LeafPage({required this.leaf, required this.onOpenSummary});
+  const _LeafPage({
+    required this.leaf,
+    required this.section,
+    required this.onOpenSummary,
+  });
   final BookLeaf leaf;
+  final BookSection section;
   final Future<void> Function()? onOpenSummary;
 
   List<Widget> _content(Iterable<BookLeafPart> parts) => [
     for (final part in parts) ...[
       if (part.gap > 0) SizedBox(height: part.gap),
       if (part.kind == BookBlockKind.illustration)
-        SizedBox(height: part.height, child: const BookIllustration())
+        SizedBox(
+          height: part.height,
+          child: BookIllustration(lesson: section.lesson),
+        )
       else if (part.kind == BookBlockKind.summary)
         Align(
           alignment: Alignment.center,
           child: SizedBox.square(
             dimension: part.height,
-            child: _SummaryPicture(onPressed: onOpenSummary),
+            child: _SummaryPicture(
+              lesson: section.lesson,
+              onPressed: onOpenSummary,
+            ),
           ),
         )
       else
@@ -318,7 +345,7 @@ class _LeafPage extends StatelessWidget {
         .toList();
     return Semantics(
       key: ValueKey('book-section-${leaf.section + 1}'),
-      label: bookSections[leaf.section].title,
+      label: section.title,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Column(
@@ -340,13 +367,16 @@ class _LeafPage extends StatelessWidget {
 }
 
 class _SummaryPicture extends StatelessWidget {
-  const _SummaryPicture({required this.onPressed});
+  const _SummaryPicture({required this.lesson, required this.onPressed});
+  final BookLesson lesson;
   final Future<void> Function()? onPressed;
 
   @override
   Widget build(BuildContext context) => JuicyPress(
     key: const ValueKey('book-summary'),
-    label: 'Ver el resumen animado de las reglas del sudoku',
+    label: lesson == BookLesson.notes
+        ? 'Ver el resumen animado de las anotaciones'
+        : 'Ver el resumen animado de las reglas del sudoku',
     onPressed: onPressed,
     onFeedback: () => GameFeedbackScope.tap(context),
     builder: (context, _) => Padding(
@@ -377,9 +407,12 @@ class _SummaryPicture extends StatelessWidget {
                         fit: StackFit.expand,
                         alignment: Alignment.center,
                         children: [
-                          const Positioned.fill(
+                          Positioned.fill(
                             child: ClipRect(
-                              child: BookIllustration(softEdges: false),
+                              child: BookIllustration(
+                                lesson: lesson,
+                                softEdges: false,
+                              ),
                             ),
                           ),
                           Center(

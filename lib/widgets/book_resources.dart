@@ -7,6 +7,10 @@ import 'ui_surface_art.dart';
 
 const bookPaperAsset = AssetImage('assets/images/tutorial/paper-grain.jpg');
 const bookLandscapeAsset = AssetImage('assets/images/world-1-horizontal.png');
+const bookNotesLandscapeAsset = AssetImage(
+  'assets/images/tutorial/notes-background.png',
+);
+const bookPencilAsset = AssetImage('assets/images/tutorial/notes-pencil.png');
 
 /// Keeps the book's decoded artwork alive until the owning app is disposed.
 class BookResources {
@@ -23,6 +27,8 @@ class BookResources {
     final providers = <ImageProvider<Object>>[
       bookPaperAsset,
       bookLandscapeAsset,
+      bookNotesLandscapeAsset,
+      bookPencilAsset,
       const AssetImage('assets/images/home/icons.png'),
       // NineSliceArt uses an explicit scale; atlas icons and horizontal
       // surfaces use resolution-aware AssetImage providers.

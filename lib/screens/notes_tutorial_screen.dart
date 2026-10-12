@@ -42,6 +42,12 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
   );
   bool opening = false;
 
+  String _lessonText(int step) =>
+      widget.replay && step == NotesLesson.texts.length - 1
+      ? 'Anota posibilidades, descarta las que no encajan y resuelve. '
+            'Puedes volver al libro y repasar estas ideas cuando quieras.'
+      : NotesLesson.texts[step];
+
   @override
   void dispose() {
     flow.dispose();
@@ -109,7 +115,7 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                   child: Center(
                     child: TutorialLessonCard(
                       key: _storyKey,
-                      message: NotesLesson.texts[step],
+                      message: _lessonText(step),
                       messageKey: 'notes-lesson-$step',
                       controller: _storyController,
                       autoplay: presentation.storyVisible,
@@ -142,8 +148,11 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
     );
     // Reserve one slot for the lesson so changing text never moves the board.
     var height = 0.0;
-    for (final text in NotesLesson.texts) {
-      painter.text = TextSpan(text: text, style: TutorialLessonCard.textStyle);
+    for (var step = 0; step < NotesLesson.texts.length; step++) {
+      painter.text = TextSpan(
+        text: _lessonText(step),
+        style: TutorialLessonCard.textStyle,
+      );
       painter.layout(
         maxWidth: math.max(
           1,
@@ -221,7 +230,7 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                   ),
                   readingPause: tutorialReadingPause(
                     context,
-                    NotesLesson.texts[flow.step].length,
+                    _lessonText(flow.step).length,
                   ),
                   onAdvance:
                       flow.step < NotesLesson.texts.length - 1 &&
@@ -241,7 +250,11 @@ class _NotesTutorialScreenState extends State<NotesTutorialScreen> {
                             index: flow.step,
                             count: NotesLesson.texts.length,
                             child: TutorialLessonTitle(
-                              title: NotesLesson.titles[flow.step],
+                              title:
+                                  widget.replay &&
+                                      flow.step == NotesLesson.titles.length - 1
+                                  ? '¡Ya sabes usar las notas!'
+                                  : NotesLesson.titles[flow.step],
                             ),
                           ),
                         ),

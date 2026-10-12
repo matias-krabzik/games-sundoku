@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'controllers/first_experience_controller.dart';
 import 'data/level_progress.dart';
+import 'data/tutorial_book.dart';
 import 'widgets/book_resources.dart';
 import 'widgets/solara_book.dart';
 import 'screens/notes_tutorial_screen.dart';
@@ -298,7 +299,14 @@ class _SunDokuAppState extends State<SunDokuApp> {
           ? () => _switchWorld(context, 'world-3')
           : null,
       onReturn: () => showNotesUnlock(context, _repository),
-      onViewTutorial: () => unawaited(_openTutorialBook(context)),
+      onViewTutorial: () => unawaited(
+        _openTutorialBook(
+          context,
+          initialLesson: worldId == 'world-2'
+              ? BookLesson.notes
+              : BookLesson.rules,
+        ),
+      ),
       onOpenIntroduction: worldId == 'world-1'
           ? () => Navigator.of(context).pushNamed(AppRoutes.firstExperience)
           : null,
@@ -463,7 +471,10 @@ class _SunDokuAppState extends State<SunDokuApp> {
     }
   }
 
-  Future<void> _openTutorialBook(BuildContext context) async {
+  Future<void> _openTutorialBook(
+    BuildContext context, {
+    BookLesson initialLesson = BookLesson.rules,
+  }) async {
     if (_openingBook) return;
     _openingBook = true;
     final sourceRoute = ModalRoute.of(context);
@@ -478,9 +489,29 @@ class _SunDokuAppState extends State<SunDokuApp> {
         barrierColor: const Color(0x990B1524),
         builder: (bookContext) => SolaraBook(
           key: const ValueKey('tutorial-book'),
+          sections: [
+            ...bookSections,
+            if (_repository.forestUnlocked) ...notesBookSections,
+          ],
+          initialLesson: initialLesson,
           onClose: () => Navigator.of(bookContext).pop(),
-          onOpenSummary: () async {
-            await Navigator.of(bookContext).pushNamed(AppRoutes.tutorialReview);
+          onOpenSummary: (lesson) async {
+            if (lesson == BookLesson.rules) {
+              await Navigator.of(bookContext)
+                  .pushNamed(AppRoutes.tutorialReview);
+              return;
+            }
+            await Navigator.of(bookContext).push(
+              WorldJourneyRoute(
+                settings: const RouteSettings(name: AppRoutes.notesReview),
+                reduceMotion: MediaQuery.disableAnimationsOf(bookContext),
+                builder: (lessonContext) => NotesTutorialScreen(
+                  repository: _repository,
+                  replay: true,
+                  onFinished: () async => Navigator.of(lessonContext).pop(),
+                ),
+              ),
+            );
           },
         ),
       );

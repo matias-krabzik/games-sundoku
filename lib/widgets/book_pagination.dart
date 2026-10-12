@@ -82,6 +82,7 @@ double bookTextHeight(
 /// Keeps the editorial sheets intact and adds continuation leaves only as needed.
 /// Each heading is printed once; resizing anchors to the current text position.
 List<BookLeaf> paginateBook({
+  List<BookSection> sections = bookSections,
   required double width,
   required double height,
   required bool large,
@@ -93,8 +94,8 @@ List<BookLeaf> paginateBook({
   double measure(String text, TextStyle style) =>
       bookTextHeight(text, style, width, scaler, direction);
 
-  for (var section = 0; section < bookSections.length; section++) {
-    final blocks = bookSections[section].blocks;
+  for (var section = 0; section < sections.length; section++) {
+    final blocks = sections[section].blocks;
     var block = 0;
     var offset = 0;
     while (block < blocks.length) {

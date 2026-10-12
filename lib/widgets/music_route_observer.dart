@@ -17,7 +17,8 @@ class MusicRouteObserver extends NavigatorObserver {
     AppRoutes.home || AppRoutes.quickPlay => MusicScene.home,
     AppRoutes.worlds ||
     AppRoutes.map ||
-    AppRoutes.tutorialReview => MusicScene.map,
+    AppRoutes.tutorialReview ||
+    AppRoutes.notesReview => MusicScene.map,
     AppRoutes.game || AppRoutes.firstExperience => MusicScene.game,
     _ => null,
   };

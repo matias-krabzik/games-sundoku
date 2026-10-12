@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sundoku/app.dart';
 import 'package:sundoku/data/services/game_feedback.dart';
+import 'package:sundoku/data/tutorial_book.dart';
 import 'package:sundoku/screens/first_experience_screen.dart';
 import 'package:sundoku/screens/map_screen.dart';
+import 'package:sundoku/screens/notes_tutorial_screen.dart';
 import 'package:sundoku/widgets/solara_book.dart';
 
 import 'support/world3_baseline.dart';
@@ -90,6 +92,21 @@ void main() {
           expect(find.byType(SolaraBook), findsOneWidget);
           expect(bookPageCounter(tester), savedPage);
           expect(repo.state.toJson(), saved);
+          if (completedWorlds > 0) {
+            await openBookSummary(tester, lesson: BookLesson.notes);
+            final notesPage = bookPageCounter(tester);
+            await tap(tester, 'book-summary');
+            expect(
+              tester
+                  .widget<NotesTutorialScreen>(find.byType(NotesTutorialScreen))
+                  .replay,
+              isTrue,
+            );
+            await tap(tester, 'notes-lesson-skip');
+            expect(find.byType(SolaraBook), findsOneWidget);
+            expect(bookPageCounter(tester), notesPage);
+            expect(repo.state.toJson(), saved);
+          }
           await tap(tester, 'book-exit');
           expect(find.byType(SolaraBook), findsNothing);
           expect(find.byType(MapScreen), findsOneWidget);

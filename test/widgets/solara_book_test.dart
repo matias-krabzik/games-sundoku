@@ -81,7 +81,7 @@ void main() {
                 child: ColoredBox(
                   color: const Color(0xFF263848),
                   child: SolaraBook(
-                    onOpenSummary: () async => opened++,
+                    onOpenSummary: (_) async => opened++,
                     onClose: () => closed = true,
                   ),
                 ),
@@ -143,7 +143,7 @@ void main() {
               size: size,
               child: SolaraBook(
                 key: capture,
-                onOpenSummary: () async {},
+                onOpenSummary: (_) async {},
                 onClose: () {},
               ),
             ),
