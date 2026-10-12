@@ -8,10 +8,9 @@ import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'controllers/first_experience_controller.dart';
 import 'data/level_progress.dart';
+import 'widgets/book_resources.dart';
+import 'widgets/solara_book.dart';
 import 'screens/notes_tutorial_screen.dart';
-import 'widgets/home_art.dart';
-import 'widgets/settings_art.dart';
-import 'widgets/illustrated_action_button.dart';
 import 'data/repositories/game_repository.dart';
 import 'data/services/game_feedback.dart';
 import 'data/services/device_game_feedback.dart';
@@ -85,6 +84,8 @@ class _SunDokuAppState extends State<SunDokuApp> {
   bool _openingQuickPlay = false;
   bool _switchingWorld = false;
   bool _welcomeChecked = false;
+  bool _openingBook = false;
+  late final _bookResources = BookResources();
 
   bool get _hasStarted {
     final introduction =
@@ -297,7 +298,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
           ? () => _switchWorld(context, 'world-3')
           : null,
       onReturn: () => showNotesUnlock(context, _repository),
-      onViewTutorial: () => unawaited(_agenda(context)),
+      onViewTutorial: () => unawaited(_openTutorialBook(context)),
       onOpenIntroduction: worldId == 'world-1'
           ? () => Navigator.of(context).pushNamed(AppRoutes.firstExperience)
           : null,
@@ -454,106 +455,51 @@ class _SunDokuAppState extends State<SunDokuApp> {
     }
   }
 
-  Future<void> _agenda(BuildContext context) async {
-    if (!_repository.forestUnlocked) {
-      await Navigator.of(context).pushNamed(AppRoutes.tutorialReview);
-      return;
+  Future<void> _warmTutorialBook(BuildContext context) async {
+    try {
+      await _bookResources.prepare(context);
+    } catch (_) {
+      // Opening the book retries a failed background load and reports it.
     }
-    final lesson = await showDialog<String>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: SettingsPanelSurface(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Tu cuaderno', style: homeText(28)),
-                          const SizedBox(height: 16),
-                          IllustratedActionButton(
-                            label: 'Las reglas',
-                            fontSize: 22,
-                            compact: true,
-                            onPressed: () => Navigator.pop(context, 'rules'),
-                          ),
-                          const SizedBox(height: 12),
-                          IllustratedActionButton(
-                            label: 'Las anotaciones',
-                            fontSize: 22,
-                            compact: true,
-                            onPressed: () => Navigator.pop(context, 'notes'),
-                          ),
-                          if (_repository.isWorldUnlocked('world-3')) ...[
-                            const SizedBox(height: 12),
-                            IllustratedActionButton(
-                              label: 'Los desafíos',
-                              fontSize: 22,
-                              compact: true,
-                              onPressed: () =>
-                                  Navigator.pop(context, 'challenges'),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cerrar'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    if (lesson == null || !context.mounted) return;
-    if (lesson == 'challenges') {
-      await Navigator.of(context).push(
-        WorldJourneyRoute(
-          settings: const RouteSettings(name: AppRoutes.challengeIntroduction),
-          reduceMotion: MediaQuery.disableAnimationsOf(context),
-          builder: (context) => ChallengeTutorialScreen(
-            repository: _repository,
-            replay: true,
-            onFinished: () async {
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
-      );
-      return;
-    }
-    if (lesson == 'rules') {
-      await Navigator.of(context).pushNamed(AppRoutes.tutorialReview);
-      return;
-    }
-    await Navigator.of(context).push(
-      WorldJourneyRoute(
-        settings: const RouteSettings(name: AppRoutes.tutorialReview),
-        reduceMotion: MediaQuery.disableAnimationsOf(context),
-        builder: (context) => NotesTutorialScreen(
-          repository: _repository,
-          replay: true,
-          onFinished: () async {
-            Navigator.of(context).pop();
+  }
+
+  Future<void> _openTutorialBook(BuildContext context) async {
+    if (_openingBook) return;
+    _openingBook = true;
+    final sourceRoute = ModalRoute.of(context);
+    try {
+      await _bookResources.prepare(context);
+      if (!mounted || !context.mounted || sourceRoute?.isCurrent == false) {
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        routeSettings: const RouteSettings(name: AppRoutes.tutorialBook),
+        barrierColor: const Color(0x990B1524),
+        builder: (bookContext) => SolaraBook(
+          key: const ValueKey('tutorial-book'),
+          onClose: () => Navigator.of(bookContext).pop(),
+          onOpenSummary: () async {
+            await Navigator.of(bookContext).pushNamed(AppRoutes.tutorialReview);
           },
         ),
-      ),
-    );
+      );
+    } catch (_) {
+      if (mounted && context.mounted && sourceRoute?.isCurrent != false) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos cargar el libro. Intenta de nuevo.'),
+          ),
+        );
+      }
+    } finally {
+      _openingBook = false;
+    }
   }
 
   @override
   void dispose() {
+    _bookResources.dispose();
     _progress.dispose();
     _forestProgress.dispose();
     _riverProgress.dispose();
@@ -620,6 +566,7 @@ class _SunDokuAppState extends State<SunDokuApp> {
                 onQuickPlayCelebrated: () =>
                     unawaited(_quickPlayCelebrated(context)),
                 onReady: (homeContext) {
+                  unawaited(_warmTutorialBook(homeContext));
                   widget.onHomeReady?.call();
                   unawaited(_welcome(homeContext));
                 },

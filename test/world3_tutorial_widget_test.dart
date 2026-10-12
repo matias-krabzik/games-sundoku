@@ -1,4 +1,5 @@
 import 'support/world_selection.dart';
+import 'support/tutorial_book.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -506,19 +507,19 @@ void main() {
         tester.widget<MapScreen>(find.byType(MapScreen)).onViewTutorial!();
         await frames(tester, 500);
         expect(tester.takeException(), isNull);
-        await tester.ensureVisible(find.text('Los desafíos'));
-        await tester.tap(find.text('Los desafíos'));
+        await openBookSummary(tester);
+        final savedPage = bookPageCounter(tester);
+        await tester.tap(find.byKey(const ValueKey('book-summary')));
         await frames(tester, 1000);
         expect(
           tester
-              .widget<ChallengeTutorialScreen>(
-                find.byType(ChallengeTutorialScreen),
-              )
-              .replay,
+              .widget<FirstExperienceScreen>(find.byType(FirstExperienceScreen))
+              .reviewOnly,
           true,
         );
-        await tester.tap(find.byKey(const ValueKey('challenge-lesson-skip')));
+        await tester.tap(find.byKey(const ValueKey('tutorial-skip')));
         await frames(tester, 1000);
+        expect(bookPageCounter(tester), savedPage);
         expect(repo.state.toJson(), saved);
         await tester.pumpWidget(const SizedBox());
         await repo.close();

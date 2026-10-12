@@ -7,6 +7,7 @@ import 'nine_slice_art.dart';
 
 /// Reusable skins, never one image per button or screen.
 enum UiSurface {
+  solaraBook,
   adventureRibbon,
   adventurePlaque,
   worldFooter,
@@ -50,6 +51,13 @@ class UiSurfaceSpec {
 
 extension UiSurfaceCatalog on UiSurface {
   UiSurfaceSpec get spec => switch (this) {
+    UiSurface.solaraBook => const UiSurfaceSpec(
+      'assets/images/tutorial/solara-book.png',
+      Size(1024, 1536),
+      Rect.fromLTRB(.018, .038, .985, .98),
+      Rect.fromLTRB(.28, .23, .75, .74),
+      Size(390, 585),
+    ),
     UiSurface.adventureRibbon => const UiSurfaceSpec(
       'assets/images/world-selection/aventura-ribbon.png',
       Size(2172, 724),
@@ -232,7 +240,15 @@ class UiSurfaceArt extends StatelessWidget {
           bounds.maxHeight,
         );
       }
-      final art = surface == UiSurface.mapProgressFill
+      // Short yellow actions keep their full upper/lower bevel in each strip.
+      // Avoid subdividing it vertically when the artwork has its normal height:
+      // the tiny center on labels such as "Salir" can expose nine-patch seams.
+      final horizontalOnly =
+          surface == UiSurface.mapProgressFill ||
+          surface == UiSurface.goldButton &&
+              bounds.maxWidth < reference.width &&
+              (bounds.maxHeight - reference.height).abs() < .001;
+      final art = horizontalOnly
           ? HorizontalSliceArt(
               asset: spec.asset,
               region: spec.region,

@@ -101,9 +101,21 @@ flutter:
     - assets/audio/sfx/gate/sparkle.wav
     - assets/audio/sfx/win/mixkit-completion-of-a-level-2063.wav
     - assets/fonts/OFL-Baloo2.txt
+    - assets/fonts/OFL-LibreBaskerville.txt
+    - assets/fonts/OFL-EBGaramond.txt
+    - assets/fonts/OFL-IMFellEnglish.txt
     - assets/licenses/
 
   fonts:
+    - family: EBGaramond
+      fonts:
+        - asset: assets/fonts/EBGaramond-Variable.ttf
+    - family: IMFellEnglish
+      fonts:
+        - asset: assets/fonts/IMFellEnglish-Regular.ttf
+    - family: LibreBaskerville
+      fonts:
+        - asset: assets/fonts/LibreBaskerville-Variable.ttf
     - family: Baloo2
       fonts:
         - asset: assets/fonts/Baloo2-Variable.ttf

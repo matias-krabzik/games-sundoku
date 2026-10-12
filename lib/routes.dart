@@ -12,5 +12,6 @@ class AppRoutes {
   static const String game = '/game';
   static const String quickPlay = '/quick-play';
   static const String tutorialReview = '/level-1/tutorial-review';
+  static const String tutorialBook = '/tutorial-book';
   static const String firstExperience = '/level-1/introduction';
 }

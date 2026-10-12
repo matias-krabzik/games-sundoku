@@ -37,6 +37,16 @@ Future<void> showLicensesMenu(BuildContext context) => _showLicenseDialog(
             child: const _AudioLicenses(),
           ),
         ),
+        const SizedBox(height: 14),
+        _LicenseChoice(
+          label: 'Arte y texturas',
+          description: 'Recursos visuales y condiciones de uso',
+          onPressed: () => _showLicenseDialog(
+            context,
+            title: 'Arte y texturas',
+            child: const _VisualLicenses(),
+          ),
+        ),
       ],
     ),
   ),
@@ -145,12 +155,38 @@ Future<Map<String, List<LicenseEntry>>> _loadSoftwareLicenses() async {
       (result[package] ??= []).add(entry);
     }
   }
-  final fontLicense = await rootBundle.loadString(
-    'assets/fonts/OFL-Baloo2.txt',
-  );
-  result['Baloo 2'] = [
-    LicenseEntryWithLineBreaks(['Baloo 2'], fontLicense),
-  ];
+  for (final (name, asset, author, source) in [
+    ('Baloo 2', 'assets/fonts/OFL-Baloo2.txt', 'Ek Type', 'baloo2'),
+    (
+      'Libre Baskerville',
+      'assets/fonts/OFL-LibreBaskerville.txt',
+      'The Libre Baskerville Project Authors',
+      'librebaskerville',
+    ),
+    (
+      'EB Garamond',
+      'assets/fonts/OFL-EBGaramond.txt',
+      'Georg Duffner y Octavio Pardo',
+      'ebgaramond',
+    ),
+    (
+      'IM Fell English',
+      'assets/fonts/OFL-IMFellEnglish.txt',
+      'Igino Marini',
+      'imfellenglish',
+    ),
+  ]) {
+    final license = await rootBundle.loadString(asset);
+    result[name] = [
+      LicenseEntryWithLineBreaks(
+        [name],
+        '$name\n$author\n'
+        'Fuente: https://github.com/google/fonts/tree/main/ofl/$source\n\n'
+        'SIL Open Font License 1.1. Permite incluir la fuente en software '
+        'comercial, conservando el copyright y esta licencia.\n\n$license',
+      ),
+    ];
+  }
   return result;
 }
 
@@ -256,6 +292,57 @@ class _AudioLicenses extends StatelessWidget {
         ),
       );
     },
+  );
+}
+
+class _VisualLicenses extends StatelessWidget {
+  const _VisualLicenses();
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: UiSurfacePanel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Paper 156', style: homeText(23)),
+          const SizedBox(height: 8),
+          SelectableText('Texturelabs.org', style: homeText(19)),
+          const SizedBox(height: 12),
+          SelectableText(
+            'Textura de papel utilizada en el Libro de Solara y en el acabado '
+            'de su tinta. Se integra en la interfaz del videojuego.',
+            style: _bodyStyle,
+          ),
+          const SizedBox(height: 12),
+          SelectableText(
+            'Permite el uso en videojuegos de pago. El recurso conserva '
+            'los derechos de Texturelabs y no puede redistribuirse como '
+            'textura independiente ni como recurso para diseño.',
+            style: _bodyStyle,
+          ),
+          const ExternalLinkButton(
+            label: 'Fuente: Texturelabs',
+            url: 'https://texturelabs.org/textures/paper_156/',
+          ),
+          const SizedBox(height: 14),
+          IllustratedActionButton(
+            label: 'Ver condiciones',
+            fontSize: 20,
+            compact: true,
+            showPlayIcon: false,
+            onPressed: () => _showLicenseDialog(
+              context,
+              title: 'Texturelabs · Paper 156',
+              child: const _LicenseAsset(
+                asset: 'assets/licenses/Texturelabs-Paper156.txt',
+                licenseUrl: 'https://texturelabs.org/terms/',
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }
 

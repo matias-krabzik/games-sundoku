@@ -1,4 +1,5 @@
 import 'support/world_selection.dart';
+import 'support/tutorial_book.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -250,9 +251,13 @@ void main() {
     addTearDown(repository.dispose);
     _configure(tester, size: const Size(320, 568));
     await _openFromHome(tester, repository);
-    expect(repository.state.modules[FirstExperienceController.moduleKey], {
-      'homeIntroductionShown': true,
-    });
+    final initialTutorial =
+        repository.state.modules[FirstExperienceController.moduleKey] as Map;
+    expect(initialTutorial['step'], 'blockIntroduction');
+    expect(
+      initialTutorial['cells'],
+      unorderedEquals(List.generate(9, (i) => i + 1)),
+    );
     expect(find.byKey(const ValueKey('tutorial-skip')), findsOneWidget);
     Navigator.of(tester.element(find.byType(FirstExperienceScreen))).pop();
     await _settle(tester);
@@ -280,6 +285,8 @@ void main() {
     expect(find.byType(FirstExperienceScreen), findsNothing);
     final saved = repository.state.modules[FirstExperienceController.moduleKey];
     await _tap(tester, review);
+    await openBookSummary(tester);
+    await _tap(tester, find.byKey(const ValueKey('book-summary')));
     final skip = find.byKey(const ValueKey('tutorial-skip'));
     expect(skip, findsOneWidget);
     final next = _continue.evaluate().isNotEmpty ? _continue : _startBlock;
@@ -290,20 +297,26 @@ void main() {
     );
     await _tap(tester, skip);
     expect(find.byType(MapScreen), findsOneWidget);
+    await _tap(tester, find.byKey(const ValueKey('book-exit')));
     await _tap(tester, review);
+    await openBookSummary(tester);
+    await _tap(tester, find.byKey(const ValueKey('book-summary')));
     expect(
       tester
           .widget<FirstExperienceScreen>(find.byType(FirstExperienceScreen))
           .reviewOnly,
       true,
     );
-    await _tap(tester, _continue);
     expect(find.byKey(const ValueKey('tutorial-choose-order')), findsNothing);
-    for (var i = 0; i < 5; i++) {
+    for (
+      var i = 0;
+      i < 24 && find.text('Terminar repaso').evaluate().isEmpty;
+      i++
+    ) {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await _settle(tester);
     }
-    expect(find.text('Volver al mapa'), findsOneWidget);
+    expect(find.text('Terminar repaso'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await _settle(tester);
     expect(find.byType(MapScreen), findsOneWidget);

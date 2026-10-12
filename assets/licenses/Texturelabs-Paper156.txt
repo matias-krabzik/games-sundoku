@@ -1,0 +1,28 @@
+TEXTURELABS — PAPER 156
+
+Autor y titular de derechos: Texturelabs.org
+Recurso: Paper 156 — Tileable clean paper
+Fuente: https://texturelabs.org/textures/paper_156/
+Condiciones oficiales: https://texturelabs.org/terms/
+Condiciones consultadas: 12 de octubre de 2026
+
+Uso en SunDoku: textura de fibra para la página del Libro de Solara y
+variación de densidad de la tinta, compuestas en Flutter. El recurso se
+integra en la interfaz del videojuego.
+
+RESUMEN DE LAS CONDICIONES PARA TEXTURAS
+
+Texturelabs permite el uso personal y comercial, incluidas escenas, menús
+y niveles de videojuegos vendidos como producto final. No exige atribución;
+SunDoku la incluye voluntariamente.
+
+La textura conserva los derechos de Texturelabs. No puede revenderse,
+compartirse, sublicenciarse ni redistribuirse como recurso independiente,
+paquete de texturas, imagen de stock o producto competidor. Tampoco puede
+usarse para crear plantillas o recursos para herramientas de diseño ni
+distribuirse con programas gráficos o motores 3D.
+
+No está permitido utilizar sus recursos para entrenar o asistir modelos
+o algoritmos de generación de imágenes con inteligencia artificial.
+
+Este resumen informativo no sustituye los términos oficiales enlazados.

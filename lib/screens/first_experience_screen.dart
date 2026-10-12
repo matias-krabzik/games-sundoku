@@ -870,11 +870,12 @@ class _FirstExperienceScreenState extends State<FirstExperienceScreen>
 
     return PopScope(
       canPop:
-          (_developerExiting ||
-              _welcome ||
-              _flow.session != null ||
-              _flow.step.index > FirstExperienceStep.expansion.index) &&
-          !_navigationBlocked,
+          _flow.reviewOnly ||
+          ((_developerExiting ||
+                  _welcome ||
+                  _flow.session != null ||
+                  _flow.step.index > FirstExperienceStep.expansion.index) &&
+              !_navigationBlocked),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && !_navigationBlocked && !_welcome) _back();
       },

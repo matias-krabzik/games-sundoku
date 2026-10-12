@@ -145,7 +145,7 @@ class TutorialJourney extends StatelessWidget {
 
   String get _action =>
       flow.reviewOnly && flow.storyIndex == flow.storyCount - 1
-      ? 'Volver al mapa'
+      ? 'Terminar repaso'
       : flow.lesson?.action ??
             switch (flow.step) {
               FirstExperienceStep.gameIntroduction => 'Ver las pistas',
